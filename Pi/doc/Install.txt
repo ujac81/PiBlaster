@@ -1,0 +1,63 @@
+
+
+
+1.) Installation
+
+  1.1) Download NOOBS Image
+
+  1.2) Partition SD with FAT32
+
+  1.3) Format Partition FAT32
+
+  1.4) Copy content of NOOBS Image to SD
+
+  1.5) Place a config.txt on SD with:
+
+    boot_delay=1
+
+  1.6) Put SD into PI and start it
+
+  1.7) Select Raspbian
+
+  1.8) Wait until SD image is unpacked
+
+  1.9) Put back SD into PC
+    Edit /boot/config.txt:
+
+    hdmi_safe=1
+    boot_delay=1
+
+  1.10) 1st start of raspbian
+    Change hostname
+    Change Password
+    Add locales
+    Enable SSH
+
+  1.11) Post install
+    Login, username is `pi'
+
+    $ sudo aptitude update
+    $ sudo aptitude upgrade
+    $ sudo aptitude install vim udev usbmount
+
+
+
+2.) Packages python3
+
+  --> doesn't work currently, self compiled pygame does not play mp3 files! <--
+
+  1.1) pygame for python 3
+
+    Packages:
+     $ sudo aptitude install libjpeg-dev libpng12-dev libportmidi-dev libsdl-image1.2-dev libsdl-mixer1.2-dev libsdl-ttf2.0-dev libsdl1.2-dev libsmpeg-dev python3-all-dev python3-numpy sharutils
+   Pygame:
+
+     Download from https://bitbucket.org/pygame/pygame
+
+       $ unzip ....
+
+
+3.) Packages python2
+
+
+
