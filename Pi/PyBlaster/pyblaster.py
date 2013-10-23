@@ -12,7 +12,7 @@ from usbmanager import UsbManager
 from settings import Settings
 from dbhandle import DBHandle
 from rfcommserver import RFCommServer
-
+from evalcmd import EvalCmd
 
 import sys, os, time, signal
 
@@ -35,6 +35,7 @@ class PyBlaster:
     self.dbhandle     = DBHandle(self)
     self.usb          = UsbManager(self)
     self.rfcomm       = RFCommServer(self)
+    self.cmd          = EvalCmd(self)
 
     self.led.reset_leds()
 
@@ -46,6 +47,9 @@ class PyBlaster:
 
     # load connected usb before bluetooth
     self.usb.check_new_usb()
+
+    # open cmd fifo to read commands
+    self.cmd.open_fifo()
 
     # fire up bluetooth service
     self.rfcomm.start_server()
@@ -72,19 +76,28 @@ class PyBlaster:
     """
     """
 
-    poll_count = 0
+    # expensive operations like new usb drive check should not be run every loop run
+    poll_count    = 0
+
+    # -e flag set, run only init and exit directly
     self.keep_run = 0 if self.settings.exitafterinit else 1
+
 
     reset_poll_count = self.settings.keep_alive_count * self.settings.usb_count
 
-    while self.keep_run:
+    # # # # # # DAEMON LOOP ENTRY # # # # # #
 
-      # check bluetooth channel
-      self.rfcomm.read_socket()
+    while self.keep_run:
 
       poll_count += 1
 
-      time.sleep(self.settings.polltime / 1000.)
+      # check cmd fifo for new commands
+      self.cmd.read_fifo()
+
+      # check bluetooth channel for new messages/connections
+      self.rfcomm.read_socket()
+
+      time.sleep(self.settings.polltime / 1000.) # 30ms default in config
 
       # keep alive led
       if poll_count % self.settings.keep_alive_count == 0:
@@ -102,7 +115,9 @@ class PyBlaster:
       if poll_count >= reset_poll_count:
         poll_count = 0
 
-    # end daemon loop
+      # end daemon loop
+
+    # # # # # # DAEMON LOOP EXIT # # # # # #
 
     self.log.write(log.MESSAGE, "---- closed regularly ----")
 

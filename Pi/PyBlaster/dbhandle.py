@@ -7,7 +7,7 @@
 import log
 import sqlite3
 
-DBVERSION = 6
+DBVERSION = 7
 
 
 class DBHandle:
@@ -43,7 +43,7 @@ class DBHandle:
 
     self.cur.execute("SELECT name FROM sqlite_master WHERE type='table';")
 
-    if 'Settings' in self.cur.fetchone():
+    if 'Settings' in self.cur.fetchall()[0]:
       self.cur.execute("SELECT value FROM Settings WHERE key='version';")
       if self.cur.fetchone()[0] == str(DBVERSION):
         self.parent.log.write(log.MESSAGE, "Found valid version %d in database." % DBVERSION)
@@ -69,10 +69,11 @@ class DBHandle:
        DROP TABLE IF EXISTS Usbdevs;
        DROP TABLE IF EXISTS Dirs;
        DROP TABLE IF EXISTS Fileentries;
+       DROP TABLE IF EXISTS Dummies;
        CREATE TABLE Settings(id INT, key TEXT, value TEXT);
        CREATE TABLE Usbdevs(id INT, UUID TEXT, md5 TEXT, scanok INT);
        CREATE TABLE Dirs(id INT, parentid INT, usbid INT, dirname TEXT);
-       CREATE TABLE Fileentries(id INT, dirid INT, usbid INT, path TEXT, filename TEXT, extension TEXT, genre TEXT, year INT, title TEXT, album TEXT, artist TEXT);""")
+       CREATE TABLE Fileentries(id INT, dirid INT, usbid INT, path TEXT, filename TEXT, extension TEXT, genre TEXT, year INT, title TEXT, album TEXT, artist TEXT, time INT);""")
     self.con.commit()
 
     settings = [(1, "version", "%d" % DBVERSION)]
@@ -83,8 +84,36 @@ class DBHandle:
   def cleandb(self):
     """
     """
+    # collect all storage ids which did not finish their scan
+    remove_stors = []
+    for row in self.cur.execute("SELECT id FROM Usbdevs WHERE scanok=0;"):
+      remove_stors.append(row[0])
 
-    # TODO: Scan for non-ok usbdevs and for dir/file entries without valid usbdev and remove them
+    # drop all entries for failed scans
+    for storid in remove_stors:
+      self.parent.log.write(log.MESSAGE, "Removing broken entries for storage %d from database..." % storid)
+      self.cur.execute('DELETE FROM Fileentries WHERE usbid=?', (storid, ))
+      self.cur.execute('DELETE FROM Dirs WHERE usbid=?', (storid, ))
+      self.cur.execute('DELETE FROM Usbdevs WHERE id=?', (storid, ))
+      self.con.commit()
+
+    # generate list of valid storage ids
+    valid_stors = []
+    for row in self.cur.execute("SELECT id FROM Usbdevs WHERE scanok=1;"):
+      valid_stors.append(str(row[0]))
+
+    if len(valid_stors) == 0:
+      # if no valid_stors, drop all
+      self.cur.execute('DELETE FROM Fileentries')
+      self.cur.execute('DELETE FROM Dirs')
+      self.con.commit()
+    else:
+      # drop all entries that have no valid storage id
+      valid_list = ','.join(valid_stors)
+      #TODO  this somehow does not work -- should remove entries without valid storage id, but kills too much...
+      #self.cur.execute('DELETE FROM Fileentries WHERE usbid NOT IN (?)', (valid_list, ))
+      #self.cur.execute('DELETE FROM Dirs WHERE usbid NOT IN (?)', (valid_list, ))
+      #self.con.commit()
 
 
 
@@ -122,6 +151,10 @@ class DBHandle:
 
     self.parent.log.write(log.MESSAGE, "Dropping outdated or incomplete dir/file data for usb device #%d" % usbdevid)
 
+    self.cur.execute('DELETE FROM Fileentries WHERE usbid=?', (usbdevid, ))
+    self.cur.execute('DELETE FROM Dirs WHERE usbid=?', (usbdevid, ))
+    self.con.commit()
+
     # end drop_changed_usbdev() #
 
 
@@ -156,4 +189,12 @@ class DBHandle:
     """
     self.cur.execute("UPDATE Usbdevs SET scanok=1 WHERE id=?", (usbdevid,))
     self.con.commit()
+
+
+  def invalidate_md5(self, usbdevid):
+    """ Destroy md5 hash for device to enforce rescanning
+    """
+    self.cur.execute("UPDATE Usbdevs SET md5=? WHERE id=?", ("xxx", usbdevid,))
+    self.con.commit()
+
 

@@ -5,6 +5,8 @@
 """
 
 from ID3 import *
+#import mad
+from mutagen.mp3 import MP3
 import os
 
 
@@ -18,6 +20,7 @@ class FileEntry:
     self.path         = path
     self.valid        = 1
     self.file_id      = file_id   # [storage_id, dir_id, file_id]
+    self.length       = 0
 
     if dbrebuild: return
 
@@ -46,6 +49,11 @@ class FileEntry:
     except InvalidTagError, message:
       self.valid = 0
 
+    #mf = mad.MadFile(path)
+    #self.length = mf.total_time()
+    audio = MP3(path)
+    self.length = int(audio.info.length*1000)
+
 
     self.fix_all_encodings()
 
@@ -59,16 +67,6 @@ class FileEntry:
       inputstr = unicode(inputstr)
     except UnicodeDecodeError:
       inputstr = inputstr.decode('latin-1')
-
-    #try:
-      #in2 = inputstr.encode('utf-8')
-    #except UnicodeEncodeError:
-      #inputstr = self.filename
-
-    #try:
-      #inputstr = inputstr.encode('latin-1')
-    #except UnicodeEncodeError:
-      #inputstr = self.filename
 
     return inputstr
 
@@ -85,4 +83,4 @@ class FileEntry:
   def print_file(self):
     """Do not use __str__ as it will fuck up on strange unicode chars
     """
-    print("[%d,%d,%d] %s - %s - %s (%s, %d)" % (self.file_id[0], self.file_id[1], self.file_id[2], self.ARTIST, self.ALBUM, self.TITLE, self.GENRE, self.YEAR))
+    print("[%d,%d,%d] %s - %s - %s (%s, %d) %d" % (self.file_id[0], self.file_id[1], self.file_id[2], self.ARTIST, self.ALBUM, self.TITLE, self.GENRE, self.YEAR, self.length))

@@ -26,14 +26,17 @@ class Settings:
     self.exitafterinit    = False
     self.rebuilddb        = False
     self.loglevel         = log.DEBUG3
-    self.pidifile         = "/tmp/pyblaster.pid"
-    self.configfile       = "~/.pyblaster.conf"
-    self.logfile          = "/tmp/pyblaster.log"
+    self.pidifile         = "/var/run/pyblaster.pid"
+    self.fifoin           = None
+    self.fifoout          = None
+    self.cmdout           = None
+    self.configfile       = "/etc/pyblaster.conf"
+    self.logfile          = "/var/log/pyblaster.log"
     self.polltime         = 30                    # daemon poll time in ms
     self.flash_count      = 2                     # flash activity LED n poll
     self.keep_alive_count = 20                    # let activity LED flash every n polls
     self.usb_count        = 30                    # check usb drives every n polls
-    self.dbfile           = "~/.pyblaster.sqlite" # database file for device and playlist storage
+    self.dbfile           = "/var/lib/pyblaster/pyblaster.sqlite" # database file for device and playlist storage
 
 
   def parse(self):
@@ -98,9 +101,9 @@ class Settings:
 
 loglevel 8
 
-logfile /tmp/pyblaster.log
+logfile /var/log/pyblaster.log
 
-pidfile /tmp/pyblaster.pid
+pidfile /var/run/pyblaster.pid
 
 
 ####################################
@@ -118,10 +121,26 @@ keep_alive_count 20
 
 
 ####################################
+# command
+####################################
+
+# input fifo -- comment out to disable
+
+fifoin  /var/lib/pyblaster/pyblaster.cmd
+
+# output stream -- recreated on launch, comment out to disable
+# The output fifo should only be used, if any application reads this data
+# fifoout /var/lib/pyblaster/pyblaster.out
+
+# cmd output stream as simple file, no pipe or other stuff, overwritten on start
+cmdout  /var/lib/pyblaster/pyblastercmd.log
+
+
+####################################
 # Database
 ####################################
 
-dbfile /root/.pyblaster.sqlite
+dbfile /var/lib/pyblaster/pyblaster.sqlite
 
 
 """
@@ -169,6 +188,9 @@ dbfile /root/.pyblaster.sqlite
         if key == "flash_count":      self.flash_count      = int(val)
         if key == "keep_alive_count": self.keep_alive_count = int(val)
         if key == "dbfile":           self.dbfile           = os.path.expanduser(val)
+        if key == "fifoin":           self.fifoin           = os.path.expanduser(val)
+        if key == "fifoout":          self.fifoout          = os.path.expanduser(val)
+        if key == "cmdout":           self.cmdout           = os.path.expanduser(val)
 
       except ValueError:
         self.parent.log.write(log.EMERGENCY, "Failed to convert %s for key %s in config" % ( val, key ) )

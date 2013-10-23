@@ -105,7 +105,7 @@ class UsbManager:
         self.parent.log.write(log.DEBUG1, "[USBMANAGER] delete usbdev id %d for %s " % (self.usbdevs[i].storid, mnt_pnt))
         self.usbdevs[i].release()
 
-        # remove from list in main
+        # remove from lists
         del self.alldevs[self.usbdevs[i].storid]
         del self.usbdevs[i]
 
@@ -119,7 +119,9 @@ class UsbManager:
 
 
   def get_dev_by_strid(self, strid):
-    """
+    """ Save get usbdevice instance from storage id string
+
+    Returns None if bad string or if no such storage
     """
     if not strid: return None
 
@@ -133,6 +135,29 @@ class UsbManager:
     if not storid in self.alldevs: return None
 
     return self.alldevs[storid]
+
+    # end get_dev_by_strid() #
+
+
+  def rescan_usb_stor(self, strid):
+    """Drop USB device, drop all DB entries for this device and rescan it
+
+    return 0: no such dev
+    return 1: device rescaned
+    """
+
+    usbdev = self.get_dev_by_strid(strid)
+    if not usbdev: return 0
+
+    mnt_pnt = usbdev.mnt_pnt
+    devid   = usbdev.storid
+    self.remove_usb_stor(usbdev.mnt_pnt)
+    self.parent.dbhandle.invalidate_md5(devid)
+    self.new_usb_stor(mnt_pnt)
+
+    return 1
+
+    # end rescan_usb_stor() #
 
 
 

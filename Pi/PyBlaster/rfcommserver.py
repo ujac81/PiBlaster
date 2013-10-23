@@ -8,6 +8,7 @@ To enable visible server do
 import bluetooth
 
 import log
+import evalcmd
 
 
 NOTCONNECTED = 0
@@ -128,13 +129,23 @@ class RFCommServer:
     self.parent.log.write(log.MESSAGE, "Closed connection.")
     self.start_server()
 
-  def send_client(self, message_list):
+  def send_client(self, status, msg, res_list):
     """
+    Send data package
+
+      - result code from evalcmd
+      - confirm message
+      - number of result lines
+      - lines
+      - lines
+      ...
+      - lines
     """
     # TODO timeout mechanism
+    self.client_sock.send(str(status))
+    self.client_sock.send(msg)
     self.client_sock.send(str(len(message_list)))
     for line in message_list:
-      self.parent.log.write(log.DEBUG1, "DEBUG send: %s" % line)
       self.client_sock.send(line)
 
     # end send_client() #
@@ -143,50 +154,13 @@ class RFCommServer:
   def read_command(self, cmd):
     """
     """
-    self.parent.log.write(log.MESSAGE, "Read cmd: %s" % cmd)
+    self.nowpolls = 0
 
-    if cmd.startswith("lsalldirs"):
-      line = cmd.split()
-      if len(line) != 2:
-        self.send_client(["ERROR lsalldirs needs 1 arg"])
-      else:
-        stor = self.parent.usb.get_dev_by_strid(line[1])
-        if not stor:
-          self.send_client(["ERROR illegal storage id"])
-        else:
-          ls = stor.list_all_dirs()
-          self.send_client(ls)
+    status, msg, res_list = self.parent.cmd.evalcmd(cmd, 'rfcomm')
+    self.send_client(status, msg, res_list)
 
-    elif cmd.startswith("lsdirs"):
-      line = cmd.split()
-      if len(line) != 3:
-        self.send_client(["ERROR lsdirs needs 2 args"])
-      else:
-        stor = self.parent.usb.get_dev_by_strid(line[1])
-        if not stor:
-          self.send_client(["ERROR illegal storage id"])
-        else:
-          ls = stor.list_dirs(line[2])
-          self.send_client(ls)
-
-    elif cmd == "keepalive":
-      self.send_client(["check."])
-      self.nowpolls = 0
-
-    elif cmd == "quit":
-      self.send_client(["check."])
+    if status == evalcmd.STATUSEXIT:
       self.disconnect()
-
-    elif cmd == "showdevices":
-      devlist = []
-      for dev in self.parent.usb.usbdevs:
-        devlist.append("%d %s" % (dev.storid, dev.label))
-      if not len(devlist): devlist = ["-1 NONE"]
-      self.send_client(devlist)
-
-    else:
-      self.send_client(["ERROR unknown command"])
-
 
     # end read_command() #
 

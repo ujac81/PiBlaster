@@ -92,8 +92,8 @@ class DirEntry:
     files = []
     for f in self.files:
       path = os.path.relpath(f.path, self.root.mnt_pnt)
-      files.append((f.file_id[2], f.file_id[1], f.file_id[0], path, f.filename, f.extension, f.GENRE, f.YEAR, f.TITLE, f.ALBUM, f.ARTIST))
-    self.root.main.dbhandle.cur.executemany('INSERT INTO Fileentries VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', files)
+      files.append((f.file_id[2], f.file_id[1], f.file_id[0], path, f.filename, f.extension, f.GENRE, f.YEAR, f.TITLE, f.ALBUM, f.ARTIST, f.length))
+    self.root.main.dbhandle.cur.executemany('INSERT INTO Fileentries VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', files)
 
     # insert subdirs
     for d in self.dirs:

@@ -28,7 +28,7 @@ class UsbDevice:
     self.label          = None
     self.dev            = None
     self.root_dir_entry = None
-    self.cur_dir_id     = 1     # will be increased will recursion in direntry.init walks through file tree
+    self.cur_dir_id     = 0     # will be increased while recursion in direntry.init walks through file tree
     self.valid          = True
     self.totsubdirs     = 0
     self.totfiles       = 0
@@ -81,7 +81,7 @@ class UsbDevice:
     self.main.log.write(log.MESSAGE, "Got md5 %s for dir structure on USB stick with UUID %s" % (digest, self.uuid))
 
 
-    # check if we know this stick, if yes rebuild from db, otherwise reread it
+    # check if we know this stick, if yes load from db, otherwise scan it
 
     if self.main.dbhandle.add_or_update_usb_stor(self.storid, self.uuid, digest):
       # rebuild dir/file tree from database
@@ -123,6 +123,7 @@ class UsbDevice:
     self.main.log.write(log.MESSAGE, "Lost USB device %s" % self.mnt_pnt)
 
 
+
   def rebuild_from_db(self):
     """ Reinit dirs/files from db
     """
@@ -134,7 +135,8 @@ class UsbDevice:
     self.root_dir_entry = DirEntry(root=self, directory=self.mnt_pnt, dbrebuild=True)
     self.totsubdirs = 1
 
-    dirs = { 1 : self.root_dir_entry }
+    dirs = { 0 : self.root_dir_entry }
+    self.alldirs[0] = self.root_dir_entry
 
     # 1st run to create dirs
 
@@ -165,7 +167,7 @@ class UsbDevice:
     for dirid, direntry in dirs.iteritems():
       for filerow in self.main.dbhandle.cur.execute("SELECT * FROM Fileentries WHERE usbid=? AND dirid=?;", (self.storid, dirid)):
 
-        # 0=id, 1=dirid, 2=usbid, 3=path, 4=filename, 5=extension, 6=genre, 7=year, 8=title, 9=album, 10=artist
+        # 0=id, 1=dirid, 2=usbid, 3=path, 4=filename, 5=extension, 6=genre, 7=year, 8=title, 9=album, 10=artist, 11=length
 
         path = os.path.join(self.mnt_pnt, filerow[3])
         newfile = FileEntry(path, filerow[:3], dbrebuild=True)
@@ -177,6 +179,7 @@ class UsbDevice:
         newfile.TITLE     = filerow[8]
         newfile.ALBUM     = filerow[9]
         newfile.ARTIST    = filerow[10]
+        newfile.length    = filerow[11]
 
         newfile.fix_all_encodings()
         direntry.files.append(newfile)
@@ -195,11 +198,13 @@ class UsbDevice:
 
 
   def list_all_dirs(self):
-    """
+    """called by 'lsalldirs <storid>' command
+
+    returns "||device-id||dir-id||num subdirs||num files||full dir path incl mount point||"
     """
     ret = []
     for key, d in self.alldirs.iteritems():
-      ret.append("%d %d %s" % (d.dirid[0], d.dirid[1], d.directory))
+      ret.append("||%d||%d||%d||%d||%s||" % (d.dirid[0], d.dirid[1], len(d.dirs), len(d.files), d.directory))
     return ret
 
   def list_dirs(self, strdirid):
@@ -218,7 +223,29 @@ class UsbDevice:
 
     ret = []
     for d in self.alldirs[dirid].dirs:
-      ret.append("%d %d %s" % (d.dirid[0], d.dirid[1], d.directory))
+      ret.append("||%d||%d||%d||%d||%s||" % (d.dirid[0], d.dirid[1], len(d.dirs), len(d.files), d.directory))
+    return ret
+
+  # end list_dirs() #
+
+
+  def list_files(self, strdirid):
+    """
+    """
+    if not strdirid: return []
+
+    try:
+      dirid = int(strdirid)
+    except TypeError:
+      return []
+    except ValueError:
+      return []
+
+    if not dirid in self.alldirs: return []
+
+    ret = []
+    for f in self.alldirs[dirid].files:
+      ret.append("||%d||%d||%d||%d||%s||%s||%s||" % (f.file_id[0], f.file_id[1], f.file_id[2], f.length, f.ARTIST, f.ALBUM, f.TITLE))
     return ret
 
   # end list_dirs() #
