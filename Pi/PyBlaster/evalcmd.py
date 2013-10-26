@@ -1,7 +1,7 @@
 """Evaluate commands reveived via RFCOMM or pipe
 """
 
-import os, fcntl, sys
+import os, fcntl, sys, codecs
 
 import log
 
@@ -54,7 +54,7 @@ class EvalCmd:
     if self.parent.settings.cmdout:
       # open cmd out file for debug
       self.parent.log.write(log.MESSAGE, "Opening output file %s..." % self.parent.settings.cmdout)
-      self.cmdout = open(self.parent.settings.cmdout, "a")
+      self.cmdout = codecs.open(self.parent.settings.cmdout, "a", "utf-8")
     # end open_fifo() #
 
 
@@ -85,7 +85,7 @@ class EvalCmd:
     os.write(self.fifoout, "%s\n" % msg)
     os.write(self.fifoout, "%d\n" % len(res_list))
     for line in res_list:
-      os.write(self.fifoout, "%s\n" % line)
+      os.write(self.fifoout, u'%s\n' % line)
 
     os.fsync(self.fifoout)
 
@@ -100,7 +100,7 @@ class EvalCmd:
     self.cmdout.write("%s\n" % msg)
     self.cmdout.write("%d\n" % len(res_list))
     for line in res_list:
-      self.cmdout.write("%s\n" % line)
+      self.cmdout.write(u'%s\n' % line)
 
     self.cmdout.flush()
 

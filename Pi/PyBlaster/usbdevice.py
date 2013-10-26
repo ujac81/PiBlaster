@@ -58,8 +58,8 @@ class UsbDevice:
       if line.startswith(self.dev):
         for item in line.split(' '):
           toks = item.split('=')
-          if toks[0] == "LABEL": self.label = toks[1]
-          if toks[0] == "UUID" : self.uuid  = toks[1]
+          if toks[0] == "LABEL": self.label = toks[1].strip('"')
+          if toks[0] == "UUID" : self.uuid  = toks[1].strip('"')
 
 
     self.storid = self.main.dbhandle.get_usbid(self.uuid)
@@ -181,7 +181,6 @@ class UsbDevice:
         newfile.ARTIST    = filerow[10]
         newfile.length    = filerow[11]
 
-        newfile.fix_all_encodings()
         direntry.files.append(newfile)
 
         self.totfiles += 1
@@ -245,7 +244,7 @@ class UsbDevice:
 
     ret = []
     for f in self.alldirs[dirid].files:
-      ret.append("||%d||%d||%d||%d||%s||%s||%s||" % (f.file_id[0], f.file_id[1], f.file_id[2], f.length, f.ARTIST, f.ALBUM, f.TITLE))
+      ret.append(u'||%d||%d||%d||%d||%s||%s||%s||' % (f.file_id[0], f.file_id[1], f.file_id[2], f.length, f.ARTIST, f.ALBUM, f.TITLE))
     return ret
 
   # end list_dirs() #
