@@ -1,5 +1,4 @@
-"""log.py logging object for PyBlaster, prints to stdout if not in daemon mode
-
+"""log.py -- Logging object for PyBlaster
 
 @Author Ulrich Jansen <ulrich.jansen@rwth-aachen.de>
 """
@@ -16,22 +15,19 @@ DEBUG1    = 6
 DEBUG2    = 7
 DEBUG3    = 8
 
-
 class Log:
-  """Handler to conditionally print/write log messages to stdout/logfile
-  """
+  """Handler to conditionally print/write log messages to stdout/logfile"""
 
   def __init__(self, parent=None):
-    """ almost empty, use init_log() after Settings has been set up
-    """
+    """Use init_log() after Settings has been set up"""
+
     self.parent = parent
     self.flog   = None # log file handler
-
 
   def init_log(self):
     """Create log file using logfile location from settings
 
-      invoked via Settings.read_config()
+      Invoked via Settings.read_config().
 
       pre: settings has valid logfile attribute
     """
@@ -43,16 +39,21 @@ class Log:
       self.flog.write("\n")
       self.flog.flush()
     except IOError:
-      self.write(EMERGENCY, "Failed to open log file "+self.parent.settings.logfile)
+      self.write(EMERGENCY, "Failed to open log file %s" %
+                 self.parent.settings.logfile)
       raise
 
-  def write(self, level, msg):
-    """Write message to stdout/logfile if level is less or equal settings.loglevel
+    # end init_log() #
 
-    Flashes red LED if level is log.EMERGENCY, assuming program will die now
+  def write(self, level, msg):
+    """Write message to stdout/logfile
+
+    Writes, if level is less or equal settings.loglevel.
+    Flashes red LED if level is log.EMERGENCY, assuming program will die now.
     """
 
-    if level > self.parent.settings.loglevel: return
+    if level > self.parent.settings.loglevel:
+      return
 
     if not self.parent.settings.is_daemonized:
       print(msg)
@@ -65,6 +66,4 @@ class Log:
     if level <= EMERGENCY:
       self.parent.led.set_led_red(1)
 
-
-
-
+    # end write() #

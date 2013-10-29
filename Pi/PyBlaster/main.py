@@ -1,6 +1,5 @@
 #!/usr/bin/env python
-"""main.py
-
+"""main.py -- will be removed.
 
 @Author Ulrich Jansen <ulrich.jansen@rwth-aachen.de>
 """

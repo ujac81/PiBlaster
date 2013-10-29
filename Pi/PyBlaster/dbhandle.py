@@ -1,68 +1,83 @@
-"""dbhandle.py manange sqlite db file
-
+"""dbhandle.py -- Manange sqlite db file
 
 @Author Ulrich Jansen <ulrich.jansen@rwth-aachen.de>
 """
 
-import log
 import sqlite3
+
+import log
 
 DBVERSION = 7
 
-
 class DBHandle:
   """ Manage sqlite db file which contains playlist and known usb devices
-  """
 
+  Provides:
+    - list of known USB devices by device id
+    - new device internal device id assignment
+    - search routines
+    - playlist routines
+  """
   def __init__(self, parent):
-    """
-    """
+    """ Invalidate connector and cursor"""
     self.parent = parent
     self.con = None
     self.cur = None
 
-
     # end __init__() #
 
-
   def dbconnect(self):
-    """
+    """ Load db file, throw if fails
+
+    - Set up connector and cursor
+    - Check db version, if too old, rebuild
+    - Clean up orphaned entries from db
+
+    Pre: settings object is ready
+    Post: DB is ready for usage
     """
 
     try:
       self.con = sqlite3.connect(self.parent.settings.dbfile)
       self.cur = self.con.cursor()
     except sqlite3.Error, e:
-      self.parent.log.write(log.EMERGENCY, "Failed to connect to db file %s: %s" % (self.parent.settings.dbfile, e.args[0]))
+      self.parent.log.write(log.EMERGENCY,
+                            "Failed to connect to db file %s: %s" %
+                            (self.parent.settings.dbfile, e.args[0]))
       raise
 
-    self.parent.log.write(log.MESSAGE, "Connected to db file %s" % self.parent.settings.dbfile)
+    self.parent.log.write(log.MESSAGE, "Connected to db file %s" %
+                          self.parent.settings.dbfile)
     if self.parent.settings.rebuilddb: self.db_gentables()
 
-    # check if we got Settings table and if version matches DBVERSION -- rebuild otherwise
+    # Check if we got Settings table and if version matches DBVERSION
+    # -- rebuild otherwise.
 
     self.cur.execute("SELECT name FROM sqlite_master WHERE type='table';")
 
     if 'Settings' in self.cur.fetchall()[0]:
       self.cur.execute("SELECT value FROM Settings WHERE key='version';")
       if self.cur.fetchone()[0] == str(DBVERSION):
-        self.parent.log.write(log.MESSAGE, "Found valid version %d in database." % DBVERSION)
+        self.parent.log.write(log.MESSAGE,
+                              "Found valid version %d in database." %
+                              DBVERSION)
       else:
-        self.parent.log.write(log.MESSAGE, "Database is deprecated, rebuilding...")
+        self.parent.log.write(log.MESSAGE,
+                              "Database is deprecated, rebuilding...")
         self.db_gentables()
     else:
       self.parent.log.write(log.MESSAGE, "Database is empty, rebuilding...")
       self.db_gentables()
 
-    # remove broken and orphaned entries (if shut down while creating rows)
+    # Remove broken and orphaned entries (if shut down while creating rows).
     self.cleandb()
-
 
     # end dbconnect() #
 
-
   def db_gentables(self):
-    """
+    """Drop all known tables and recreate
+
+    Called if version has changed or -r command line flag found by Settings.
     """
 
     self.cur.executescript("""DROP TABLE IF EXISTS Settings;
@@ -73,36 +88,42 @@ class DBHandle:
        CREATE TABLE Settings(id INT, key TEXT, value TEXT);
        CREATE TABLE Usbdevs(id INT, UUID TEXT, md5 TEXT, scanok INT);
        CREATE TABLE Dirs(id INT, parentid INT, usbid INT, dirname TEXT);
-       CREATE TABLE Fileentries(id INT, dirid INT, usbid INT, path TEXT, filename TEXT, extension TEXT, genre TEXT, year INT, title TEXT, album TEXT, artist TEXT, time INT);""")
+       CREATE TABLE Fileentries(id INT, dirid INT, usbid INT, path TEXT,
+                                filename TEXT, extension TEXT, genre TEXT,
+                                year INT, title TEXT, album TEXT,
+                                artist TEXT, time INT);""")
     self.con.commit()
 
     settings = [(1, "version", "%d" % DBVERSION)]
     self.cur.executemany('INSERT INTO Settings VALUES (?,?,?)', settings)
     self.con.commit()
 
-
   def cleandb(self):
+    """Remove data for usbdevices where scanning did not finish successfully
+
+    Called on dbconnect().
     """
-    """
-    # collect all storage ids which did not finish their scan
+
+    # Collect all storage ids which did not finish their scan.
     remove_stors = []
     for row in self.cur.execute("SELECT id FROM Usbdevs WHERE scanok=0;"):
       remove_stors.append(row[0])
 
-    # drop all entries for failed scans
+    # Drop all entries for failed scans.
     for storid in remove_stors:
-      self.parent.log.write(log.MESSAGE, "Removing broken entries for storage %d from database..." % storid)
+      self.parent.log.write(log.MESSAGE,
+        "Removing broken entries for storage %d from database..." % storid)
       self.cur.execute('DELETE FROM Fileentries WHERE usbid=?', (storid, ))
       self.cur.execute('DELETE FROM Dirs WHERE usbid=?', (storid, ))
       self.cur.execute('DELETE FROM Usbdevs WHERE id=?', (storid, ))
       self.con.commit()
 
-    # generate list of valid storage ids
+    # Generate list of valid storage ids.
     valid_stors = []
     for row in self.cur.execute("SELECT id FROM Usbdevs WHERE scanok=1;"):
       valid_stors.append(str(row[0]))
 
-    if len(valid_stors) == 0:
+    if not valid_stors:
       # if no valid_stors, drop all
       self.cur.execute('DELETE FROM Fileentries')
       self.cur.execute('DELETE FROM Dirs')
@@ -110,21 +131,28 @@ class DBHandle:
     else:
       # drop all entries that have no valid storage id
       valid_list = ','.join(valid_stors)
-      #TODO  this somehow does not work -- should remove entries without valid storage id, but kills too much...
-      #self.cur.execute('DELETE FROM Fileentries WHERE usbid NOT IN (?)', (valid_list, ))
-      #self.cur.execute('DELETE FROM Dirs WHERE usbid NOT IN (?)', (valid_list, ))
+
+      # TODO  this somehow does not work --
+      # should remove entries without valid storage id, but kills too much...
+
+      #self.cur.execute(
+      # 'DELETE FROM Fileentries WHERE usbid NOT IN (?)', (valid_list, ))
+      #self.cur.execute(
+      # 'DELETE FROM Dirs WHERE usbid NOT IN (?)', (valid_list, ))
       #self.con.commit()
 
-
+    # end cleandb() #
 
   def get_usbid(self, UUID):
-    """ get latest usb stick id for usb mananger while creating new UsbDevive entries
+    """Get usb stick id for usb mananger while creating new UsbDevive entries"
 
-    We know that all usb entries are at OK state 1 here as cleandb() has been run on startup
+    Ff unkown, largest id + 1 is returned.  We know that all usb entries
+    are at OK state 1 here as cleandb() has been run on startup.
     """
     lastid = -1
     for row in self.cur.execute("SELECT id, UUID FROM Usbdevs ORDER BY id;"):
-      if row[1] == UUID: return row[0]
+      if row[1] == UUID:
+        return row[0]
       lastid = row[0]
 
     return lastid + 1
@@ -133,23 +161,25 @@ class DBHandle:
 
 
   def check_usb_md5(self, UUID, md5):
-    """ Check if md5 for dir structure matches md5 for stick with UUID in database
-    """
+    """Check if md5 for matches md5 for stick with UUID in database."""
+
     for row in self.cur.execute("SELECT UUID, md5 FROM Usbdevs;"):
-      if row[0] == UUID and row[1] == md5: return True
+      if row[0] == UUID and row[1] == md5:
+        return True
 
     return False
 
     # end check_usb_md5() #
 
-
   def drop_changed_usbdev(self, usbdevid):
     """Drop dir/file entries for usb device
 
-    Called by usbdevice if md5 changed and by cleandb if scanok=0
+    Called by usbdevice if md5 changed and by cleandb if scanok=0.
     """
 
-    self.parent.log.write(log.MESSAGE, "Dropping outdated or incomplete dir/file data for usb device #%d" % usbdevid)
+    self.parent.log.write(log.MESSAGE,
+      "Dropping outdated or incomplete dir/file data for usb device #%d" %
+      usbdevid)
 
     self.cur.execute('DELETE FROM Fileentries WHERE usbid=?', (usbdevid, ))
     self.cur.execute('DELETE FROM Dirs WHERE usbid=?', (usbdevid, ))
@@ -159,7 +189,9 @@ class DBHandle:
 
 
   def add_or_update_usb_stor(self, usbdevid, UUID, md5):
-    """ Check if we have usbdev for UUID, if then update md5, insert into db otherwise
+    """ Check if we have usbdev for UUID.
+
+    Ff then update md5, insert into db otherwise.
     """
 
     for row in self.cur.execute("SELECT UUID, md5 FROM Usbdevs;"):
@@ -168,33 +200,37 @@ class DBHandle:
           # we found valid db entries, nothing to do
           return True # ==> no rescan rebuild dirs/files from db
         else:
-          # md5 became invalid (content changed) ==> drop dir/file entries, register new md5 and set scanok to 0
-          self.parent.log.write(log.MESSAGE, "Updating usb device %s with id %d to new md5 %s" % (UUID, usbdevid, md5))
+          # md5 became invalid (content changed)
+          # ==> drop dir/file entries, register new md5 and set scanok to 0
+          self.parent.log.write(log.MESSAGE,
+            "Updating usb device %s with id %d to new md5 %s" %
+            (UUID, usbdevid, md5))
           self.drop_changed_usbdev(usbdevid)
-          self.cur.execute("UPDATE Usbdevs SET md5=?, scanok=0 WHERE id=?", (md5, usbdevid))
+          self.cur.execute(
+            "UPDATE Usbdevs SET md5=?, scanok=0 WHERE id=?", (md5, usbdevid))
           self.con.commit()
           return False # ==> rescan
 
     # No return so far -> new entry
-    self.parent.log.write(log.MESSAGE, "Registering usb device %s with id %d and known md5 %s" % (UUID, usbdevid, md5))
-    self.cur.execute('INSERT INTO Usbdevs (id, UUID, md5, scanok) VALUES (?, ?, ?, ?)', (usbdevid, UUID, md5, 0,))
+    self.parent.log.write(log.MESSAGE,
+      "Registering usb device %s with id %d and known md5 %s" %
+      (UUID, usbdevid, md5))
+    self.cur.execute(
+      'INSERT INTO Usbdevs (id, UUID, md5, scanok) VALUES (?, ?, ?, ?)',
+      (usbdevid, UUID, md5, 0,))
     self.con.commit()
     return False # ==> scan device
 
     # end add_or_update_usb_stor() #
 
-
   def set_scan_ok(self, usbdevid):
-    """ Set scanok flag to 1 after scan has finished
-    """
+    """Set scanok flag to 1 after scan has finished"""
+
     self.cur.execute("UPDATE Usbdevs SET scanok=1 WHERE id=?", (usbdevid,))
     self.con.commit()
 
-
   def invalidate_md5(self, usbdevid):
-    """ Destroy md5 hash for device to enforce rescanning
-    """
+    """ Destroy md5 hash for device to enforce rescanning"""
+
     self.cur.execute("UPDATE Usbdevs SET md5=? WHERE id=?", ("xxx", usbdevid,))
     self.con.commit()
-
-

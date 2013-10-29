@@ -1,5 +1,4 @@
-"""fileentry.py
-
+"""fileentry.py -- Object to represent a single mp3 file
 
 @Author Ulrich Jansen <ulrich.jansen@rwth-aachen.de>
 """
@@ -9,18 +8,21 @@ import os
 
 
 class FileEntry:
-  """
+  """Object to represent a single mp3 file
+
+  Handled inside Direntry for the corresponding directory.
   """
 
   def __init__(self, path, file_id, dbrebuild=False):
-    """
-    """
+    """Initialize attributes, if not in rebuild mode, scan ID3 tag data."""
+
     self.path         = path
     self.valid        = 1
     self.file_id      = file_id   # [storage_id, dir_id, file_id]
     self.length       = 0
 
-    if dbrebuild: return
+    if dbrebuild:
+      return
 
     self.filename     = os.path.basename(path)
     self.extension    = os.path.splitext(self.filename)[1].replace('.', '')
@@ -31,7 +33,6 @@ class FileEntry:
     self.TITLE        = self.filename
     self.ALBUM        = u'Unknown Album'
     self.ARTIST       = u'Unknown Artist'
-
 
     tag = EasyID3(path)
 
@@ -55,4 +56,8 @@ class FileEntry:
   def print_file(self):
     """Do not use __str__ as it will fuck up on strange unicode chars
     """
-    print("[%d,%d,%d] %s - %s - %s (%s, %d) %d" % (self.file_id[0], self.file_id[1], self.file_id[2], self.ARTIST, self.ALBUM, self.TITLE, self.GENRE, self.YEAR, self.length))
+    print("[%d,%d,%d] %s - %s - %s (%s, %d) %d" %
+          (self.file_id[0], self.file_id[1], self.file_id[2], self.ARTIST,
+           self.ALBUM, self.TITLE, self.GENRE, self.YEAR, self.length))
+
+    # end print_file() #

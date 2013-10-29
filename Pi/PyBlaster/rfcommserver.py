@@ -1,8 +1,9 @@
-"""
+"""rfcommserver.py -- Send/recv commands/results via bluetooth channel
 
 To enable visible server do
  $ sudo hciconfig hci0 piscan
 
+@Author Ulrich Jansen <ulrich.jansen@rwth-aachen.de>
 """
 
 import bluetooth
@@ -11,29 +12,28 @@ import log
 import evalcmd
 
 
-NOTCONNECTED = 0
-CONNECTED = 1
-AUTHORIZED = 2
+NOTCONNECTED  = 0
+CONNECTED     = 1
+AUTHORIZED    = 2
 
 class RFCommServer:
-  """
-  """
+  """Send/recv commands/results via bluetooth channel"""
 
   def __init__(self, parent):
-    """
-    """
+    """Set state to not connected"""
+
     self.parent       = parent
     self.mode         = NOTCONNECTED
     self.client_sock  = None
     self.client_info  = None
-    self.timeout      = 0.01            # socket timeouts for non blocking connection
-    self.timeoutpolls = 1000            # disconnect after N inactivity timeouts
-    self.nowpolls     = 0               # reset after each receive, incremented while waiting for data
-
+    self.timeout      = 0.01  # socket timeouts for non blocking connection
+    self.timeoutpolls = 1000  # disconnect after N inactivity timeouts
+    self.nowpolls     = 0     # reset after each receive,
+                              # incremented while waiting for data
 
   def start_server(self):
-    """
-    """
+    """Open bluetooth server socket and advertise service"""
+
     self.parent.led.set_led_blue(1)
 
     self.server_sock = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
@@ -45,19 +45,22 @@ class RFCommServer:
 
     bluetooth.advertise_service( self.server_sock, "PyBlaster",
                                  service_id = self.uuid,
-                                 service_classes = [ self.uuid, bluetooth.SERIAL_PORT_CLASS ],
+                                 service_classes =
+                                 [ self.uuid, bluetooth.SERIAL_PORT_CLASS ],
                                  profiles = [ bluetooth.SERIAL_PORT_PROFILE ],
                                 )
-
 
     self.server_sock.settimeout(self.timeout)
     self.parent.log.write(log.MESSAGE, "RFCOMM service opened as PyBlaster")
     self.parent.led.set_led_blue(0)
     self.mode = NOTCONNECTED
 
+    # end start_server() #
 
   def read_socket(self):
-    """
+    """Check if command found in socket
+
+    Called by main daemon loop at every poll.
     """
 
     if self.mode == NOTCONNECTED:
@@ -70,13 +73,15 @@ class RFCommServer:
         pass
 
       if self.client_sock:
-        self.parent.log.write(log.MESSAGE, "Got connection from %s on channel %d" % ( self.client_info[0], self.client_info[1] ))
+        self.parent.log.write(log.MESSAGE,
+                              "Got connection from %s on channel %d" %
+                              ( self.client_info[0], self.client_info[1] ))
         self.mode = CONNECTED
         self.client_sock.settimeout(self.timeout)
         self.parent.led.set_led_blue(1)
         self.nowpolls = 0
 
-      # if NOTCONNECTED
+      # if NOTCONNECTED #
 
     if self.mode == CONNECTED or self.mode == AUTHORIZED:
 
@@ -92,9 +97,10 @@ class RFCommServer:
         self.disconnect()
 
       if self.nowpolls % 500 == 0:
-        self.parent.log.write(log.DEBUG1, "Timeout poll count %d" % self.nowpolls)
+        self.parent.log.write(log.DEBUG1,
+                              "Timeout poll count %d" % self.nowpolls)
 
-      if data and len(data):
+      if data:
         self.parent.log.write(log.DEBUG1, "DEBUG recv: %s" % data)
 
         self.nowpolls = 0
@@ -112,26 +118,27 @@ class RFCommServer:
           # parse command
           self.read_command(data)
 
-      # if CONNECTED or AUTHORIZED
+        # if data #
 
-
-      # if AUTHORIZED
-
+      # if CONNECTED or AUTHORIZED #
 
     # end read_socket() #
 
 
   def disconnect(self):
+    """Close sockets and restart server
+
+    Called after timeout poll count reached or if connection closed by
+    wrong password or on purpose.
     """
-    """
+
     self.server_sock.close()
     self.client_sock.close()
     self.parent.log.write(log.MESSAGE, "Closed connection.")
     self.start_server()
 
   def send_client(self, status, msg, res_list):
-    """
-    Send data package
+    """Send data package
 
       - result code from evalcmd
       - confirm message
@@ -141,6 +148,7 @@ class RFCommServer:
       ...
       - lines
     """
+
     # TODO timeout mechanism
     self.client_sock.send(str(status))
     self.client_sock.send(msg)
@@ -150,10 +158,9 @@ class RFCommServer:
 
     # end send_client() #
 
-
   def read_command(self, cmd):
-    """
-    """
+    """Evalute command received from client socket if AUTHORIZED."""
+
     self.nowpolls = 0
 
     status, msg, res_list = self.parent.cmd.evalcmd(cmd, 'rfcomm')
@@ -163,7 +170,4 @@ class RFCommServer:
       self.disconnect()
 
     # end read_command() #
-
-
-
 

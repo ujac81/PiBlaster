@@ -1,99 +1,86 @@
-"""Evaluate commands reveived via RFCOMM or pipe
+"""evalcmd.py -- Evaluate commands reveived via RFCOMM or pipe
+
+@Author Ulrich Jansen <ulrich.jansen@rwth-aachen.de>
 """
 
-import os, fcntl, sys, codecs
+import codecs
+import fcntl
+import os
+import sys
 
 import log
 
 
-STATUSOK      = 0
-ERRORPARSE    = 1
-ERRORUNKNOWN  = 2
-ERRORARGS     = 3
-ERROREVAL     = 4
+STATUSOK      = 0   # evaluation successful
+ERRORPARSE    = 1   # failed to read command
+ERRORUNKNOWN  = 2   # unknown command
+ERRORARGS     = 3   # wrong number or wrong type of args
+ERROREVAL     = 4   # evaluation did not succeed,
+                    # because called function failed
 
 STATUSEXIT    = 100 # tell calling instance to close comm/pipe/whatever
 
 
 
 class EvalCmd:
-  """
-  """
+  """ Evaluate commands reveived via RFCOMM or pipe"""
+
   def __init__(self, parent):
-    """
-    """
+    """ Set in/out fifos to None"""
+
     self.parent = parent
 
-    self.fifoin   = None
-    self.fifoout  = None
-    self.cmdout   = None
+    self.fifoin = None
+    self.cmdout = None
 
     # end __init__() #
 
-
   def open_fifo(self):
-    """
-    """
+    """ Open input cmd pipe and output"""
 
-    if self.parent.settings.fifoin:
-      # generate/open input fifo
+    if self.parent.settings.fifoin is not None:
+      # Generate/open input fifo.
       if not os.path.exists(self.parent.settings.fifoin):
         os.mkfifo(self.parent.settings.fifoin, 0666)
 
-      self.parent.log.write(log.MESSAGE, "Opening cmd fifo %s..." % self.parent.settings.fifoin)
-      self.fifoin = os.open(self.parent.settings.fifoin, os.O_RDONLY | os.O_NONBLOCK)
+      self.parent.log.write(log.MESSAGE, "Opening cmd fifo %s..." %
+                            self.parent.settings.fifoin)
+      self.fifoin = os.open(self.parent.settings.fifoin,
+                            os.O_RDONLY | os.O_NONBLOCK)
 
-    if self.parent.settings.fifoout:
-      """
-      """
-      if self.parent.settings.fifoout:
-        # open outgoing fifo
-        self.parent.log.write(log.MESSAGE, "Opening output stream %s..." % self.parent.settings.fifoout)
-        self.fifoout = os.open(self.parent.settings.fifoout, os.O_WRONLY | os.O_CREAT)
+    if self.parent.settings.cmdout is not None:
+      # Open cmd out file for debug.
+      self.parent.log.write(log.MESSAGE, "Opening output file %s..." %
+                            self.parent.settings.cmdout)
+      self.cmdout = codecs.open(self.parent.settings.cmdout, "w", "utf-8")
 
-    if self.parent.settings.cmdout:
-      # open cmd out file for debug
-      self.parent.log.write(log.MESSAGE, "Opening output file %s..." % self.parent.settings.cmdout)
-      self.cmdout = codecs.open(self.parent.settings.cmdout, "a", "utf-8")
     # end open_fifo() #
 
-
-
   def read_fifo(self):
+    """ Check if new command in pipe found and evaluate it
+
+    Called by main daemon loop at each poll.
     """
-    """
-    if not self.fifoin: return
+
+    if self.fifoin is None:
+      return
 
     cmd = None
     try:
       cmd = os.read(self.fifoin, 1024)
-    except: pass
+    except:
+      pass
 
-    if cmd: self.evalcmd(cmd, 'fifo')
+    if cmd:
+      self.evalcmd(cmd, 'fifo')
 
     # end read_fifo() #
 
-  def write_fifo(self, cmd, status, msg, res_list):
-    """
-    """
-    self.write_log_file(cmd, status, msg, res_list)
-
-    if not self.fifoout: return
-
-    os.write(self.fifoout, ">>> %s\n" % cmd)
-    os.write(self.fifoout, "%d\n" % status)
-    os.write(self.fifoout, "%s\n" % msg)
-    os.write(self.fifoout, "%d\n" % len(res_list))
-    for line in res_list:
-      os.write(self.fifoout, u'%s\n' % line)
-
-    os.fsync(self.fifoout)
-
-
   def write_log_file(self, cmd, status, msg, res_list):
-    """
-    """
-    if not self.cmdout: return
+    """ Write result of evalcmd() to log file if exists"""
+
+    if self.cmdout is None:
+      return
 
     self.cmdout.write(">>> %s\n" % cmd)
     self.cmdout.write("%d\n" % status)
@@ -104,11 +91,14 @@ class EvalCmd:
 
     self.cmdout.flush()
 
+    # end write_log_file() #
 
   def evalcmd(self, cmd, src='Unknonw'):
-    """
+    """Evaluate command and perform action
 
-      return [status, status_msg, result_list]
+    Called by read_fifo() and RFCommServer.
+
+    return [status, status_msg, result_list]
     """
     cmd = cmd.strip()
 
@@ -118,19 +108,21 @@ class EvalCmd:
 
     self.parent.log.write(log.MESSAGE, "Eval cmd [%s]: %s" % (src,cmd))
 
-    # command evaluation, starting with 'help', then in alphabetical order
+    # Command evaluation, starting with 'help', then in alphabetical order.
 
     # # # # help # # # #
 
     if cmd.startswith("help"):
 
-      ret_list.append('lsalldirs <storid>           -- list of all directories on device')
-      ret_list.append('lsdirs <storid> <dirid>      -- list all subdirs in dir')
-      ret_list.append('lsfiles <storid> <dirid>     -- list all files in dir')
-      ret_list.append('keepalive                    -- reset disconnect poll count (noop)')
-      ret_list.append('quit                         -- exit program')
-      ret_list.append('rescan <storid>              -- force rescan of usb device')
-      ret_list.append('showdevices                  -- list of connected devices')
+      ret_list = [
+        'lsalldirs <storid>           -- list of all directories on device',
+        'lsdirs <storid> <dirid>      -- list all subdirs in dir',
+        'lsfiles <storid> <dirid>     -- list all files in dir',
+        'keepalive                    -- reset disconnect poll count (noop)',
+        'quit                         -- exit program',
+        'rescan <storid>              -- force rescan of usb device',
+        'showdevices                  -- list of connected devices'
+        ]
 
     # # # # lsalldirs <storid> # # # #
 
@@ -181,7 +173,9 @@ class EvalCmd:
     # # # # keepalive # # # #
 
     elif cmd == "keepalive":
-      ret_msg = "OK" # nothing to do, timeout poll count will be reset in RFCommServer.read_command()
+      # nothing to do, timeout poll count will be reset
+      # in RFCommServer.read_command()
+      ret_msg = "OK"
 
     # # # # quit # # # #
 
@@ -206,14 +200,13 @@ class EvalCmd:
     elif cmd == "showdevices":
       for dev in self.parent.usb.usbdevs:
         ret_list.append("||%d||%s||" % (dev.storid, dev.label))
-      if not len(ret_list): ret_list = ["-1 NONE"]
+      if not ret_list: ret_list = ["-1 NONE"]
 
     else:
       ret_stat = ERRORUNKNOWN
       ret_msg  = "unknown command"
 
-
-    self.write_fifo(cmd, ret_stat, ret_msg, ret_list)
+    self.write_log_file(cmd, ret_stat, ret_msg, ret_list)
     return [ret_stat, ret_msg, ret_list]
 
-    # enf evalcmd() #
+    # end evalcmd() #
