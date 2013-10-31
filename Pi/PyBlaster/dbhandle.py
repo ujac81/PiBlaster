@@ -1,5 +1,47 @@
 """dbhandle.py -- Manange sqlite db file
 
+
+Database structure::
+
+Settings(id INT, key TEXT, value TEXT)::
+  holds (key, value) pairs with settings that may be changed during
+  runtime (not persistant from config file)
+
+  Items in Settings::
+
+    version = DBVERSION  -- version of table layout, rebuild if outdated
+
+
+Usbdevs(id INT, UUID TEXT, md5 TEXT, scanok INT,
+        alias TEXT, revision INT)::
+
+  Handled by UsbDevive
+
+  Holds data about known usb devices. If an id is assigned once to
+  a device, this id should be persistant.
+
+  id        -- storage id, unique via UUID
+  UUID      -- almost unique UUID from blkid, required to
+               identify device
+  md5       -- digest of file tree, if outdated -> rescan and increase
+               revision
+  scanok    -- set to 1 after successful scan, if not 1 -> rescan
+  alias     -- name assigned for this device
+  revision  -- incremented if md5 changed -> invalidate playlist entries
+               for this device
+
+Dirs(id INT, parentid INT, usbid INT, dirname TEXT)::
+
+  Handled by DirEntry
+
+  Reflects a directory node identifid by [storage_id, dir_id].
+
+  id        -- incremental directory id on this storage
+  parentid  -- parent directory id
+  usbid     -- storage id (UsbDevive)
+  dirname   -- name (not path) of this directory
+
+
 @Author Ulrich Jansen <ulrich.jansen@rwth-aachen.de>
 """
 
@@ -7,7 +49,7 @@ import sqlite3
 
 import log
 
-DBVERSION = 7
+DBVERSION = 8
 
 class DBHandle:
   """ Manage sqlite db file which contains playlist and known usb devices
@@ -85,13 +127,22 @@ class DBHandle:
        DROP TABLE IF EXISTS Dirs;
        DROP TABLE IF EXISTS Fileentries;
        DROP TABLE IF EXISTS Dummies;
+       DROP TABLE IF EXISTS Playlists;
+       DROP TABLE IF EXISTS Playlistentries;
        CREATE TABLE Settings(id INT, key TEXT, value TEXT);
-       CREATE TABLE Usbdevs(id INT, UUID TEXT, md5 TEXT, scanok INT);
+       CREATE TABLE Usbdevs(id INT, UUID TEXT, md5 TEXT, scanok INT,
+                            alias TEXT, revision INT);
        CREATE TABLE Dirs(id INT, parentid INT, usbid INT, dirname TEXT);
        CREATE TABLE Fileentries(id INT, dirid INT, usbid INT, path TEXT,
                                 filename TEXT, extension TEXT, genre TEXT,
                                 year INT, title TEXT, album TEXT,
-                                artist TEXT, time INT);""")
+                                artist TEXT, time INT);
+        CREATE TABLE Playlists(id INT, name TEXT, created INT, creator TEXT,
+                               itemcount INT, position INT);
+        CREATE TABLE Playlistentries(playlistid INT, entryin INT,
+                                     usbid INT, usbrev INT, dirid INT,
+                                     fileid INT, disptitle TEXT);
+        """)
     self.con.commit()
 
     settings = [(1, "version", "%d" % DBVERSION)]
@@ -115,7 +166,6 @@ class DBHandle:
         "Removing broken entries for storage %d from database..." % storid)
       self.cur.execute('DELETE FROM Fileentries WHERE usbid=?', (storid, ))
       self.cur.execute('DELETE FROM Dirs WHERE usbid=?', (storid, ))
-      self.cur.execute('DELETE FROM Usbdevs WHERE id=?', (storid, ))
       self.con.commit()
 
     # Generate list of valid storage ids.
@@ -148,14 +198,17 @@ class DBHandle:
 
     Ff unkown, largest id + 1 is returned.  We know that all usb entries
     are at OK state 1 here as cleandb() has been run on startup.
+
+    return [storid, alias, revision]
     """
     lastid = -1
-    for row in self.cur.execute("SELECT id, UUID FROM Usbdevs ORDER BY id;"):
+    for row in self.cur.execute(
+        "SELECT id, UUID, alias, revision FROM Usbdevs ORDER BY id;"):
       if row[1] == UUID:
-        return row[0]
+        return [row[0], row[2], row[3]]
       lastid = row[0]
 
-    return lastid + 1
+    return [lastid + 1, None, 0]
 
     # end get_usbid() #
 
@@ -194,9 +247,9 @@ class DBHandle:
     Ff then update md5, insert into db otherwise.
     """
 
-    for row in self.cur.execute("SELECT UUID, md5 FROM Usbdevs;"):
+    for row in self.cur.execute("SELECT UUID, md5, scanok FROM Usbdevs;"):
       if row[0] == UUID:
-        if row[1] == md5:
+        if row[1] == md5 and row[2] == 1:
           # we found valid db entries, nothing to do
           return True # ==> no rescan rebuild dirs/files from db
         else:
@@ -216,17 +269,18 @@ class DBHandle:
       "Registering usb device %s with id %d and known md5 %s" %
       (UUID, usbdevid, md5))
     self.cur.execute(
-      'INSERT INTO Usbdevs (id, UUID, md5, scanok) VALUES (?, ?, ?, ?)',
-      (usbdevid, UUID, md5, 0,))
+      'INSERT INTO Usbdevs (id, UUID, md5, scanok, alias, revision) ' \
+      'VALUES (?, ?, ?, ?, ?, ?)', (usbdevid, UUID, md5, 0, UUID, 0 ))
     self.con.commit()
     return False # ==> scan device
 
     # end add_or_update_usb_stor() #
 
-  def set_scan_ok(self, usbdevid):
+  def set_scan_ok(self, usbdevid, revision):
     """Set scanok flag to 1 after scan has finished"""
 
-    self.cur.execute("UPDATE Usbdevs SET scanok=1 WHERE id=?", (usbdevid,))
+    self.cur.execute("UPDATE Usbdevs SET scanok=1, revision=? WHERE id=?",
+                     (revision, usbdevid,))
     self.con.commit()
 
   def invalidate_md5(self, usbdevid):
@@ -234,3 +288,21 @@ class DBHandle:
 
     self.cur.execute("UPDATE Usbdevs SET md5=? WHERE id=?", ("xxx", usbdevid,))
     self.con.commit()
+
+  def update_alias(self, usbdevid, alias):
+    """Change alias in database for usb device
+
+    return False if alias exists in database.
+    """
+
+    for row in self.cur.execute("SELECT alias FROM Usbdevs;"):
+      if row[0] == alias:
+        return False
+
+    self.cur.execute("UPDATE Usbdevs SET alias=? WHERE id=?",
+                     (alias, usbdevid,))
+    self.con.commit()
+    return True
+
+
+

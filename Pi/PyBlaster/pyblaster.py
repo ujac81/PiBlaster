@@ -13,6 +13,7 @@ from dbhandle import DBHandle
 from evalcmd import EvalCmd
 from led import LED
 from log import Log
+from playlistmanager import PlayListManager
 from rfcommserver import RFCommServer
 from settings import Settings
 from usbmanager import UsbManager
@@ -34,6 +35,7 @@ class PyBlaster:
     self.usb          = UsbManager(self)
     self.rfcomm       = RFCommServer(self)
     self.cmd          = EvalCmd(self)
+    self.listmngr     = PlayListManager(self)
 
     self.led.reset_leds()
 
@@ -45,6 +47,9 @@ class PyBlaster:
 
     # load connected usb before bluetooth
     self.usb.check_new_usb()
+
+    # load playlists from database
+    self.listmngr.load_playlists()
 
     # open cmd fifo to read commands
     self.cmd.open_fifo()

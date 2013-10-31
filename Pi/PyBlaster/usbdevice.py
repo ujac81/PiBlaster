@@ -30,7 +30,9 @@ class UsbDevice:
     self.main           = parent.parent
     self.mnt_pnt        = mnt_pnt
     self.label          = None
+    self.alias          = None
     self.dev            = None
+    self.revision       = 0
     self.root_dir_entry = None
     self.cur_dir_id     = 0     # Will be increased while recursion in
                                 # direntry.init walks through file tree.
@@ -68,14 +70,18 @@ class UsbDevice:
           if toks[0] == "UUID" :
             self.uuid  = toks[1].strip('"')
 
-    self.storid = self.main.dbhandle.get_usbid(self.uuid)
+    # Get storid and alias from database, if no alias found, use label
+    self.storid, self.alias, self.revision = self.main.dbhandle.get_usbid(self.uuid)
     if not self.label:
       self.label = "usbdev%d" % self.storid
+    if self.alias is None:
+      self.alias = self.label
 
     # Found new usb device --> scan for MP3s.
     self.main.log.write(log.MESSAGE,
-      "Found new USB device %s with label %s mounted at %s as id %d" %
-      (self.dev, self.label, self.mnt_pnt, self.storid))
+      "Found new USB device %s with label %s mounted at %s as id %d "\
+      "using alias %s" %
+      (self.dev, self.label, self.mnt_pnt, self.storid, self.alias))
 
     # Flash load led.
     self.main.led.set_led_yellow(1)
@@ -101,8 +107,8 @@ class UsbDevice:
       self.rebuild_from_db()
       elapsed = time.clock() - start
       self.main.log.write(log.MESSAGE, "done reloading from db in %s, total " \
-        "%d dirs found, including %d files. Took %fs" %
-        (self.dev, self.totsubdirs, self.totfiles, elapsed))
+        "%d dirs found, including %d files in revision %d. Took %fs" %
+        (self.dev, self.totsubdirs, self.totfiles, self.revision, elapsed))
 
     else:
       # Rescan usb device. DirEntry constructor will invoke dir scanner.
@@ -125,8 +131,10 @@ class UsbDevice:
       self.main.led.set_led_yellow(0)
       self.main.led.set_led_green(0)
 
+      self.revision += 1
+
       # Tell db that scan is ok now.
-      self.main.dbhandle.set_scan_ok(self.storid)
+      self.main.dbhandle.set_scan_ok(self.storid, self.revision)
 
     # end __init__() #
 
@@ -213,6 +221,14 @@ class UsbDevice:
 
     # end rebuild_from_db() #
 
+  def update_alias(self, alias):
+    """Change alias for this USB dev via database"""
+
+    if self.main.dbhandle.update_alias(self.storid, alias):
+      self.alias = alias
+      return True
+    return False
+
 
   def list_all_dirs(self):
     """Called by 'lsalldirs <storid>' command
@@ -252,7 +268,6 @@ class UsbDevice:
     return ret
 
   # end list_dirs() #
-
 
   def list_files(self, strdirid):
     """

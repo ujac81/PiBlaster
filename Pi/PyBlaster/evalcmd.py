@@ -121,6 +121,7 @@ class EvalCmd:
         'keepalive                    -- reset disconnect poll count (noop)',
         'quit                         -- exit program',
         'rescan <storid>              -- force rescan of usb device',
+        'setalias <storid> <alias>    -- set alias name for usb device',
         'showdevices                  -- list of connected devices'
         ]
 
@@ -195,11 +196,29 @@ class EvalCmd:
           ret_stat = ERROREVAL
           ret_msg  = "device not rescaned (no such device?)"
 
+    # # # # setalias # # # #
+
+    elif cmd.startswith("setalias"):
+      line = cmd.split()
+      if len(line) != 3:
+        ret_stat = ERRORARGS
+        ret_msg  = "rescan needs 2 args"
+      else:
+        stor = self.parent.usb.get_dev_by_strid(line[1])
+        if not stor:
+          ret_stat = ERRORARGS
+          ret_msg  = "illegal storage id"
+        else:
+          if not stor.update_alias(line[2]):
+            ret_stat = ERROREVAL
+            ret_msg  = "alias exists in database"
+
     # # # # showdevices # # # #
 
     elif cmd == "showdevices":
       for dev in self.parent.usb.usbdevs:
-        ret_list.append("||%d||%s||" % (dev.storid, dev.label))
+        ret_list.append("||%d||%s||%s||%d||" %
+                        (dev.storid, dev.label, dev.alias, dev.revision))
       if not ret_list: ret_list = ["-1 NONE"]
 
     else:
