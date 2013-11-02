@@ -30,16 +30,36 @@ Usbdevs(id INT, UUID TEXT, md5 TEXT, scanok INT,
   revision  -- incremented if md5 changed -> invalidate playlist entries
                for this device
 
-Dirs(id INT, parentid INT, usbid INT, dirname TEXT)::
-
-  Handled by DirEntry
+Dirs(id INT, parentid INT, usbid INT, numdirs INT,
+     numfiles INT, dirname TEXT)
 
   Reflects a directory node identifid by [storage_id, dir_id].
 
-  id        -- incremental directory id on this storage
-  parentid  -- parent directory id
-  usbid     -- storage id (UsbDevive)
-  dirname   -- name (not path) of this directory
+  0 id        -- incremental directory id on this storage
+  1 parentid  -- parent directory id
+  2 usbid     -- storage id (UsbDevive)
+  3 numdirs   -- number of subdirs
+  4 numfiles  -- number of mp3s in dir
+  5 dirname   -- name (not path) of this directory
+
+
+Fileentries(id INT, dirid INT, usbid INT, path TEXT,
+            filename TEXT, extension TEXT, genre TEXT,
+            year INT, title TEXT, album TEXT,
+            artist TEXT, time INT)
+
+   0 id
+   1 dirid
+   2 usbid
+   3 path
+   4 filename
+   5 extension
+   6 genre
+   7 year
+   8 title
+   9 album
+  10 artist
+  11 time
 
 
 @Author Ulrich Jansen <ulrich.jansen@rwth-aachen.de>
@@ -49,7 +69,7 @@ import sqlite3
 
 import log
 
-DBVERSION = 8
+DBVERSION = 10
 
 class DBHandle:
   """ Manage sqlite db file which contains playlist and known usb devices
@@ -132,7 +152,8 @@ class DBHandle:
        CREATE TABLE Settings(id INT, key TEXT, value TEXT);
        CREATE TABLE Usbdevs(id INT, UUID TEXT, md5 TEXT, scanok INT,
                             alias TEXT, revision INT);
-       CREATE TABLE Dirs(id INT, parentid INT, usbid INT, dirname TEXT);
+       CREATE TABLE Dirs(id INT, parentid INT, usbid INT, numdirs INT,
+                         numfiles INT, dirname TEXT);
        CREATE TABLE Fileentries(id INT, dirid INT, usbid INT, path TEXT,
                                 filename TEXT, extension TEXT, genre TEXT,
                                 year INT, title TEXT, album TEXT,

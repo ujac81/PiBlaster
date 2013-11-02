@@ -8,10 +8,9 @@ import md5
 import os
 import subprocess
 import time
+from mutagen.easyid3 import EasyID3
 
 import log
-from direntry import DirEntry
-from fileentry import FileEntry
 
 class UsbDevice:
   """Contains data for one single usb storage device
@@ -33,13 +32,9 @@ class UsbDevice:
     self.alias          = None
     self.dev            = None
     self.revision       = 0
-    self.root_dir_entry = None
-    self.cur_dir_id     = 0     # Will be increased while recursion in
-                                # direntry.init walks through file tree.
     self.valid          = True
     self.totsubdirs     = 0
     self.totfiles       = 0
-    self.alldirs        = {}    # (dirid, DirEntry) hash
 
     # Get dev entry for mnt_pnt.
     f = open("/proc/mounts", "r")
@@ -103,37 +98,42 @@ class UsbDevice:
     if self.main.dbhandle.add_or_update_usb_stor(self.storid, self.uuid, digest):
       # Rebuild dir/file tree from database.
 
-      start = time.clock()
-      self.rebuild_from_db()
-      elapsed = time.clock() - start
+      self.main.dbhandle.cur.execute(
+        "SELECT COUNT(id) FROM Dirs WHERE usbid=?;", (self.storid,))
+      self.totsubdirs = self.main.dbhandle.cur.fetchone()[0]
+
+      self.main.dbhandle.cur.execute(
+        "SELECT COUNT(id) FROM Fileentries WHERE usbid=?;", (self.storid,))
+      self.totfiles = self.main.dbhandle.cur.fetchone()[0]
+
       self.main.log.write(log.MESSAGE, "done reloading from db in %s, total " \
-        "%d dirs found, including %d files in revision %d. Took %fs" %
-        (self.dev, self.totsubdirs, self.totfiles, self.revision, elapsed))
+        "%d dirs found, including %d files in revision %d." %
+        (self.dev, self.totsubdirs, self.totfiles, self.revision))
 
     else:
-      # Rescan usb device. DirEntry constructor will invoke dir scanner.
-
       start = time.clock()
-      self.root_dir_entry = DirEntry(root=self, directory=mnt_pnt)
+
+      self.cur_dir_id = 0
+      self.recursive_rescan_into_db(mnt_pnt, -1)
+
+      self.main.dbhandle.con.commit()
+
+      self.main.dbhandle.cur.execute(
+        "SELECT COUNT(id) FROM Dirs WHERE usbid=?;", (self.storid,))
+      self.totsubdirs = self.main.dbhandle.cur.fetchone()[0]
+
+      self.main.dbhandle.cur.execute(
+        "SELECT COUNT(id) FROM Fileentries WHERE usbid=?;", (self.storid,))
+      self.totfiles = self.main.dbhandle.cur.fetchone()[0]
+
+
       elapsed = time.clock() - start
       self.main.log.write(log.MESSAGE,
         "done scanning in %s, total %d dirs found, including %d files. " \
         "Took %fs" % (self.dev, self.totsubdirs, self.totfiles, elapsed))
 
-      # This will cause recursive insertion into database.
-      self.main.led.set_led_yellow(1)
-      self.main.led.set_led_green(1)
-      start = time.clock()
-      self.root_dir_entry.db_insert()
-      self.main.dbhandle.con.commit()
-      elapsed = time.clock() - start
-      self.main.log.write(log.MESSAGE, "done db insertion. Took %fs" % elapsed)
-      self.main.led.set_led_yellow(0)
-      self.main.led.set_led_green(0)
-
-      self.revision += 1
-
       # Tell db that scan is ok now.
+      self.revision += 1
       self.main.dbhandle.set_scan_ok(self.storid, self.revision)
 
     # end __init__() #
@@ -146,80 +146,82 @@ class UsbDevice:
 
     self.main.log.write(log.MESSAGE, "Lost USB device %s" % self.mnt_pnt)
 
-  def rebuild_from_db(self):
-    """Reinit dirs/files from database"""
 
-    self.main.led.set_led_yellow(1)
-    self.main.led.set_led_green(1)
+  def recursive_rescan_into_db(self, path, parentid):
+    """
+    """
 
-    # Create root directory.
-    self.root_dir_entry = DirEntry(root=self, directory=self.mnt_pnt,
-                                   dbrebuild=True)
-    self.totsubdirs = 1
+    dirs = sorted([f for f in os.listdir(path)
+                   if os.path.isdir(os.path.join(path, f))])
 
-    dirs = { 0 : self.root_dir_entry }
-    self.alldirs[0] = self.root_dir_entry
 
-    # 1st run to create dirs
+    files = sorted([f for f in os.listdir(path)
+                    if os.path.isfile(os.path.join(path, f))
+                      and f.endswith(".mp3")])
 
-    for dirrow in self.main.dbhandle.cur.execute(
-        "SELECT * FROM Dirs WHERE usbid=?;", (self.storid,)):
+    dirname = os.path.relpath(path, self.mnt_pnt)
 
-      dirid     = dirrow[0]
-      parentid  = dirrow[1]
-      parent    = dirs[parentid]
-      if not parent:
-        raise Exception(
-          'UsbDevice.rebuild_from_db(): parent dir not loaded so far!')
+    dirid = self.cur_dir_id
+    if parentid >= 0:
+      self.main.dbhandle.cur.execute(
+        'INSERT INTO Dirs VALUES (?, ?, ?, ?, ?, ?)',
+        (dirid, parentid, self.storid, len(dirs), len(files), dirname,))
 
-      directory = os.path.join(self.mnt_pnt, dirrow[3])
+    self.cur_dir_id += 1
 
-      newdir = DirEntry(root=self, directory=directory, parent=parent,
-                        parentid=parentid, dbrebuild=True)
-      newdir.dirid[1] = dirid
+    dbfiles = []
 
-      parent.dirs.append(newdir)
-      dirs[dirid]         = newdir
-      self.alldirs[dirid] = newdir
+    file_id = 1
+    for f in files:
+      mp3path     = os.path.join(path, f)
+      filename    = os.path.basename(mp3path)
+      extension   = os.path.splitext(filename)[1].replace('.', '')
+      filename    = filename[:-len(extension)-1]
+      relpath     = os.path.relpath(mp3path, self.mnt_pnt)
+      playtimes   = 0
+      GENRE       = u'Unknown Genre'
+      YEAR        = 0
+      TITLE       = filename
+      ALBUM       = u'Unknown Album'
+      ARTIST      = u'Unknown Artist'
+      length      = 0
 
-      self.totsubdirs += 1
+      tag = EasyID3(mp3path)
 
-      # for dirrow in scan dirs #
+      if 'album'  in tag: ALBUM  = tag['album'][0]
+      if 'artist' in tag: ARTIST = tag['artist'][0]
+      if 'title'  in tag: TITLE  = tag['title'][0]
+      if 'genre'  in tag: GENRE  = tag['genre'][0]
+      if 'date'   in tag:
+        try:
+          YEAR = int(tag['date'][0])
+        except exceptions.ValueError:
+          YEAR = 0
+      if 'length' in tag:
+        try:
+          length = int(tag['length'][0]) / 1000
+        except exceptions.ValueError:
+          length = 0
 
-    # Rerun all dirs and fill in files.
+      dbfiles.append([file_id, dirid, self.storid, relpath, filename, extension,
+                      GENRE, YEAR, TITLE, ALBUM, ARTIST, length])
 
-    for dirid, direntry in dirs.iteritems():
-      for filerow in self.main.dbhandle.cur.execute(
-          "SELECT * FROM Fileentries WHERE usbid=? AND dirid=?;",
-          (self.storid, dirid)):
+      self.main.led.set_led_yellow(file_id % 2)
+      file_id += 1
 
-        # 0=id, 1=dirid, 2=usbid, 3=path, 4=filename, 5=extension,
-        # 6=genre, 7=year, 8=title, 9=album, 10=artist, 11=length
+      # for f in files #
 
-        path = os.path.join(self.mnt_pnt, filerow[3])
-        newfile = FileEntry(path, filerow[:3], dbrebuild=True)
+    self.main.dbhandle.cur.executemany(
+      'INSERT INTO Fileentries VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      dbfiles)
 
-        newfile.filename  = filerow[4]
-        newfile.extension = filerow[5]
-        newfile.GENRE     = filerow[6]
-        newfile.YEAR      = filerow[7]
-        newfile.TITLE     = filerow[8]
-        newfile.ALBUM     = filerow[9]
-        newfile.ARTIST    = filerow[10]
-        newfile.length    = filerow[11]
-
-        direntry.files.append(newfile)
-
-        self.totfiles += 1
-
-        # for filerow
-
-      # for dirrow in scan files
-
+    # turn off led after this dir scaned
     self.main.led.set_led_yellow(0)
-    self.main.led.set_led_green(0)
 
-    # end rebuild_from_db() #
+    for d in dirs:
+      subdir = os.path.join(path, d)
+      self.recursive_rescan_into_db(subdir, dirid)
+
 
   def update_alias(self, alias):
     """Change alias for this USB dev via database"""
@@ -235,11 +237,15 @@ class UsbDevice:
 
     Returns "||device-id||dir-id||num subdirs||num files||full dir path incl mount point||"
     """
+
     ret = []
-    for key, d in self.alldirs.iteritems():
+    for row in self.main.dbhandle.cur.execute(
+        "SELECT id, numdirs, numfiles, dirname" \
+        " from Dirs WHERE usbid=? ORDER BY id;",
+          (self.storid,)):
       ret.append("||%d||%d||%d||%d||%s||" %
-                 (d.dirid[0], d.dirid[1], len(d.dirs), len(d.files),
-                  d.directory))
+                 (self.storid , row[0], row[1], row[2], row[3]))
+
     return ret
 
   def list_dirs(self, strdirid):
@@ -257,14 +263,15 @@ class UsbDevice:
     except ValueError:
       return []
 
-    if not dirid in self.alldirs:
-      return []
 
     ret = []
-    for d in self.alldirs[dirid].dirs:
+    for row in self.main.dbhandle.cur.execute(
+        "SELECT id, numdirs, numfiles, dirname" \
+        " from Dirs WHERE usbid=? AND parentid=? ORDER BY id;",
+          (self.storid,dirid,)):
       ret.append("||%d||%d||%d||%d||%s||" %
-                 (d.dirid[0], d.dirid[1], len(d.dirs), len(d.files),
-                  d.directory))
+                 (self.storid , row[0], row[1], row[2], row[3]))
+
     return ret
 
   # end list_dirs() #
@@ -282,14 +289,14 @@ class UsbDevice:
     except ValueError:
       return []
 
-    if not dirid in self.alldirs:
-      return []
-
     ret = []
-    for f in self.alldirs[dirid].files:
-      ret.append(u'||%d||%d||%d||%d||%s||%s||%s||' %
-                 (f.file_id[0], f.file_id[1], f.file_id[2], f.length,
-                  f.ARTIST, f.ALBUM, f.TITLE))
+    for row in self.main.dbhandle.cur.execute(
+        "SELECT id, time, artist, album, title" \
+        " from Fileentries WHERE usbid=? AND dirid=? ORDER BY id;",
+          (self.storid,dirid,)):
+      ret.append("||%d||%d||%d||%d||%s||%s||%s||" %
+                 (self.storid , dirid, row[0], row[1], row[2], row[3], row[4]))
+
     return ret
 
   # end list_dirs() #
