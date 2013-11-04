@@ -119,20 +119,13 @@ class UsbManager:
 
     # end remove_usb_stor() #
 
-  def get_dev_by_strid(self, strid):
+  def get_dev_by_storid(self, storid):
     """Save get usbdevice instance from storage id string
 
     Returns None if bad string or if no such storage.
     """
 
-    if not strid:
-      return None
-
-    try:
-      storid = int(strid)
-    except TypeError:
-      return None
-    except ValueError:
+    if storid is None:
       return None
 
     if not storid in self.alldevs:
@@ -143,15 +136,15 @@ class UsbManager:
     # end get_dev_by_strid() #
 
 
-  def rescan_usb_stor(self, strid):
+  def rescan_usb_stor(self, storid):
     """Drop USB device, drop all DB entries for this device and rescan it
 
     return 0: no such dev
     return 1: device rescaned
     """
 
-    usbdev = self.get_dev_by_strid(strid)
-    if not usbdev:
+    usbdev = self.get_dev_by_storid(storid)
+    if usbdev is None:
       return 0
 
     mnt_pnt = usbdev.mnt_pnt
@@ -163,4 +156,4 @@ class UsbManager:
     return 1
 
     # end rescan_usb_stor() #
-    
+

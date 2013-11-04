@@ -93,14 +93,28 @@ class EvalCmd:
 
     # end write_log_file() #
 
-  def evalcmd(self, cmd, src='Unknonw'):
+  def evalcmd(self, cmdline, src='Unknonw'):
     """Evaluate command and perform action
 
     Called by read_fifo() and RFCommServer.
 
     return [status, status_msg, result_list]
     """
-    cmd = cmd.strip()
+    cmdline = cmdline.strip()
+    line = cmdline.split()
+    cmd = ""
+    if line:
+      cmd = line[0]
+
+    int_args = []
+    for args in line:
+      try:
+        intarg = int(args)
+        int_args.append(intarg)
+      except TypeError:
+        int_args.append(None)
+      except ValueError:
+        int_args.append(None)
 
     ret_stat = STATUSOK
     ret_msg  = "OK"
@@ -112,7 +126,7 @@ class EvalCmd:
 
     # # # # help # # # #
 
-    if cmd.startswith("help"):
+    if cmd == "help":
 
       ret_list = [
         'lsalldirs <storid>           -- list of all directories on device',
@@ -127,14 +141,13 @@ class EvalCmd:
 
     # # # # lsalldirs <storid> # # # #
 
-    elif cmd.startswith("lsalldirs"):
-      line = cmd.split()
-      if len(line) != 2:
+    elif cmd == "lsalldirs":
+      if len(line) != 2 or int_args[1] is None:
         ret_stat = ERRORARGS
         ret_msg  = "lsalldirs needs 1 arg"
       else:
-        stor = self.parent.usb.get_dev_by_strid(line[1])
-        if not stor:
+        stor = self.parent.usb.get_dev_by_storid(int_args[1])
+        if stor is None:
           ret_stat = ERRORARGS
           ret_msg  = "illegal storage id"
         else:
@@ -143,33 +156,31 @@ class EvalCmd:
 
     # # # # lsdirs <storid> <dirid> # # # #
 
-    elif cmd.startswith("lsdirs"):
-      line = cmd.split()
+    elif cmd == "lsdirs":
       if len(line) != 3:
         ret_stat = ERRORARGS
         ret_msg  = "lsalldirs needs 2 args"
       else:
-        stor = self.parent.usb.get_dev_by_strid(line[1])
-        if not stor:
+        stor = self.parent.usb.get_dev_by_storid(int_args[1])
+        if stor is None:
           ret_stat = ERRORARGS
           ret_msg  = "illegal storage id"
         else:
-          ret_list = stor.list_dirs(line[2])
+          ret_list = stor.list_dirs(int_args[2])
 
     # # # # lsfiles <storid> <dirid> # # # #
 
-    elif cmd.startswith("lsfiles"):
-      line = cmd.split()
+    elif cmd == "lsfiles":
       if len(line) != 3:
         ret_stat = ERRORARGS
         ret_msg  = "lsfiles needs 2 args"
       else:
-        stor = self.parent.usb.get_dev_by_strid(line[1])
-        if not stor:
+        stor = self.parent.usb.get_dev_by_storid(int_args[1])
+        if stor is None:
           ret_stat = ERRORARGS
           ret_msg  = "illegal storage id"
         else:
-          ret_list = stor.list_files(line[2])
+          ret_list = stor.list_files(int_args[2])
 
     # # # # keepalive # # # #
 
@@ -186,26 +197,24 @@ class EvalCmd:
 
     # # # # rescan # # # #
 
-    elif cmd.startswith("rescan"):
-      line = cmd.split()
+    elif cmd == "rescan":
       if len(line) != 2:
         ret_stat = ERRORARGS
         ret_msg  = "rescan needs 1 arg"
       else:
-        if not self.parent.usb.rescan_usb_stor(line[1]):
+        if not self.parent.usb.rescan_usb_stor(int_args[1]):
           ret_stat = ERROREVAL
           ret_msg  = "device not rescaned (no such device?)"
 
     # # # # setalias # # # #
 
-    elif cmd.startswith("setalias"):
-      line = cmd.split()
+    elif cmd == "setalias":
       if len(line) != 3:
         ret_stat = ERRORARGS
         ret_msg  = "rescan needs 2 args"
       else:
-        stor = self.parent.usb.get_dev_by_strid(line[1])
-        if not stor:
+        stor = self.parent.usb.get_dev_by_storid(int_args[1])
+        if stor is None:
           ret_stat = ERRORARGS
           ret_msg  = "illegal storage id"
         else:

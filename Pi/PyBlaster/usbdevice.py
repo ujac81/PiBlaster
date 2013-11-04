@@ -96,7 +96,7 @@ class UsbDevice:
     # Check if we know this stick, if yes load from db, otherwise scan it.
 
     if self.main.dbhandle.add_or_update_usb_stor(self.storid, self.uuid, digest):
-      # Rebuild dir/file tree from database.
+      # Run from DB
 
       self.main.dbhandle.cur.execute(
         "SELECT COUNT(id) FROM Dirs WHERE usbid=?;", (self.storid,))
@@ -248,21 +248,13 @@ class UsbDevice:
 
     return ret
 
-  def list_dirs(self, strdirid):
+  def list_dirs(self, dirid):
     """Called by 'lsdirs <storid> <dirid>' command
 
     Returns "||device-id||dir-id||num subdirs||num files||full dir path incl mount point||"
     """
-    if not strdirid:
+    if dirid is None:
       return []
-
-    try:
-      dirid = int(strdirid)
-    except TypeError:
-      return []
-    except ValueError:
-      return []
-
 
     ret = []
     for row in self.main.dbhandle.cur.execute(
@@ -276,17 +268,10 @@ class UsbDevice:
 
   # end list_dirs() #
 
-  def list_files(self, strdirid):
+  def list_files(self, dirid):
     """
     """
-    if not strdirid:
-      return []
-
-    try:
-      dirid = int(strdirid)
-    except TypeError:
-      return []
-    except ValueError:
+    if dirid is None:
       return []
 
     ret = []
