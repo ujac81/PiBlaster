@@ -6,6 +6,7 @@
 import codecs
 import fcntl
 import os
+import re
 import sys
 
 import log
@@ -102,6 +103,7 @@ class EvalCmd:
     """
     cmdline = cmdline.strip()
     line = cmdline.split()
+    line = [s.replace("_", " ") for s in line]
     cmd = ""
     if line:
       cmd = line[0]
@@ -120,7 +122,8 @@ class EvalCmd:
     ret_msg  = "OK"
     ret_list = []
 
-    self.parent.log.write(log.MESSAGE, "Eval cmd [%s]: %s" % (src,cmd))
+    self.parent.log.write(log.MESSAGE, "Eval cmd [%s]: %s" %
+                          (src, " || ".join(line)))
 
     # Command evaluation, starting with 'help', then in alphabetical order.
 
@@ -137,6 +140,8 @@ class EvalCmd:
         'plappenddir <storid> <dirid> -- append directory to playlist',
         'plclear                      -- clear current playlist and start up'\
           ' new one',
+        'plsave                       -- save to selected playlist',
+        'plsaveas <name> <creator>    -- save as new playlist',
         'plshow <id> <start> <max>',
         '       <format>              -- show playlist with id #id from' \
           ' position <start>, max <max> items with format <format>',
@@ -216,11 +221,35 @@ class EvalCmd:
         num_ins = self.parent.listmngr.insert_dir(
           ids=[int_args[1], int_args[2]])
         ret_list=[num_ins]
+        ret_msg = "%d items appended to playlist" % num_ins
 
     # # # # plclear # # # #
 
     elif cmd == "plclear":
       self.parent.listmngr.clear()
+      ret_msg = "Playlist cleared."
+
+    # # # # plsave # # # #
+
+    elif cmd == "plsave":
+      if not self.parent.listmngr.save():
+        ret_stat = ERROREVAL
+        ret_msg  = "Save failed -- name exists or playlist empty!"
+      else:
+        ret_msg  = "Playlist saved."
+
+    # # # # plsave # # # #
+
+    elif cmd == "plsaveas":
+      if len(line) != 3:
+        ret_stat = ERRORARGS
+        ret_msg  = "plsaveas needs 2 args!"
+      else:
+        if not self.parent.listmngr.save_as(line[1], line[2]):
+          ret_stat = ERROREVAL
+          ret_msg  = "Save failed -- name exists or playlist empty!"
+        else:
+          ret_msg  = "Playlist saved as %s." % line[1]
 
     # # # # plshow # # # #
 
@@ -228,7 +257,7 @@ class EvalCmd:
       if len(line) != 5 or int_args[1] is None or int_args[2] is None or \
           int_args[3] is None:
         ret_stat = ERRORARGS
-        ret_msg  = "plshow needs 5 args"
+        ret_msg  = "plshow needs 4 args"
       else:
         ret_list = self.parent.listmngr.list_playlist(
           playlist=int_args[1],
@@ -252,6 +281,8 @@ class EvalCmd:
         if not self.parent.usb.rescan_usb_stor(int_args[1]):
           ret_stat = ERROREVAL
           ret_msg  = "device not rescaned (no such device?)"
+        else:
+          ret_msg  = "device %d rescaned." % int_args[1]
 
     # # # # setalias # # # #
 
@@ -268,6 +299,8 @@ class EvalCmd:
           if not stor.update_alias(line[2]):
             ret_stat = ERROREVAL
             ret_msg  = "alias exists in database"
+          else:
+            ret_msg  = "Alias set to %s for device %d" % (line[2], int_args[1])
 
     # # # # showdevices # # # #
 
@@ -282,6 +315,8 @@ class EvalCmd:
       ret_msg  = "unknown command"
 
     self.write_log_file(cmd, ret_stat, ret_msg, ret_list)
+
+    self.parent.log.write(log.MESSAGE, ">>> %s" % ret_msg)
     return [ret_stat, ret_msg, ret_list]
 
     # end evalcmd() #

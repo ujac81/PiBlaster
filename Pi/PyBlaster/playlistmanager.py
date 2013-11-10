@@ -3,6 +3,7 @@
 @Author Ulrich Jansen <ulrich.jansen@rwth-aachen.de>
 """
 
+import time
 
 import log
 from playlistitem import PlayListItem
@@ -13,21 +14,34 @@ from playlistitem import PlayListItem
 class PlayListManager:
 
   def __init__(self, parent):
-    """Set up empty playlist hash and None active playlist"""
+    """Empty ctor
 
-    self.parent         = parent
+    Need to call load_playlist after other object initialized.
+    """
+
+    self.parent = parent
+
+    # end __init__() #
+
+  def clear(self):
+    """Clean out active playlist (0) and set id to 0"""
 
     self.playlist       = []
     self.playlist_pos   = 0
     self.playlist_id    = 0       # id of the source playlist in database
                                   # 0 = new playlist
+    self.name           = "New playlist"
+    self.creator        = "Anonymous"
+    self.time           = int(time.time())
 
-    # end __init__() #
+    self.parent.log.write(log.MESSAGE, "[PLAYLISTMNGR] cleared.")
+
+    # end clear() #
 
   def load_playlist(self):
     """Load last playlist from database"""
 
-    # TODO load.
+    self.clear()
 
     # end load_playlist() #
 
@@ -40,38 +54,67 @@ class PlayListManager:
     Returns True if success, False if id == 0 or failed to write.
     """
 
-    if self.playlist_id == 0:
+    if self.playlist_id == 0 or not len(self.playlist):
       return False
 
-    ### TODO save to db
+    self.time = int(time.time())
+
+    self.parent.led.set_led_yellow(1)
+
+    self.parent.dbhandle.cur.execute(
+        'INSERT INTO Playlists VALUES (?, ?, ?, ?, ?, ?)',
+        (self.playlist_id, self.name, self.time, self.creator,
+         len(self.playlist), self.playlist_pos))
+
+    pl_items = []
+    for i in range(len(self.playlist)):
+      self.playlist[i].append_to_db_list(pl_items, self.playlist_id, i)
+
+    self.parent.dbhandle.cur.executemany(
+      'INSERT INTO Playlistentries VALUES (?, ?, ?, ?, ?, ?, ?, ?)', pl_items)
+
+    self.parent.dbhandle.set_settings_value(
+      'curplaylist', '%d' % self.playlist_id)
+
+    self.parent.led.set_led_yellow(0)
+
+    self.parent.log.write(log.MESSAGE,
+      "[PLAYLISTMNGR]: Saved playlist %s created by %s at %s with length %d " \
+      "at position %d as id %d" %
+      (self.name, self.creator,
+       time.strftime("%x %X", time.localtime(self.time)), len(self.playlist),
+       self.playlist_pos, self.playlist_id))
 
     return True
 
     # end save() #
 
-  def save_as(self, name):
+  def save_as(self, name, creator):
     """Write new playlist to database
 
     Returns True if success, False if name exists or failed to write.
     """
 
-    ### TODO save as
+    # check if name is unique
+    self.parent.dbhandle.cur.execute("SELECT COUNT(name) FROM Playlists "\
+      "WHERE name=?;", (name,))
+    if self.parent.dbhandle.cur.fetchone()[0] != 0:
+      return False
 
-    return True
+    # get id for new playlist
+    new_id = 0
+    for row in self.parent.dbhandle.cur.execute(
+        "SELECT id FROM Playlists ORDER BY id"):
+      new_id = row[0]
+    new_id += 1
+
+    self.playlist_id = new_id
+    self.name = name
+    self.creator = creator
+
+    return self.save()
 
     # end save_as() #
-
-  def clear(self):
-    """Clean out active playlist (0) and set id to 0"""
-
-    self.playlist = []
-    self.playlist_pos = 0
-    self.playlist_id = 0
-
-    self.parent.log.write(log.MESSAGE, "[PLAYLISTMNGR] cleared.")
-
-    # end clear() #
-
 
   def insert_item(self, ids, position=-1,
                   random_insert=False, after_current=False):

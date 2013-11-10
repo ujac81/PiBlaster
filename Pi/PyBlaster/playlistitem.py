@@ -15,6 +15,7 @@ class PlayListItem:
     self.is_connected = is_connected  #
     self.revision     = revision
     self.disptitle    = u'%s - %s' % ( db_row[FE.ARTIST], db_row[FE.TITLE] )
+    self.played       = 0
 
     if db_row[FE.ARTIST] == u'Unknown Artist':
       self.disptitle = db_row[FE.TITLE]
@@ -37,5 +38,14 @@ class PlayListItem:
     return res
 
     # end print_item() #
+
+  def append_to_db_list(self, listref, listid, entryid):
+    """
+    """
+
+    listref.append([listid, entryid, self.db_row[FE.STORID],
+                    self.revision, self.db_row[FE.DIRID],
+                    self.db_row[FE.ID], self.disptitle,
+                    self.played])
 
 

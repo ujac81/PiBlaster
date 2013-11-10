@@ -175,7 +175,7 @@ class DBHandle:
 
     self.cur.execute("SELECT COUNT(name) FROM sqlite_master "\
       "WHERE type='table' AND name='Settings';")
-    
+
     if self.cur.fetchone()[0] == 1:
       self.cur.execute("SELECT value FROM Settings WHERE key='version';")
       if self.cur.fetchone()[0] == str(DBVERSION):
@@ -374,6 +374,56 @@ class DBHandle:
                      (alias, usbdevid,))
     self.con.commit()
     return True
+
+
+  def set_settings_value(self, key, value):
+    """
+    """
+
+    # delete current settings val from database
+    self.cur.execute("DELETE FROM Settings WHERE key=?", (key,))
+    self.con.commit()
+
+    # get id for new object
+    new_id = 0
+    for row in self.cur.execute("SELECT id FROM Settings ORDER BY id;"):
+      new_id = row[0]
+    new_id += 1
+
+    self.cur.execute( 'INSERT INTO Settings (id, key, value) VALUES (?, ?, ?)',
+      (new_id, key, value))
+    self.con.commit()
+
+    # end set_settings_value() #
+
+
+  def get_settings_value(self, key):
+    """
+    """
+
+    res = None
+    for row in self.cur.execute(
+        "SELECT value FROM Settings WHERE key=?;", (key,)):
+      res = row[0]
+    return res
+
+
+  def get_settings_value_as_int(self, key):
+    """
+    """
+    res = -1
+    strres = get_settings_value(key)
+    if strres is None:
+      return -1
+
+    try:
+      res = int(strres)
+    except TypeError:
+      res = -1
+    except ValueError:
+      res = -1
+
+    return res
 
 
 
