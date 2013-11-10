@@ -129,15 +129,32 @@ class EvalCmd:
     if cmd == "help":
 
       ret_list = [
+        'hasdevice <storid>           -- 1 if device is attached',
         'lsalldirs <storid>           -- list of all directories on device',
         'lsdirs <storid> <dirid>      -- list all subdirs in dir',
         'lsfiles <storid> <dirid>     -- list all files in dir',
         'keepalive                    -- reset disconnect poll count (noop)',
+        'plappenddir <storid> <dirid> -- append directory to playlist',
+        'plclear                      -- clear current playlist and start up'\
+          ' new one',
+        'plshow <id> <start> <max>',
+        '       <format>              -- show playlist with id #id from' \
+          ' position <start>, max <max> items with format <format>',
         'quit                         -- exit program',
         'rescan <storid>              -- force rescan of usb device',
         'setalias <storid> <alias>    -- set alias name for usb device',
         'showdevices                  -- list of connected devices'
         ]
+
+
+    # # # # hasdevice <storid> # # # #
+
+    elif cmd == "hasdevice":
+      if len(line) != 2 or int_args[1] is None:
+        ret_stat = ERRORARGS
+        ret_msg  = "hasdevice needs 1 arg"
+      else:
+        ret_list.append("%d" % self.parent.usb.is_connected(int_args[1]))
 
     # # # # lsalldirs <storid> # # # #
 
@@ -188,6 +205,36 @@ class EvalCmd:
       # nothing to do, timeout poll count will be reset
       # in RFCommServer.read_command()
       ret_msg = "OK"
+
+    # # # # plappenddir # # # #
+
+    elif cmd == "plappenddir":
+      if len(line) != 3 or int_args[1] is None or int_args[2] is None:
+        ret_stat = ERRORARGS
+        ret_msg  = "plappenddir needs 3 args"
+      else:
+        num_ins = self.parent.listmngr.insert_dir(
+          ids=[int_args[1], int_args[2]])
+        ret_list=[num_ins]
+
+    # # # # plclear # # # #
+
+    elif cmd == "plclear":
+      self.parent.listmngr.clear()
+
+    # # # # plshow # # # #
+
+    elif cmd == "plshow":
+      if len(line) != 5 or int_args[1] is None or int_args[2] is None or \
+          int_args[3] is None:
+        ret_stat = ERRORARGS
+        ret_msg  = "plshow needs 5 args"
+      else:
+        ret_list = self.parent.listmngr.list_playlist(
+          playlist=int_args[1],
+          start_at=int_args[2],
+          max_items=int_args[3],
+          printformat=line[4])
 
     # # # # quit # # # #
 

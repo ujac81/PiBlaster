@@ -157,3 +157,26 @@ class UsbManager:
 
     # end rescan_usb_stor() #
 
+  def is_connected(self, storid):
+    """Returns True if usb device with id storid is attached"""
+
+    return storid in self.alldevs;
+
+
+
+  def revision(self, storid):
+    """Get revision number of file tree for device storid
+
+    Return -1 if no such storid
+    """
+
+    res = -1
+
+    for row in self.parent.dbhandle.cur.execute(
+        "SELECT revision FROM Usbdevs WHERE id=?", (storid,)):
+      res = row[0]
+
+    return res
+
+
+

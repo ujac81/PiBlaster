@@ -48,8 +48,8 @@ class PyBlaster:
     # load connected usb before bluetooth
     self.usb.check_new_usb()
 
-    # load playlists from database
-    self.listmngr.load_playlists()
+    # load last playlist from database
+    self.listmngr.load_playlist()
 
     # open cmd fifo to read commands
     self.cmd.open_fifo()

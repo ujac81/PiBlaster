@@ -43,25 +43,6 @@ Dirs(id INT, parentid INT, usbid INT, numdirs INT,
   5 dirname   -- name (not path) of this directory
 
 
-Fileentries(id INT, dirid INT, usbid INT, path TEXT,
-            filename TEXT, extension TEXT, genre TEXT,
-            year INT, title TEXT, album TEXT,
-            artist TEXT, time INT)
-
-   0 id
-   1 dirid
-   2 usbid
-   3 path
-   4 filename
-   5 extension
-   6 genre
-   7 year
-   8 title
-   9 album
-  10 artist
-  11 time
-
-
 @Author Ulrich Jansen <ulrich.jansen@rwth-aachen.de>
 """
 
@@ -69,7 +50,84 @@ import sqlite3
 
 import log
 
-DBVERSION = 10
+DBVERSION = 13
+
+
+class DBDirEntries:
+  """Enum and create syntax for Dirs database table"""
+
+  ID, PARENTID, USBID, NUMDIRS, NUMFILES, DIRNAME = range(6)
+
+  DropSyntax    = """DROP TABLE IF EXISTS Dirs;"""
+  CreateSyntax  = """CREATE TABLE Dirs(
+    id INT, parentid INT, usbid INT, numdirs INT,
+    numfiles INT, dirname TEXT);"""
+
+  # end class DBDirEntries #
+
+
+class DBFileEntries:
+  """Enum and create syntax for Fileentries database table"""
+  ID, DIRID, STORID, PATH, FILENAME, EXT, GENRE, YEAR, TITLE, \
+  ALBUM, ARTIST, TIME = range(12)
+
+  DropSyntax    = """DROP TABLE IF EXISTS Fileentries;"""
+  CreateSyntax  = """CREATE TABLE Fileentries(
+    id INT, dirid INT, usbid INT, path TEXT,
+    filename TEXT, extension TEXT, genre TEXT,
+    year INT, title TEXT, album TEXT,
+    artist TEXT, time INT);"""
+
+  # end class DBFileEntries #
+
+
+class DBPlayLists:
+  """Enum and create syntax for Usbdevs database table"""
+  ID, NAME, CREATED, CREATOR, ITEMSCOUNT, POSITION = range(6)
+
+  DropSyntax    = """DROP TABLE IF EXISTS Playlists;"""
+  CreateSyntax  = """CREATE TABLE Playlists(
+    id INT, name TEXT, created INT, creator TEXT,
+    itemcount INT, position INT);"""
+
+  # end class DBPlayLists #
+
+
+class DBPlayListEntries:
+  """Enum and create syntax for Usbdevs database table"""
+  ID, INDEX, STORID, REVISION, DIRID, FILEID, TITLE, PLAYED = range(8)
+
+  DropSyntax    = """DROP TABLE IF EXISTS Playlistentries;"""
+  CreateSyntax  = """CREATE TABLE Playlistentries(
+    playlistid INT, entryin INT,
+    usbid INT, usbrev INT, dirid INT,
+    fileid INT, disptitle TEXT, played INT);"""
+
+  # end class DBPlayListEntries #
+
+class DBUsbDevs:
+  """Enum and create syntax for Usbdevs database table"""
+  ID, UUID, MD5, SCANOK, ALIAS, REVISION = range(6)
+
+  DropSyntax    = """DROP TABLE IF EXISTS Usbdevs;"""
+  CreateSyntax  = """CREATE TABLE Usbdevs(
+    id INT, UUID TEXT, md5 TEXT, scanok INT,
+    alias TEXT, revision INT);"""
+
+  # end class DBUsbDevs #
+
+
+class DBSettings:
+  """Enum and create syntax for Usbdevs database table"""
+  ID, KEY, VALUE = range(3)
+
+  DropSyntax    = """DROP TABLE IF EXISTS Settings;"""
+  CreateSyntax  = """CREATE TABLE Settings(
+    id INT, key TEXT, value TEXT);"""
+
+  # end class DBUsbDevs #
+
+
 
 class DBHandle:
   """ Manage sqlite db file which contains playlist and known usb devices
@@ -115,9 +173,10 @@ class DBHandle:
     # Check if we got Settings table and if version matches DBVERSION
     # -- rebuild otherwise.
 
-    self.cur.execute("SELECT name FROM sqlite_master WHERE type='table';")
-
-    if 'Settings' in self.cur.fetchall()[0]:
+    self.cur.execute("SELECT COUNT(name) FROM sqlite_master "\
+      "WHERE type='table' AND name='Settings';")
+    
+    if self.cur.fetchone()[0] == 1:
       self.cur.execute("SELECT value FROM Settings WHERE key='version';")
       if self.cur.fetchone()[0] == str(DBVERSION):
         self.parent.log.write(log.MESSAGE,
@@ -142,28 +201,19 @@ class DBHandle:
     Called if version has changed or -r command line flag found by Settings.
     """
 
-    self.cur.executescript("""DROP TABLE IF EXISTS Settings;
-       DROP TABLE IF EXISTS Usbdevs;
-       DROP TABLE IF EXISTS Dirs;
-       DROP TABLE IF EXISTS Fileentries;
-       DROP TABLE IF EXISTS Dummies;
-       DROP TABLE IF EXISTS Playlists;
-       DROP TABLE IF EXISTS Playlistentries;
-       CREATE TABLE Settings(id INT, key TEXT, value TEXT);
-       CREATE TABLE Usbdevs(id INT, UUID TEXT, md5 TEXT, scanok INT,
-                            alias TEXT, revision INT);
-       CREATE TABLE Dirs(id INT, parentid INT, usbid INT, numdirs INT,
-                         numfiles INT, dirname TEXT);
-       CREATE TABLE Fileentries(id INT, dirid INT, usbid INT, path TEXT,
-                                filename TEXT, extension TEXT, genre TEXT,
-                                year INT, title TEXT, album TEXT,
-                                artist TEXT, time INT);
-        CREATE TABLE Playlists(id INT, name TEXT, created INT, creator TEXT,
-                               itemcount INT, position INT);
-        CREATE TABLE Playlistentries(playlistid INT, entryin INT,
-                                     usbid INT, usbrev INT, dirid INT,
-                                     fileid INT, disptitle TEXT);
-        """)
+    self.cur.executescript(DBDirEntries.DropSyntax+
+                           DBFileEntries.DropSyntax+
+                           DBPlayLists.DropSyntax+
+                           DBPlayListEntries.DropSyntax+
+                           DBUsbDevs.DropSyntax+
+                           DBSettings.DropSyntax)
+    self.con.commit()
+    self.cur.executescript(DBDirEntries.CreateSyntax+
+                           DBFileEntries.CreateSyntax+
+                           DBPlayLists.CreateSyntax+
+                           DBPlayListEntries.CreateSyntax+
+                           DBUsbDevs.CreateSyntax+
+                           DBSettings.CreateSyntax)
     self.con.commit()
 
     settings = [(1, "version", "%d" % DBVERSION)]
