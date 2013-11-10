@@ -50,7 +50,7 @@ import sqlite3
 
 import log
 
-DBVERSION = 13
+DBVERSION = 14
 
 
 class DBDirEntries:
@@ -69,14 +69,14 @@ class DBDirEntries:
 class DBFileEntries:
   """Enum and create syntax for Fileentries database table"""
   ID, DIRID, STORID, PATH, FILENAME, EXT, GENRE, YEAR, TITLE, \
-  ALBUM, ARTIST, TIME = range(12)
+  ALBUM, ARTIST, TIME, DISPTITLE = range(12)
 
   DropSyntax    = """DROP TABLE IF EXISTS Fileentries;"""
   CreateSyntax  = """CREATE TABLE Fileentries(
     id INT, dirid INT, usbid INT, path TEXT,
     filename TEXT, extension TEXT, genre TEXT,
     year INT, title TEXT, album TEXT,
-    artist TEXT, time INT);"""
+    artist TEXT, time INT, disptitle TEXT);"""
 
   # end class DBFileEntries #
 
@@ -318,7 +318,7 @@ class DBHandle:
     Ff then update md5, insert into db otherwise.
     """
 
-    for row in self.cur.execute("SELECT UUID, md5, scanok FROM Usbdevs;"):
+    for row in self.cur.execute("SELECT UUID, md5, scanok FROM Usbdevs"):
       if row[0] == UUID:
         if row[1] == md5 and row[2] == 1:
           # we found valid db entries, nothing to do
@@ -366,7 +366,7 @@ class DBHandle:
     return False if alias exists in database.
     """
 
-    for row in self.cur.execute("SELECT alias FROM Usbdevs;"):
+    for row in self.cur.execute("SELECT alias FROM Usbdevs"):
       if row[0] == alias:
         return False
 
@@ -386,7 +386,7 @@ class DBHandle:
 
     # get id for new object
     new_id = 0
-    for row in self.cur.execute("SELECT id FROM Settings ORDER BY id;"):
+    for row in self.cur.execute("SELECT id FROM Settings ORDER BY id"):
       new_id = row[0]
     new_id += 1
 
@@ -403,7 +403,7 @@ class DBHandle:
 
     res = None
     for row in self.cur.execute(
-        "SELECT value FROM Settings WHERE key=?;", (key,)):
+        "SELECT value FROM Settings WHERE key=?", (key,)):
       res = row[0]
     return res
 

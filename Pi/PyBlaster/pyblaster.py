@@ -49,7 +49,7 @@ class PyBlaster:
     self.usb.check_new_usb()
 
     # load last playlist from database
-    self.listmngr.load_playlist()
+    self.listmngr.load_active_playlist()
 
     # open cmd fifo to read commands
     self.cmd.open_fifo()

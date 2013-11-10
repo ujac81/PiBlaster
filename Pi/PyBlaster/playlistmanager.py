@@ -6,9 +6,8 @@
 import time
 
 import log
+from dbhandle import DBPlayLists as PL
 from playlistitem import PlayListItem
-
-
 
 
 class PlayListManager:
@@ -38,12 +37,44 @@ class PlayListManager:
 
     # end clear() #
 
-  def load_playlist(self):
+  def load_active_playlist(self):
     """Load last playlist from database"""
 
     self.clear()
 
     # end load_playlist() #
+
+  def save_active(self):
+    """Save current playlist as playlist id 0.
+
+    Called after every change of playlist to recover status after restart
+    """
+
+    self.time = int(time.time())
+
+    self.parent.led.set_led_yellow(1)
+
+    self.parent.dbhandle.cur.execute('DELETE FROM Playlists WHERE id=0')
+    self.parent.dbhandle.cur.execute(
+      'DELETE FROM Playlistentries WHERE playlistid=0')
+    self.parent.dbhandle.con.commit()
+
+    self.parent.dbhandle.cur.execute(
+        'INSERT INTO Playlists VALUES (?, ?, ?, ?, ?, ?)',
+        (0, self.name, self.time, self.creator,
+         len(self.playlist), self.playlist_pos))
+
+    pl_items = []
+    for i in range(len(self.playlist)):
+      self.playlist[i].append_to_db_list(pl_items, self.playlist_id, i)
+
+    self.parent.dbhandle.cur.executemany(
+      'INSERT INTO Playlistentries VALUES (?, ?, ?, ?, ?, ?, ?, ?)', pl_items)
+
+    self.parent.dbhandle.con.commit()
+    self.parent.led.set_led_yellow(0)
+
+    # end save_active() #
 
   def save(self):
     """Write playlist to source playlist in database
@@ -62,6 +93,12 @@ class PlayListManager:
     self.parent.led.set_led_yellow(1)
 
     self.parent.dbhandle.cur.execute(
+        'DELETE FROM Playlists WHERE id=?', (self.playlist_id))
+    self.parent.dbhandle.cur.execute(
+        'DELETE FROM Playlistentries WHERE playlistid=?', (self.playlist_id))
+    self.parent.dbhandle.con.commit()
+
+    self.parent.dbhandle.cur.execute(
         'INSERT INTO Playlists VALUES (?, ?, ?, ?, ?, ?)',
         (self.playlist_id, self.name, self.time, self.creator,
          len(self.playlist), self.playlist_pos))
@@ -75,6 +112,8 @@ class PlayListManager:
 
     self.parent.dbhandle.set_settings_value(
       'curplaylist', '%d' % self.playlist_id)
+
+    self.parent.dbhandle.con.commit()
 
     self.parent.led.set_led_yellow(0)
 
@@ -116,6 +155,29 @@ class PlayListManager:
 
     # end save_as() #
 
+  def save_overwrite(self, playlist_id):
+    """Overwrite existing playlist
+
+    Returns True if success, False if not exists or failed to write.
+    """
+
+    # check if id exists
+    self.parent.dbhandle.cur.execute("SELECT COUNT(id) FROM Playlists "\
+      "WHERE id=?;", (playlist_id,))
+    if self.parent.dbhandle.cur.fetchone()[0] != 1:
+      return False
+
+    self.parent.dbhandle.cur.execute("SELECT name, creator FROM Playlists "\
+      "WHERE id=?;", (playlist_id,))
+
+    row = self.parent.dbhandle.cur.fetchone()
+
+    self.playlist_id = playlist_id
+    self.name = row[0]
+    self.creator = row[1]
+
+    return self.save()
+
   def insert_item(self, ids, position=-1,
                   random_insert=False, after_current=False):
     """Push back item from database to playlist.
@@ -129,6 +191,9 @@ class PlayListManager:
 
     Returns: True if insert ok.
     """
+
+    self.save_active()
+    return True
 
   def insert_dir(self, ids, position=-1,
                  random_insert=False, after_current=False):
@@ -155,6 +220,7 @@ class PlayListManager:
       self.playlist.append(PlayListItem(row, is_connected, revision))
       ins_cnt += 1
 
+    self.save_active()
     return ins_cnt
 
   def list_playlist(self,
@@ -178,16 +244,38 @@ class PlayListManager:
       res = [self.playlist_pos, 0]
 
       for i in range(start_at, min(len(self.playlist), max_items)):
-        res.append(self.playlist[i].print_item(printformat))
+        res.append(self.playlist[i].print_self(printformat))
 
     else:
-      """do something """
-      ### TODO: build result from database
-
+      for row in self.parent.dbhandle.cur.execute(
+          "SELECT * FROM Playlistentries ORDER BY id LIMIT ? OFFSET ?",
+          (max_items, start_at,) ):
+        res.append(PlayListItem.print_item(row, printformat))
 
     res[1] = len(res) - 2
 
     return res
+
+    # end list_playlist() #
+
+
+  def list_playlists(self):
+    '''Cretate list of saved playlists'''
+
+    res = []
+
+    for row in self.parent.dbhandle.cur.execute(
+        "SELECT * FROM Playlists ORDER BY id"):
+
+      if row[PL.ID] != 0:
+        res.append(u'||%d||%s||%s||%s||%d||' %
+                   (row[PL.ID], row[PL.NAME],
+                    time.strftime("%x %X", time.localtime(row[PL.CREATED)),
+                    row[PL.ITEMSCOUNT])
+                  )
+    return res
+
+    # end list_playlists() #
 
 
 

@@ -203,8 +203,12 @@ class UsbDevice:
         except exceptions.ValueError:
           length = 0
 
+      disptitle = u'%s - %s' % ARTIST, TITLE
+      if ARTIST == u'Unknown Artist':
+        disptitle = TITLE
+
       dbfiles.append([file_id, dirid, self.storid, relpath, filename, extension,
-                      GENRE, YEAR, TITLE, ALBUM, ARTIST, length])
+                      GENRE, YEAR, TITLE, ALBUM, ARTIST, length, disptitle])
 
       self.main.led.set_led_yellow(file_id % 2)
       file_id += 1
@@ -212,7 +216,7 @@ class UsbDevice:
       # for f in files #
 
     self.main.dbhandle.cur.executemany(
-      'INSERT INTO Fileentries VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO Fileentries VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
       dbfiles)
 
     # turn off led after this dir scaned
@@ -243,7 +247,7 @@ class UsbDevice:
         "SELECT id, numdirs, numfiles, dirname" \
         " from Dirs WHERE usbid=? ORDER BY id;",
           (self.storid,)):
-      ret.append("||%d||%d||%d||%d||%s||" %
+      ret.append(u"||%d||%d||%d||%d||%s||" %
                  (self.storid , row[0], row[1], row[2], row[3]))
 
     return ret
@@ -261,7 +265,7 @@ class UsbDevice:
         "SELECT id, numdirs, numfiles, dirname" \
         " from Dirs WHERE usbid=? AND parentid=? ORDER BY id;",
           (self.storid,dirid,)):
-      ret.append("||%d||%d||%d||%d||%s||" %
+      ret.append(u"||%d||%d||%d||%d||%s||" %
                  (self.storid , row[0], row[1], row[2], row[3]))
 
     return ret
@@ -279,7 +283,7 @@ class UsbDevice:
         "SELECT id, time, artist, album, title" \
         " from Fileentries WHERE usbid=? AND dirid=? ORDER BY id;",
           (self.storid,dirid,)):
-      ret.append("||%d||%d||%d||%d||%s||%s||%s||" %
+      ret.append(u"||%d||%d||%d||%d||%s||%s||%s||" %
                  (self.storid , dirid, row[0], row[1], row[2], row[3], row[4]))
 
     return ret

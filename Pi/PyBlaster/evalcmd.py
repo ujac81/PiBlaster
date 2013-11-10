@@ -142,10 +142,12 @@ class EvalCmd:
           ' new one',
         'plsave                       -- save to selected playlist',
         'plsaveas <name> <creator>    -- save as new playlist',
+        'plsaveasexisting <id>        -- overwrite existsing playlist',
         'plshow <id> <start> <max>',
         '       <format>              -- show playlist with id #id from' \
           ' position <start>, max <max> items with format <format>',
         'quit                         -- exit program',
+        'plshowlists                  -- show all playlists',
         'rescan <storid>              -- force rescan of usb device',
         'setalias <storid> <alias>    -- set alias name for usb device',
         'showdevices                  -- list of connected devices'
@@ -238,7 +240,7 @@ class EvalCmd:
       else:
         ret_msg  = "Playlist saved."
 
-    # # # # plsave # # # #
+    # # # # plsaveas # # # #
 
     elif cmd == "plsaveas":
       if len(line) != 3:
@@ -250,6 +252,19 @@ class EvalCmd:
           ret_msg  = "Save failed -- name exists or playlist empty!"
         else:
           ret_msg  = "Playlist saved as %s." % line[1]
+
+    # # # # plsaveasexisting # # # #
+
+    elif cmd == "plsaveasexisting":
+      if len(line) != 2 or int_args[1] is None:
+        ret_stat = ERRORARGS
+        ret_msg  = "plsaveasexisting needs 1 arg!"
+      else:
+        if not self.parent.listmngr.save_overwrite(int_args[1]):
+          ret_stat = ERROREVAL
+          ret_msg  = "Save failed -- no such playlist or playlist empty!"
+        else:
+          ret_msg  = "Playlist %d overwitten." % int_args[1]
 
     # # # # plshow # # # #
 
@@ -264,6 +279,11 @@ class EvalCmd:
           start_at=int_args[2],
           max_items=int_args[3],
           printformat=line[4])
+
+    # # # # plshow # # # #
+
+    elif cmd == "plshowlists":
+      ret_list = self.parent.listmngr.list_playlists()
 
     # # # # quit # # # #
 
