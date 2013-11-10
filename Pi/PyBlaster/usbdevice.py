@@ -203,7 +203,7 @@ class UsbDevice:
         except exceptions.ValueError:
           length = 0
 
-      disptitle = u'%s - %s' % ARTIST, TITLE
+      disptitle = u'%s - %s' % (ARTIST, TITLE)
       if ARTIST == u'Unknown Artist':
         disptitle = TITLE
 

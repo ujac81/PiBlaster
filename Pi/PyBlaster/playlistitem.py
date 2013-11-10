@@ -4,7 +4,7 @@
 """
 
 from dbhandle import DBFileEntries as FE
-
+from dbhandle import DBPlayListEntries as PE
 
 class PlayListItem:
 
@@ -22,12 +22,11 @@ class PlayListItem:
   def print_self(self, printformat="||$disptitle$||$length$||"):
     """
     """
-    return PlayListItem.print_item(self.db_row, printformat)
 
-  @staticmethod
-  def print_item(db_row, printformat="||$disptitle$||$length$||"):
-    """
-    """
+    # USB device is not connected now
+    if not self.is_connected:
+      return None
+
     res = printformat
 
     res = res.replace("$artist$", self.db_row[FE.ARTIST])
@@ -35,10 +34,7 @@ class PlayListItem:
     res = res.replace("$length$", "%d" % self.db_row[FE.TIME])
     res = res.replace("$title$", self.db_row[FE.TITLE])
 
-
     return res
-
-    # end print_item() #
 
   def append_to_db_list(self, listref, listid, entryid):
     """
@@ -46,7 +42,8 @@ class PlayListItem:
 
     listref.append([listid, entryid, self.db_row[FE.STORID],
                     self.revision, self.db_row[FE.DIRID],
-                    self.db_row[FE.ID], self.disptitle,
-                    self.played])
+                    self.db_row[FE.ID], self.db_row[FE.DISPTITLE],
+                    self.played, self.db_row[FE.PATH]
+                    ])
 
 

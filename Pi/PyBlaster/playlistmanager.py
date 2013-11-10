@@ -7,6 +7,7 @@ import time
 
 import log
 from dbhandle import DBPlayLists as PL
+from dbhandle import DBPlayListEntries as PE
 from playlistitem import PlayListItem
 
 
@@ -40,7 +41,39 @@ class PlayListManager:
   def load_active_playlist(self):
     """Load last playlist from database"""
 
+    self.parent.led.set_led_yellow(1)
     self.clear()
+
+    connected_revs = {}
+    for storid, usb in self.parent.usb.alldevs.iteritems():
+      connected_revs[storid] = usb.revision
+
+    entries = []
+
+    for row in self.parent.dbhandle.cur.execute(
+        "SELECT usbid, usbrev, dirid, fileid, played FROM Playlistentries "\
+        "WHERE playlistid=0 ORDER BY entryin"):
+      entries.append(row)
+
+    for row in entries:
+      if row[0] in connected_revs and connected_revs[row[0]] == row[1]:
+        self.parent.dbhandle.cur.execute("SELECT * FROM Fileentries "\
+          "WHERE id=? AND dirid=? AND usbid=?", (row[3], row[2], row[0]))
+        fileentry = self.parent.dbhandle.cur.fetchone()
+        item = PlayListItem(fileentry, True, row[1])
+        item.played = row[4]
+        self.playlist.append(item)
+
+
+      # end for row in Playlistentries #
+
+    self.check_usb_valid()
+
+    self.parent.led.set_led_yellow(0)
+
+    self.parent.log.write(log.MESSAGE,
+      "[PLAYLISTMNGR] Loaded active playlist with %d items" %
+      len(self.playlist))
 
     # end load_playlist() #
 
@@ -69,7 +102,8 @@ class PlayListManager:
       self.playlist[i].append_to_db_list(pl_items, self.playlist_id, i)
 
     self.parent.dbhandle.cur.executemany(
-      'INSERT INTO Playlistentries VALUES (?, ?, ?, ?, ?, ?, ?, ?)', pl_items)
+      'INSERT INTO Playlistentries VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      pl_items)
 
     self.parent.dbhandle.con.commit()
     self.parent.led.set_led_yellow(0)
@@ -93,22 +127,23 @@ class PlayListManager:
     self.parent.led.set_led_yellow(1)
 
     self.parent.dbhandle.cur.execute(
-        'DELETE FROM Playlists WHERE id=?', (self.playlist_id))
+        'DELETE FROM Playlists WHERE id=?', (self.playlist_id,))
     self.parent.dbhandle.cur.execute(
-        'DELETE FROM Playlistentries WHERE playlistid=?', (self.playlist_id))
+        'DELETE FROM Playlistentries WHERE playlistid=?', (self.playlist_id,))
     self.parent.dbhandle.con.commit()
 
     self.parent.dbhandle.cur.execute(
         'INSERT INTO Playlists VALUES (?, ?, ?, ?, ?, ?)',
         (self.playlist_id, self.name, self.time, self.creator,
-         len(self.playlist), self.playlist_pos))
+         len(self.playlist), self.playlist_pos,))
 
     pl_items = []
     for i in range(len(self.playlist)):
       self.playlist[i].append_to_db_list(pl_items, self.playlist_id, i)
 
     self.parent.dbhandle.cur.executemany(
-      'INSERT INTO Playlistentries VALUES (?, ?, ?, ?, ?, ?, ?, ?)', pl_items)
+      'INSERT INTO Playlistentries VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      pl_items)
 
     self.parent.dbhandle.set_settings_value(
       'curplaylist', '%d' % self.playlist_id)
@@ -178,6 +213,18 @@ class PlayListManager:
 
     return self.save()
 
+  def check_usb_valid(self):
+    """Check if usb devices for active playlist are connected and revision
+    matches
+
+    Drop items not found on USB
+    """
+
+    ### TODO implement ###
+
+    # end check_usb_valid() #
+
+
   def insert_item(self, ids, position=-1,
                   random_insert=False, after_current=False):
     """Push back item from database to playlist.
@@ -243,14 +290,14 @@ class PlayListManager:
     if playlist == 0:
       res = [self.playlist_pos, 0]
 
-      for i in range(start_at, min(len(self.playlist), max_items)):
+      for i in range(start_at, min(len(self.playlist), start_at+max_items)):
         res.append(self.playlist[i].print_self(printformat))
 
     else:
       for row in self.parent.dbhandle.cur.execute(
-          "SELECT * FROM Playlistentries ORDER BY id LIMIT ? OFFSET ?",
+          "SELECT disptitle FROM Playlistentries ORDER BY entryin LIMIT ? OFFSET ?",
           (max_items, start_at,) ):
-        res.append(PlayListItem.print_item(row, printformat))
+        res.append(row[0])
 
     res[1] = len(res) - 2
 
@@ -269,8 +316,8 @@ class PlayListManager:
 
       if row[PL.ID] != 0:
         res.append(u'||%d||%s||%s||%s||%d||' %
-                   (row[PL.ID], row[PL.NAME],
-                    time.strftime("%x %X", time.localtime(row[PL.CREATED)),
+                   (row[PL.ID], row[PL.NAME], row[PL.CREATOR],
+                    time.strftime("%x %X", time.localtime(row[PL.CREATED])),
                     row[PL.ITEMSCOUNT])
                   )
     return res

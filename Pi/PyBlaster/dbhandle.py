@@ -50,7 +50,7 @@ import sqlite3
 
 import log
 
-DBVERSION = 14
+DBVERSION = 15
 
 
 class DBDirEntries:
@@ -69,7 +69,7 @@ class DBDirEntries:
 class DBFileEntries:
   """Enum and create syntax for Fileentries database table"""
   ID, DIRID, STORID, PATH, FILENAME, EXT, GENRE, YEAR, TITLE, \
-  ALBUM, ARTIST, TIME, DISPTITLE = range(12)
+  ALBUM, ARTIST, TIME, DISPTITLE = range(13)
 
   DropSyntax    = """DROP TABLE IF EXISTS Fileentries;"""
   CreateSyntax  = """CREATE TABLE Fileentries(
@@ -95,13 +95,13 @@ class DBPlayLists:
 
 class DBPlayListEntries:
   """Enum and create syntax for Usbdevs database table"""
-  ID, INDEX, STORID, REVISION, DIRID, FILEID, TITLE, PLAYED = range(8)
+  ID, INDEX, STORID, REVISION, DIRID, FILEID, TITLE, PLAYED, PATH = range(9)
 
   DropSyntax    = """DROP TABLE IF EXISTS Playlistentries;"""
   CreateSyntax  = """CREATE TABLE Playlistentries(
     playlistid INT, entryin INT,
     usbid INT, usbrev INT, dirid INT,
-    fileid INT, disptitle TEXT, played INT);"""
+    fileid INT, disptitle TEXT, played INT, path TEXT);"""
 
   # end class DBPlayListEntries #
 
