@@ -19,7 +19,8 @@ class PlayListManager:
     Need to call load_playlist after other object initialized.
     """
 
-    self.parent = parent
+    self.parent   = parent
+    self.playlist = [] # needed on startup in usb_connected()
 
     # end __init__() #
 
@@ -51,29 +52,52 @@ class PlayListManager:
     entries = []
 
     for row in self.parent.dbhandle.cur.execute(
-        "SELECT usbid, usbrev, dirid, fileid, played FROM Playlistentries "\
-        "WHERE playlistid=0 ORDER BY entryin"):
+        "SELECT usbid, usbrev, dirid, fileid, played, path "\
+        "FROM Playlistentries WHERE playlistid=0 ORDER BY entryin"):
       entries.append(row)
 
     for row in entries:
+      if row[0] not in connected_revs:
+        """usb device is not connected, insert into playlist,
+        but flag as disabled.
+        """
+        self.parent.dbhandle.cur.execute("SELECT * FROM Fileentries "\
+          "WHERE id=? AND dirid=? AND usbid=?", (row[3], row[2], row[0]))
+        fileentry = self.parent.dbhandle.cur.fetchone()
+        item = PlayListItem(fileentry, False, row[1])
+        item.played = row[4]
+        self.playlist.append(item)
       if row[0] in connected_revs and connected_revs[row[0]] == row[1]:
+        """usb device is connected and revision is ok --> file ids
+        have not changed --> may insert item
+        """
         self.parent.dbhandle.cur.execute("SELECT * FROM Fileentries "\
           "WHERE id=? AND dirid=? AND usbid=?", (row[3], row[2], row[0]))
         fileentry = self.parent.dbhandle.cur.fetchone()
         item = PlayListItem(fileentry, True, row[1])
         item.played = row[4]
         self.playlist.append(item)
-
+      if row[0] in connected_revs and connected_revs[row[0]] != row[1]:
+        """usb device is connected, but was updated --> check if may
+        insert with new fileentry.
+        """
+        newrow = self.parent.usb.get_dev_by_storid(row[0]). \
+                   get_fileentry_by_path(row[5])
+        if newrow is not None:
+          """found path with new ids"""
+          item = PlayListItem(newrow, True, connected_revs[row[0]])
+          item.played = row[4]
+          self.playlist.append(item)
 
       # end for row in Playlistentries #
-
-    self.check_usb_valid()
 
     self.parent.led.set_led_yellow(0)
 
     self.parent.log.write(log.MESSAGE,
       "[PLAYLISTMNGR] Loaded active playlist with %d items" %
       len(self.playlist))
+
+    self.save_active() # usb revisions may have changed
 
     # end load_playlist() #
 
@@ -213,17 +237,61 @@ class PlayListManager:
 
     return self.save()
 
-  def check_usb_valid(self):
-    """Check if usb devices for active playlist are connected and revision
-    matches
+  def usb_removed(self, storid):
+    """Called by UsbDevice.release() if usb device got lost
 
-    Drop items not found on USB
+    Disable playlist items by flagging is_connected with False
     """
 
-    ### TODO implement ###
+    # TODO if playing song from this USB, skip to next valid track
 
-    # end check_usb_valid() #
+    if not self.playlist:
+      return
 
+    disabled = 0
+    for item in self.playlist:
+      disabled += item.set_connected_by_storid(storid, False)
+
+    self.parent.log.write(log.MESSAGE,
+      "[PLAYLISTMNGR]: USB #%d got removed, disabled %d items in playlist" %
+      (storid, disabled))
+
+    # end usb_removed() #
+
+  def usb_connected(self, storid, revision, usbdev):
+    """Called by UsbDevice.__init__() after device is loaded.
+
+    Flag playlist items on this device as valid.
+    Check if items still on drive.
+    """
+
+    if not self.playlist:
+      return
+
+    self.parent.led.set_led_yellow(1)
+
+    enabled = 0
+    dropped = 0
+
+    tmp_list = self.playlist
+    self.playlist = []
+
+    for item in tmp_list:
+      if item.check_revision_matches(revision, usbdev):
+        self.playlist.append(item)
+        enabled += item.set_connected_by_storid(storid, True)
+      else:
+        dropped += 1
+
+    self.parent.log.write(log.MESSAGE,
+      "[PLAYLISTMNGR]: USB #%d got connected, enabled %d items in playlist"\
+      " and dropped %d items." % (storid, enabled, dropped))
+
+    self.save_active()
+
+    self.parent.led.set_led_yellow(0)
+
+    # end usb_connected() #
 
   def insert_item(self, ids, position=-1,
                   random_insert=False, after_current=False):
@@ -291,7 +359,8 @@ class PlayListManager:
       res = [self.playlist_pos, 0]
 
       for i in range(start_at, min(len(self.playlist), start_at+max_items)):
-        res.append(self.playlist[i].print_self(printformat))
+        if self.playlist[i].is_connected:
+          res.append(self.playlist[i].print_self(printformat))
 
     else:
       for row in self.parent.dbhandle.cur.execute(

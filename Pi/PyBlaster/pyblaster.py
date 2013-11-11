@@ -71,6 +71,7 @@ class PyBlaster:
 
     # +++++++++++++++ Finalize +++++++++++++++ #
 
+    self.listmngr.save_active()
     self.led.cleanup()
     self.delete_pidfile()
 

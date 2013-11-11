@@ -1,47 +1,6 @@
 """dbhandle.py -- Manange sqlite db file
 
 
-Database structure::
-
-Settings(id INT, key TEXT, value TEXT)::
-  holds (key, value) pairs with settings that may be changed during
-  runtime (not persistant from config file)
-
-  Items in Settings::
-
-    version = DBVERSION  -- version of table layout, rebuild if outdated
-
-
-Usbdevs(id INT, UUID TEXT, md5 TEXT, scanok INT,
-        alias TEXT, revision INT)::
-
-  Handled by UsbDevive
-
-  Holds data about known usb devices. If an id is assigned once to
-  a device, this id should be persistant.
-
-  id        -- storage id, unique via UUID
-  UUID      -- almost unique UUID from blkid, required to
-               identify device
-  md5       -- digest of file tree, if outdated -> rescan and increase
-               revision
-  scanok    -- set to 1 after successful scan, if not 1 -> rescan
-  alias     -- name assigned for this device
-  revision  -- incremented if md5 changed -> invalidate playlist entries
-               for this device
-
-Dirs(id INT, parentid INT, usbid INT, numdirs INT,
-     numfiles INT, dirname TEXT)
-
-  Reflects a directory node identifid by [storage_id, dir_id].
-
-  0 id        -- incremental directory id on this storage
-  1 parentid  -- parent directory id
-  2 usbid     -- storage id (UsbDevive)
-  3 numdirs   -- number of subdirs
-  4 numfiles  -- number of mp3s in dir
-  5 dirname   -- name (not path) of this directory
-
 
 @Author Ulrich Jansen <ulrich.jansen@rwth-aachen.de>
 """

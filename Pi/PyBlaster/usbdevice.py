@@ -136,6 +136,15 @@ class UsbDevice:
       self.revision += 1
       self.main.dbhandle.set_scan_ok(self.storid, self.revision)
 
+      # else scan #
+
+    # Unflash load led.
+    self.main.led.set_led_yellow(0)
+
+    # Tell playlist to check if items may be enabled or
+    # if revisions have changed.
+    self.main.listmngr.usb_connected(self.storid, self.revision, self)
+
     # end __init__() #
 
   def release(self):
@@ -143,8 +152,8 @@ class UsbDevice:
 
     Remove entries from playlist.
     """
-
     self.main.log.write(log.MESSAGE, "Lost USB device %s" % self.mnt_pnt)
+    self.main.listmngr.usb_removed(self.storid)
 
 
   def recursive_rescan_into_db(self, path, parentid):
@@ -289,3 +298,16 @@ class UsbDevice:
     return ret
 
   # end list_dirs() #
+
+
+  def get_fileentry_by_path(self, path):
+    """
+    """
+    for row in self.main.dbhandle.cur.execute(
+        "SELECT * FROM Fileentries WHERE usbid=? AND "\
+        "path=?", (self.storid, path,)):
+      return row
+
+    return None
+
+
