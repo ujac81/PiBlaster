@@ -1,0 +1,51 @@
+
+
+==Tools==
+
+http://qt-project.org/doc/qt-5/androidgs.html
+
+===Download===
+* Qt 5.2.0 for Android http://qt-project.org/downloads
+* Qt for android http://doc-snapshot.qt-project.org/qdoc/android-support.html
+* Android SDK Tools http://developer.android.com/sdk/index.html
+* Android NDK http://developer.android.com/tools/sdk/ndk/index.html
+
+===Ubuntu Packages===
+ $ sudo aptitude install ant openjdk-7-jre openjdk-7-jdk
+
+===Qt 5.2===
+Run Qt installer
+ $ ./qt-linux-opensource-5.2.0-android-x86_64-offline.run
+
+===Android SDK and NDK===
+Unzip SDK and move to /op
+ $ sudo mv adt-bundle-linux-x86_64-20131030 /opt/
+Update SDK using
+ $ sudo /opt/adt-bundle-linux-x86_64-20131030/sdk/tools/android update sdk
+Extract NDK (Native C development kit)
+ $ sudo tar jxf android-ndk-r9b-linux-x86_64.tar.bz2  -C /opt
+
+
+===Profile===
+Add sdk and Qt to PATH (assuming everything installed in /opt).
+Append to $HOME/.profile:
+ PATH="$PATH:/opt/adt-bundle-linux-x86_64-20131030/sdk/tools:/opt/adt-bundle-linux-x86_64-20131030/sdk/platform-tools:/opt/Qt5.2.0/Tools/QtCreator/bin"
+ ANDROID_NDK_ROOT=/opt/android-ndk-r9b
+And relogin or do
+ $ source ~/.profile
+or run tools from this terminal
+ $ qtcreator
+ $ android list targets
+
+==Getting Started==
+Launch qtcreator and configure it for android [http://qt-project.org/doc/qtcreator-3.0/creator-developing-android.html#developing-with-qt-5 like here].
+
+
+
+
+
+==First App==
+
+http://qt-project.org/doc/qt-5/qmlapplications.html
+==
+
