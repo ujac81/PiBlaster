@@ -12,6 +12,8 @@ from playlistitem import PlayListItem
 
 
 class PlayListManager:
+  """
+  """
 
   def __init__(self, parent):
     """Empty ctor
@@ -364,8 +366,9 @@ class PlayListManager:
 
     else:
       for row in self.parent.dbhandle.cur.execute(
-          "SELECT disptitle FROM Playlistentries ORDER BY entryin LIMIT ? OFFSET ?",
-          (max_items, start_at,) ):
+          "SELECT disptitle FROM Playlistentries WHERE playlistid=? "\
+           "ORDER BY entryin LIMIT ? OFFSET ?",
+          (playlist, max_items, start_at,) ):
         res.append(row[0])
 
     res[1] = len(res) - 2
@@ -373,7 +376,6 @@ class PlayListManager:
     return res
 
     # end list_playlist() #
-
 
   def list_playlists(self):
     '''Cretate list of saved playlists'''

@@ -1,1 +1,14 @@
- 
+#!/bin/sh
+
+
+mkdir -pv /var/lib/pyblaster
+[ -f /var/lib/pyblaster/pyblaster.sqlite ] || \
+{
+  echo "Creating database"
+  /usr/bin/sqlite3 /var/lib/pyblaster/pyblaster.sqlite "CREATE TABLE Dummies (id INT);"
+}
+
+
+chmod 755 /opt/PyBlaster/python2.7/main.py
+
+update-rc.d pyblaster enable

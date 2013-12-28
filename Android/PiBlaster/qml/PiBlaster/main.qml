@@ -40,4 +40,5 @@ Rectangle {
         anchors.top: caption.bottom
         anchors.bottom: parent.bottom
     }
+
 }

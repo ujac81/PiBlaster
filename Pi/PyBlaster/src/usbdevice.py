@@ -172,9 +172,10 @@ class UsbDevice:
 
     dirid = self.cur_dir_id
     if parentid >= 0:
+      # TODO: dirname twice -- path should be there for id reassignment...
       self.main.dbhandle.cur.execute(
-        'INSERT INTO Dirs VALUES (?, ?, ?, ?, ?, ?)',
-        (dirid, parentid, self.storid, len(dirs), len(files), dirname,))
+        'INSERT INTO Dirs VALUES (?, ?, ?, ?, ?, ?, ?)',
+        (dirid, parentid, self.storid, len(dirs), len(files), dirname, dirname))
 
     self.cur_dir_id += 1
 

@@ -9,24 +9,61 @@ import sqlite3
 
 import log
 
-DBVERSION = 15
+DBVERSION = 16
 
 
 class DBDirEntries:
-  """Enum and create syntax for Dirs database table"""
+  """Enum and create syntax for Dirs database table
 
-  ID, PARENTID, USBID, NUMDIRS, NUMFILES, DIRNAME = range(6)
+  Directory is uniquely identified by [id, usbid] key pair.
+  Key pair may change if changes on drive detected.
+  'path' may be used to reassign ids to prevent full rescan if directories
+  where copied by FileManager.
+  Initial assignment by UsbDevive.recursive_rescan_into_db().
+
+  id        -- directory id (NOT primary key!)
+  parentid  -- id of parent directory
+  usbid     -- usb device id (id in Usbdevs table)
+  numdirs   -- number of subdirs in this dir
+  numfiles  -- number of files in this dir
+  dirname   -- directory name
+  path      -- rel path on drive (redundant, but good for fast id reassignment)
+
+  """
+
+  ID, PARENTID, USBID, NUMDIRS, NUMFILES, DIRNAME, PATH = range(7)
 
   DropSyntax    = """DROP TABLE IF EXISTS Dirs;"""
   CreateSyntax  = """CREATE TABLE Dirs(
     id INT, parentid INT, usbid INT, numdirs INT,
-    numfiles INT, dirname TEXT);"""
+    numfiles INT, dirname TEXT, path TEXT);"""
 
   # end class DBDirEntries #
 
 
 class DBFileEntries:
-  """Enum and create syntax for Fileentries database table"""
+  """Enum and create syntax for Fileentries database table
+
+  File is uniquely identified by [id, dirid, usbid] key pair.
+  'id' is NO PRIMARY KEY.
+  Initial assignment by UsbDevive.recursive_rescan_into_db().
+  Directory id may be changed if directory structure was changed by
+  FileManager.
+
+  id        -- id of file in current directory (NOT primary key!)
+  dirid     -- directory id in Dirs table
+  usbid     -- usb device id in Usbdevs table
+  path      -- rel path on drive
+  filename  -- last part of path
+  extension -- like 'mp3' or 'ogg'
+  genre     -- ID3 genre tag or 'Unknown Genre'
+  year      -- ID3 year tag or 0
+  title     -- ID3 title tag or filename
+  album     -- ID3 album tag or 'Unknown Album'
+  artist    -- ID3 artist tag or 'Unknown Artist'
+  time      -- time data in seconds from mutagen
+  disptitle -- "artist - title" if found or filename
+  """
   ID, DIRID, STORID, PATH, FILENAME, EXT, GENRE, YEAR, TITLE, \
   ALBUM, ARTIST, TIME, DISPTITLE = range(13)
 
@@ -75,7 +112,6 @@ class DBUsbDevs:
 
   # end class DBUsbDevs #
 
-
 class DBSettings:
   """Enum and create syntax for Usbdevs database table"""
   ID, KEY, VALUE = range(3)
@@ -113,7 +149,7 @@ class DBHandle:
     - Clean up orphaned entries from db
 
     Pre: settings object is ready
-    Post: DB is ready for usage
+    Post: DB is ready to use
     """
 
     try:
@@ -226,7 +262,7 @@ class DBHandle:
   def get_usbid(self, UUID):
     """Get usb stick id for usb mananger while creating new UsbDevive entries"
 
-    Ff unkown, largest id + 1 is returned.  We know that all usb entries
+    If unkown, largest id + 1 is returned.  We know that all usb entries
     are at OK state 1 here as cleandb() has been run on startup.
 
     return [storid, alias, revision]
@@ -334,7 +370,6 @@ class DBHandle:
     self.con.commit()
     return True
 
-
   def set_settings_value(self, key, value):
     """
     """
@@ -354,7 +389,6 @@ class DBHandle:
     self.con.commit()
 
     # end set_settings_value() #
-
 
   def get_settings_value(self, key):
     """
@@ -384,5 +418,8 @@ class DBHandle:
 
     return res
 
+    # end get_settings_value_as_int #
+
+  # end class DBHandle #
 
 

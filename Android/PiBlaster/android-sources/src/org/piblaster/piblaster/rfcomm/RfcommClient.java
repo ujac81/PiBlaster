@@ -41,25 +41,110 @@
 
 package org.piblaster.piblaster.rfcomm;
 
+import android.app.Activity;
 import android.app.Notification;
 import android.app.NotificationManager;
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothServerSocket;
+import android.bluetooth.BluetoothSocket;
 import android.content.Context;
+import android.content.Intent;
+
+import java.util.Set;
 
 public class RfcommClient extends org.qtproject.qt5.android.bindings.QtActivity
 {
     private static NotificationManager m_notificationManager;
     private static Notification.Builder m_builder;
     private static RfcommClient m_instance;
+    private BluetoothAdapter m_BluetoothAdapter;
+
+    // Intent request codes
+    private static final int REQUEST_CONNECT_DEVICE = 1;
+    private static final int REQUEST_ENABLE_BT = 2;
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        switch (requestCode) {
+            case REQUEST_ENABLE_BT:
+                if (resultCode == Activity.RESULT_OK) {
+                    // Do nothing, QML App should reask for hasBluetooth()
+                    // and we should be fine.
+                } else {
+                    // User did not enable Bluetooth or an error occurred.
+                }
+            break;
+
+            default:
+                super.onActivityResult(requestCode, resultCode, data);
+                break;
+        }
+    }
+
 
     public RfcommClient()
     {
+        System.out.println("RfcommClient ctor");
         m_instance = this;
-
-        System.out.println("RfcommClient java started...");
-
+        m_BluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
     }
 
-    public static void notify(String s)
+    public void requestBluetooth()
+    {
+        System.out.println("RfcommClient requestBluetooth()");
+        if (m_BluetoothAdapter == null) {
+            return;
+        }
+        if (m_BluetoothAdapter.isEnabled()) {
+            return;
+        }
+        else {
+            Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+            startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
+        }
+    }
+
+    public void testBluetooth() {
+        System.out.println("RfcommClient testBluetooth(): " + hasBluetooth());
+    }
+
+
+    public int hasBluetooth() {
+
+        System.out.println("RfcommClient hasBluetooth()");
+        if (m_BluetoothAdapter == null) {
+            m_BluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+            if (m_BluetoothAdapter == null) {
+                return -1;
+            }
+        }
+        System.out.println("Adapter enabled: " + m_BluetoothAdapter.isEnabled());
+        if (m_BluetoothAdapter.isEnabled()) {
+
+            Set<BluetoothDevice> pairedDevices = m_BluetoothAdapter.getBondedDevices();
+            // If there are paired devices
+            if (pairedDevices.size() > 0) {
+                // Loop through paired devices
+                for (BluetoothDevice device : pairedDevices) {
+                    // Add the name and address to an array adapter to show in a ListView
+                    System.out.println("Found: " + device.getName() + " -- " + device.getAddress());
+                    //mArrayAdapter.add(device.getName() + "\n" + device.getAddress());
+                }
+            }
+            else {
+                System.out.println("No paired");
+            }
+            return -3;
+        }
+        else {
+            Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+            startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
+            return -2;
+        }
+    }
+
+    public void notify(String s)
     {
 
         System.out.println("RfcommClient notify: " + s);

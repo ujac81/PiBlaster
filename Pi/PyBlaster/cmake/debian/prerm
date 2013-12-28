@@ -1,1 +1,5 @@
- 
+#!/bin/sh
+
+update-rc.d pyblaster disable
+
+# rm -rf /var/lib/pyblaster

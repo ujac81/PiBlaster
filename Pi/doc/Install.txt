@@ -1,9 +1,21 @@
 
 
+0.)
+
+  0.1) Information
+
+     Howto genereated using NOOBS Lite image version 1.3.2 and raspbian.
+
+  0.2) Requirements
+
+
+  0.3)
+
 
 1.) Installation
 
-  1.1) Download NOOBS Image
+  1.1) Download NOOBS image or NOOBS Lite (Netinstall) image from
+       http://www.raspberrypi.org/downloads
 
   1.2) Partition SD with FAT32
 
@@ -30,8 +42,10 @@
   1.10) 1st start of raspbian
     Change hostname
     Change Password
-    Add locales
-    Enable SSH
+     cc) Add locales
+      make sure de_DE and de_DE@euro and en_US are selected in both versions
+      (utf8 and ISO-8859-??). Select an UTF8 locale as default.
+     dd) Enable SSH
 
   1.11) Post install
     Login, username is `pi'
