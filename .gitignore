@@ -33,3 +33,8 @@ nosetests.xml
 .mr.developer.cfg
 .project
 .pydevproject
+Android/build-PiBlaster-Android_for_armeabi_v7a_GCC_4_8_Qt_5_2_0-Debug/
+
+Android/PiBlaster/PiBlaster.pro.user
+Android/build-PiBlaster-Android_for_armeabi_v7a_GCC_4_8_Qt_5_2_0-Release/
+Android/build-PiBlaster-Desktop_Qt_5_2_0_GCC_64bit-Debug/
