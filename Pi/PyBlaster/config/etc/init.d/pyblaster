@@ -14,7 +14,7 @@ PATH=/sbin:/usr/sbin:/bin:/usr/bin
 DESC="PyBlaster daemon"
 NAME=pyblaster
 [ -r /etc/default/$NAME ] && . /etc/default/$NAME
-DAEMON="$PYBLASTER_PATH/main.py"
+DAEMON="/usr/bin/pyblaster"
 
 
 if [ "$PYBLASTER_TERMINAL_MODE" = 1 -o "$PYBLASTER_AUTO_RESPAWN" = 1 ]; then

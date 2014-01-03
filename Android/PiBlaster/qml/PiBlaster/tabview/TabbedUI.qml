@@ -1,19 +1,19 @@
 import QtQuick 2.0
 
+import "../items"
+
 Rectangle {
 
     id: tabbedUI
     color: "transparent"
     anchors.fill: parent
 
-    property int tabsHeight : 30
-    property int tabIndex : 3
+    property int tabIndex : 3 // connect button should be selected on start
 
-    // central objects from Tabview
     property VisualItemModel tabsModel
 
 
-    // create all tab views embedded into tab bar
+    // create all tab views placed between both tab bars
     Rectangle {
         id: tabViewContainer
         width: parent.width
@@ -37,68 +37,71 @@ Rectangle {
         tabClicked(tabIndex);
     }
 
-    // hide old tab and show new tab
+    /**
+     * Hide old tab and show new tab clicked
+     * Invoke activated() function of selected tab
+     */
     function tabClicked(index)
     {
         if (tabIndex < 3)
-            topTabs.children[tabIndex].color = "transparent";
+            topTabs.children[tabIndex].color = root.buttonColorActive
         else
-            bottomTabs.children[tabIndex-3].color = "transparent";
+            bottomTabs.children[tabIndex-3].color = root.buttonColorActive
 
         tabsModel.children[tabIndex].visible = false;
         tabIndex = index;
 
 
         if (tabIndex < 3)
-            topTabs.children[tabIndex].color = "#0A89FF";
+            topTabs.children[tabIndex].color = root.buttonColorPressed;
         else
-            bottomTabs.children[tabIndex-3].color = "#0A89FF";
+            bottomTabs.children[tabIndex-3].color = root.buttonColorPressed;
+
 
         tabsModel.children[tabIndex].visible = true;
+        tabsModel.children[tabIndex].activated()
     }
 
 
     // top tab bar
     Rectangle {
         id: tabBarTop
-        height: tabbedUI.tabsHeight
+        height: root.barHeight
         color: "transparent"
 
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: parent.top
 
-        // place all the tabs in a row
         Row {
             anchors.fill: parent
             width: parent.width
             id: topTabs
 
-            Button { width: parent.width / 3; height: parent.height; index: 0; text: "Playlist" }
-            Button { width: parent.width / 3; height: parent.height; index: 1; text: "Browse" }
-            Button { width: parent.width / 3; height: parent.height; index: 2; text: "Manage" }
+            Tab { width: parent.width / 3; height: parent.height; index: 0; text: "Playlist" }
+            Tab { width: parent.width / 3; height: parent.height; index: 1; text: "Browse" }
+            Tab { width: parent.width / 3; height: parent.height; index: 2; text: "Search" }
         }
     }
 
-    // top tab bar
+    // bottom tab bar
     Rectangle {
         id: tabBarBottom
-        height: tabbedUI.tabsHeight
+        height: root.barHeight
         color: "transparent"
 
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom
 
-        // place all the tabs in a row
         Row {
             anchors.fill: parent
             width: parent.width
             id: bottomTabs
 
-            Button { width: parent.width / 3; height: parent.height; index: 3; text: "Connect" }
-            Button { width: parent.width / 3; height: parent.height; index: 4; text: "Log" }
-            Button { width: parent.width / 3; height: parent.height; index: 5; text: "Settings" }
+            Tab { width: parent.width / 3; height: parent.height; index: 3; text: "Connect" }
+            Tab { width: parent.width / 3; height: parent.height; index: 4; text: "Log" }
+            Tab { width: parent.width / 3; height: parent.height; index: 5; text: "Settings" }
         }
     }
 

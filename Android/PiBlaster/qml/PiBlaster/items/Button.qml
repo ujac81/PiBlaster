@@ -4,25 +4,28 @@ import QtQuick 2.0
 
 Rectangle {
 
-    id: tabBarButton
+    height: root.buttonHeight
+    width: root.buttonWidth
+    radius: root.buttonRadius
+    color: root.buttonColorActive
 
-    property int index: 0
+    property bool active: true
     property alias text: textItem.text
-    color: "transparent"
+
+    function disable() {
+        active = false;
+        color = root.buttonColorInactive;
+        textItem.color = root.buttonColorInactiveText;
+    }
+    function enable() {
+        active = true;
+        color = root.buttonColorActive;
+        textItem.color = root.buttonColorActiveText;
+    }
 
     Text {
         id: textItem
-        anchors.fill: parent
-        horizontalAlignment: Text.AlignHCenter
-        verticalAlignment: Text.AlignVCenter
-        font.pixelSize: 20
-        color: "white"
-    }
-
-    MouseArea {
-        anchors.fill: parent
-        onClicked: {
-            tabClicked(index);
-        }
+        anchors.centerIn: parent
+        color: root.buttonColorActiveText
     }
 }

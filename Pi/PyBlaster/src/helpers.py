@@ -15,3 +15,9 @@ def humansize(nbytes):
     f = ('%.2f' % nbytes).rstrip('0').rstrip('.')
     return '%s %s' % (f, suffixes[i])
 
+
+def seconds_to_minutes(nsecs):
+    if nsecs == 0:
+        return ""
+    return "%d:%02d" % (int(nsecs / 60), nsecs % 60)
+

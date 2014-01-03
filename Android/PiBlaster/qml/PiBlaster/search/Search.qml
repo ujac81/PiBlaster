@@ -7,6 +7,10 @@ Rectangle {
 
     Text {
         anchors.centerIn: parent
-        text: "manage"
+        text: "search"
+    }
+
+    function activated()
+    {
     }
 }

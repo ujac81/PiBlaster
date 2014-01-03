@@ -1,21 +1,55 @@
 import QtQuick 2.0
-import "content"
+import QtQuick.Dialogs 1.1
 
-// main rectangular for full App
-// mainWidth and mainHeight will be set from external
+import "tabview"
+
+/**
+ * Root for full App
+ *
+ * -- definition of constants
+ * -- creates TabView
+ * -- handles global key events
+ */
 Rectangle {
-    property int mainWidth: 320
-    property int mainHeight: 480
+    id: root
 
-    id: main
+    property int mainWidth: 320   // default for testing, will be changed upon start
+    property int mainHeight: 480  // default for testing, will be changed upon start
+
+
+    ///// application constants /////
+
+    property string versionInfo: "0.2.1"
+
+    property string color1: "#94d9ff"   // upper background gradient color
+    property string color2: "#67B3FF"   // lower background gradient color
+    property int statusbarHeight: 20    // lower status bar
+    property int barHeight: 30          // tab bar
+    property int baseFontSize: 20       // standard font pixel size
+    property int buttonHeight: 40       // default height for pop-up buttons1
+    property int buttonWidth: 220       // default width for pop-up buttons1
+    property int buttonRadius: 5        // corner radius for button
+    property int buttonSpacing: 20      // spacing between multiple buttons
+    property string buttonColorActive: "#2382FF"            // clickable button color
+    property string buttonColorPressed: "#1212FF"           // pressed down (active) button color
+    property string buttonColorActiveText: "black"          // active button text color
+    property string buttonColorInactive: "#8B8E91"          // greyed out button color
+    property string buttonColorInactiveText: "#5C5E60"      // greyed out button text color
+    property string colorSelected: "#1212FF"                // background color for selected items in lists
+    property string colorUnselected: "transparent"          // background color for odd-indexed items in lists
+    property string colorUnselected2: "#2382FF"             // background color for even-indexed items in lists
+
+    property alias status: status.text
+    property alias tabview: tabview
+
     width: mainWidth
     height: mainHeight
     focus: true
 
     // background color gradient -- all rectangles should be transparent
     gradient: Gradient {
-        GradientStop { position: 0; color: "#94d9ff" }
-        GradientStop { position: 1; color: "#67B3FF" }
+        GradientStop { position: 0; color: root.color1 }
+        GradientStop { position: 1; color: root.color2 }
     }
 
     // header caption
@@ -25,20 +59,58 @@ Rectangle {
         anchors.left: parent.left
         anchors.right: parent.right
         height: 35
-        text: "PiBlaster Remote"
+        text: "PiBlaster Remote v" + versionInfo
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
         font.pixelSize: 25
     }
 
-    // tabbbed UI holding main tab bars and controls
-    Tabview {
-        id: tabview
+    // lower status bar for short info messages
+    Rectangle {
+        id: statusBar
+        anchors.bottom: parent.bottom
+        anchors.left: parent.left
+        anchors.right: parent.right
+        height: root.statusbarHeight
+        color: "black"
 
+        Text {
+            id: status
+            anchors.fill: parent
+            color: "white"
+            text: "PiBlaster Remote started"
+            horizontalAlignment: Text.AlignLeft
+            verticalAlignment: Text.AlignVCenter
+            font.pixelSize: root.statusbarHeight - 5
+        }
+    }
+
+    // tabbbed UI holding main tab bars and controls
+    TabView {
+        id: tabview
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: caption.bottom
-        anchors.bottom: parent.bottom
+        anchors.bottom: statusBar.top
+    }
+
+    // key events
+    Keys.onPressed: {
+
+        if (event.key === Qt.Key_Back) {
+            event.accepted = true;
+
+            rfcommClient.disconnect;
+            rfcommClient.diableBT;
+
+            Qt.quit();
+        }
+    }
+
+
+    // true if connected to PI via bluetooth
+    function connected() {
+        return root.tabview.tabsModel.children[3].connected;
     }
 
 }

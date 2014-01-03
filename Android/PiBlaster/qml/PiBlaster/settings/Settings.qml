@@ -9,4 +9,8 @@ Rectangle {
         anchors.centerIn: parent
         text: "settings"
     }
+
+    function activated()
+    {
+    }
 }

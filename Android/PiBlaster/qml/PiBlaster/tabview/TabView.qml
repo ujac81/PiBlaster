@@ -1,25 +1,34 @@
+
+
 import QtQuick 2.0
 
-
+import "../browse"
+import "../connect"
+import "../log"
+import "../playlist"
+import "../search"
+import "../settings"
 
 // Includes the UI with tab bars and the item model for the central objects
 Rectangle {
 
     color: "transparent"
 
+    property alias tabbedUI: tabUI
+    property alias tabsModel: tabsModel
+
+
     // holds all central objects -- enabled and disabled by TabbedUI
     VisualItemModel {
 
         id: tabsModel
 
-        Tabplaylist { id: tabPlaylist }
-        Tabbrowse { id: tabBrowse }
-        Tabmanage { id: tabManage }
-        Tabconnect { id: tabConnect }
-        Tablog { id: tabLog }
-        Tabsettings { id: tabSettings }
-
-
+        Playlist { id: playlist }
+        Browse { id: browse }
+        Search { id: search }
+        Connect { id: connect }
+        Log { id: log }
+        Settings { id: settings }
     }
 
     // main user interface
@@ -28,7 +37,5 @@ Rectangle {
         tabsModel: tabsModel
         anchors.fill: parent
     }
-
-
 
 }

@@ -1,6 +1,6 @@
 #!/bin/sh
 
-
+# create initial dummy database if not exists
 mkdir -pv /var/lib/pyblaster
 [ -f /var/lib/pyblaster/pyblaster.sqlite ] || \
 {
@@ -8,7 +8,15 @@ mkdir -pv /var/lib/pyblaster
   /usr/bin/sqlite3 /var/lib/pyblaster/pyblaster.sqlite "CREATE TABLE Dummies (id INT);"
 }
 
+# disable pnat on bluetooth
+[ `grep -cE "DisablePlugins.*=.*pnat" /etc/bluetooth/main.conf` -eq 0 ] && \
+{
+    echo "DisablePlugins = pnat" >> /etc/bluetooth/main.conf
+    service bluetooth restart
+}
 
 chmod 755 /opt/PyBlaster/python2.7/main.py
+ln -sf /opt/PyBlaster/python2.7/main.py /usr/bin/pyblaster
 
 update-rc.d pyblaster enable
+

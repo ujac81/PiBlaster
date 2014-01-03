@@ -6,14 +6,14 @@ Rectangle {
 
     property int index: 0
     property alias text: textItem.text
-    color: main.buttonColorActive
+    color: root.buttonColorActive
 
     Text {
         id: textItem
         anchors.fill: parent
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
-        font.pixelSize: main.baseFontSize
+        font.pixelSize: root.baseFontSize
         color: "white"
     }
 
@@ -22,7 +22,7 @@ Rectangle {
         onClicked: {
             tabClicked(index);
         }
-        onPressed: parent.color = main.buttonColorPressed
-        onReleased: parent.color = main.buttonColorActive
+        onPressed: parent.color = root.buttonColorPressed
+        onReleased: parent.color = root.buttonColorActive
     }
 }

@@ -1,7 +1,16 @@
 
-QT += quick androidextras
+QT += quick
 
-ANDROID_PACKAGE_SOURCE_DIR = $$PWD/android-sources
+DUMMY_MODE = 0
+
+contains(DUMMY_MODE, 1) {
+    message("Running in dummy mode")
+    DEFINES += "DUMMY_MODE=1"
+} else {
+    message("Running in full android mode")
+    QT += androidextras
+    ANDROID_PACKAGE_SOURCE_DIR = $$PWD/android-sources
+}
 
 # Add more folders to ship with the application, here
 folder_01.source = qml/PiBlaster
@@ -11,20 +20,24 @@ DEPLOYMENTFOLDERS = folder_01
 # Additional import path used to resolve QML modules in Creator's code model
 QML_IMPORT_PATH =
 
-# The .cpp file which was generated for your project. Feel free to hack it.
-SOURCES += main.cpp \
-    rfcommclient/rfcommclient.cpp
 
-# Installation path
-# target.path =
+SOURCES += src/main.cpp \
+    src/RFCommClient.cpp
+HEADERS += \
+    src/RFCommClient.h
+
+RESOURCES += images.qrc
+
+! contains(DUMMY_MODE, 1) {
+    OTHER_FILES += \
+        android-sources/src/org/piblaster/piblaster/rfcomm/RfcommClient.java \
+        android-sources/AndroidManifest.xml
+}
 
 # Please do not modify the following two lines. Required for deployment.
-include(qtquick2applicationviewer/qtquick2applicationviewer.pri)
+include(src/QtQuick2ApplicationViewer.pri)
 qtcAddDeployment()
 
-OTHER_FILES += \
-    android-sources/src/org/piblaster/piblaster/rfcomm/RfcommClient.java \
-    android-sources/AndroidManifest.xml
 
-HEADERS += \
-    rfcommclient/rfcommclient.h
+
+

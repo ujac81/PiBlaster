@@ -26,10 +26,10 @@ class RFCommServer:
     self.mode         = NOTCONNECTED
     self.client_sock  = None
     self.client_info  = None
-    self.timeout      = 0.01  # socket timeouts for non blocking connection
-    self.timeoutpolls = 1000  # disconnect after N inactivity timeouts
-    self.nowpolls     = 0     # reset after each receive,
-                              # incremented while waiting for data
+    self.timeout      = 1      # socket timeouts for non blocking connection
+    self.timeoutpolls = 3000   # disconnect after N inactivity timeouts
+    self.nowpolls     = 0      # reset after each receive,
+                               # incremented while waiting for data
 
   def start_server(self):
     """Open bluetooth server socket and advertise service"""
@@ -110,8 +110,9 @@ class RFCommServer:
           if data == "1234":
             self.mode = AUTHORIZED
             self.parent.log.write(log.MESSAGE, "Authorized connection.")
-            self.send_client(["accepted."])
+            self.send_client(0, "Password OK", ["accepted."])
           else:
+            self.send_client(1, "Wrong password", ["rejected."])
             self.disconnect()
 
         elif self.mode == AUTHORIZED:
@@ -137,24 +138,20 @@ class RFCommServer:
     self.parent.log.write(log.MESSAGE, "Closed connection.")
     self.start_server()
 
-  def send_client(self, status, msg, res_list):
+  def send_client(self, status, msg, message_list):
     """Send data package
 
       - result code from evalcmd
       - confirm message
-      - number of result lines
-      - lines
-      - lines
-      ...
-      - lines
+      - list of message lines
     """
 
     # TODO timeout mechanism
-    self.client_sock.send(str(status))
-    self.client_sock.send(msg)
-    self.client_sock.send(str(len(message_list)))
+    self.client_sock.send(str(status) + ' !EOL! ')
+    self.client_sock.send(msg + ' !EOL! ')
+    self.client_sock.send(str(len(message_list)) + ' !EOL! ')
     for line in message_list:
-      self.client_sock.send(line)
+      self.client_sock.send(line.encode('utf-8') + ' !EOL! ')
 
     # end send_client() #
 
@@ -166,7 +163,8 @@ class RFCommServer:
     status, msg, res_list = self.parent.cmd.evalcmd(cmd, 'rfcomm')
     self.send_client(status, msg, res_list)
 
-    if status == evalcmd.STATUSEXIT:
+    if status == evalcmd.STATUSEXIT or status == evalcmd.STATUSDISCONNECT:
+      self.parent.log.write(log.MESSAGE, "Got disconnect command.")
       self.disconnect()
 
     # end read_command() #

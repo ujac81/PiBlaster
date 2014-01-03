@@ -1,28 +1,79 @@
 import QtQuick 2.0
 
+import "../items"
+
+/**
+ * Connect view -- display (dis)connect buttons
+ *
+ */
 Rectangle {
     anchors.fill: parent
     color: "transparent"
 
+    property bool connected: false
 
-    Text {
+    // buttons column
+    Column {
+        id: concol
         anchors.centerIn: parent
-        text: "connect"
+        spacing: root.buttonSpacing
 
-        MouseArea {
-            anchors.fill: parent
-            onClicked: {
-                if (rfcommClient.hasBluetooth == -1)
-                    parent.text = "no bluetooth adapter"
-                else if (rfcommClient.hasBluetooth == -2)
-                    parent.text = "bluetooth disabled"
-                else if (rfcommClient.hasBluetooth == 0)
-                    parent.text = "bluetooth ok"
-                else
-                    parent.text = "bluetooth unkown"
+        Button {
+            id: conButton
+            text: "Connect"
+
+            MouseArea {
+                anchors.fill: parent
+                onClicked: {
+                    if ( parent.active ) {
+                        parent.color = root.buttonColorPressed;
+                        var constat = rfcommClient.tryConnect
+                        root.status = "Connected: " + constat
+                        parent.color = root.buttonColorActive;
+                        connect.activated()
+                    }
+                }
+                onPressed: { if ( parent.active ) { parent.color = root.buttonColorPressed; } }
+                onReleased: { if ( parent.active ) { parent.color = root.buttonColorActive; } }
             }
-            onPressed: parent.scale = 1.2
-            onReleased: parent.scale = 1.0
+        }
+        Button {
+            id: disconButton
+            text: "Disconnect"
+
+            MouseArea {
+                anchors.fill: parent
+                onClicked: {
+                    if ( parent.active ) {
+                        var constat = rfcommClient.disconnect;
+                        connect.activated()
+                    }
+                }
+                onPressed: { if ( parent.active ) { parent.color = root.buttonColorPressed; } }
+                onReleased: { if ( parent.active ) { parent.color = root.buttonColorActive; } }
+            }
+        }
+    }
+
+
+    Component.onCompleted:
+    {
+        root.status = "Not connected."
+    }
+
+    function activated()
+    {
+        var status = rfcommClient.connectionStatus;
+        if ( status >= 3 ) {
+            conButton.disable();
+            disconButton.enable();
+            root.status = "Connected.";
+            connected = true;
+        } else {
+            conButton.enable();
+            disconButton.disable();
+            root.status = "Disconnected.";
+            connected = true;
         }
     }
 }

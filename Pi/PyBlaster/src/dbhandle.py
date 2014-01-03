@@ -9,7 +9,7 @@ import sqlite3
 
 import log
 
-DBVERSION = 16
+DBVERSION = 17
 
 
 class DBDirEntries:
@@ -108,7 +108,7 @@ class DBUsbDevs:
   DropSyntax    = """DROP TABLE IF EXISTS Usbdevs;"""
   CreateSyntax  = """CREATE TABLE Usbdevs(
     id INT, UUID TEXT, md5 TEXT, scanok INT,
-    alias TEXT, revision INT);"""
+    alias TEXT, revision INT, bytesfree INT, bytesused INT);"""
 
   # end class DBUsbDevs #
 
@@ -335,18 +335,20 @@ class DBHandle:
       "Registering usb device %s with id %d and known md5 %s" %
       (UUID, usbdevid, md5))
     self.cur.execute(
-      'INSERT INTO Usbdevs (id, UUID, md5, scanok, alias, revision) ' \
-      'VALUES (?, ?, ?, ?, ?, ?)', (usbdevid, UUID, md5, 0, UUID, 0 ))
+      'INSERT INTO Usbdevs (id, UUID, md5, scanok, alias, revision, ' \
+      'bytesfree, bytesused ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      (usbdevid, UUID, md5, 0, UUID, 0, 0, 0 ))
     self.con.commit()
     return False # ==> scan device
 
     # end add_or_update_usb_stor() #
 
-  def set_scan_ok(self, usbdevid, revision):
+  def set_scan_ok(self, usbdevid, revision, free, used):
     """Set scanok flag to 1 after scan has finished"""
 
-    self.cur.execute("UPDATE Usbdevs SET scanok=1, revision=? WHERE id=?",
-                     (revision, usbdevid,))
+    self.cur.execute("UPDATE Usbdevs SET scanok=1, revision=?, bytesfree=?, " \
+                     " bytesused=? WHERE id=?",
+                     (revision, free, used, usbdevid))
     self.con.commit()
 
   def invalidate_md5(self, usbdevid):

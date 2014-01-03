@@ -9,4 +9,8 @@ Rectangle {
         anchors.centerIn: parent
         text: "playlist"
     }
+
+    function activated()
+    {
+    }
 }

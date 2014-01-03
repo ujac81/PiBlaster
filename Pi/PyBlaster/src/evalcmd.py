@@ -10,16 +10,18 @@ import re
 import sys
 
 import log
+from helpers import humansize
 
 
-STATUSOK      = 0   # evaluation successful
-ERRORPARSE    = 1   # failed to read command
-ERRORUNKNOWN  = 2   # unknown command
-ERRORARGS     = 3   # wrong number or wrong type of args
-ERROREVAL     = 4   # evaluation did not succeed,
-                    # because called function failed
+STATUSOK            = 0     # evaluation successful
+ERRORPARSE          = 1     # failed to read command
+ERRORUNKNOWN        = 2     # unknown command
+ERRORARGS           = 3     # wrong number or wrong type of args
+ERROREVAL           = 4     # evaluation did not succeed,
+                            # because called function failed
 
-STATUSEXIT    = 100 # tell calling instance to close comm/pipe/whatever
+STATUSEXIT          = 100 # tell calling instance to close comm/pipe/whatever
+STATUSDISCONNECT    = 101 # tell calling instance to close comm/pipe/whatever
 
 
 
@@ -132,6 +134,7 @@ class EvalCmd:
     if cmd == "help":
 
       ret_list = [
+        'disconnect                   -- close bluetooth socket',
         'hasdevice <storid>           -- 1 if device is attached',
         'lsalldirs <storid>           -- list of all directories on device',
         'lsdirs <storid> <dirid>      -- list all subdirs in dir',
@@ -153,6 +156,10 @@ class EvalCmd:
         'showdevices                  -- list of connected devices'
         ]
 
+    # # # # disconnect # # # #
+
+    elif cmd == "disconnect":
+      ret_stat = STATUSDISCONNECT
 
     # # # # hasdevice <storid> # # # #
 
@@ -326,8 +333,12 @@ class EvalCmd:
 
     elif cmd == "showdevices":
       for dev in self.parent.usb.usbdevs:
-        ret_list.append("||%d||%s||%s||%d||" %
-                        (dev.storid, dev.label, dev.alias, dev.revision))
+        # TODO: bytes used, bytes free
+        ret_list.append("||%d||%s||%s||%d||%d||%d||%s||%s||" %
+                        (dev.storid, dev.uuid, dev.alias, dev.revision,
+                         dev.totsubdirs, dev.totfiles,
+                         humansize(dev.bytes_free),
+                         humansize(dev.cur_tot_bytes)))
       if not ret_list: ret_list = ["-1 NONE"]
 
     else:
