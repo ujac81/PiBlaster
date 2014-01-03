@@ -1,5 +1,5 @@
+
 import QtQuick 2.0
-import QtQuick.Dialogs 1.1
 
 import "tabview"
 
@@ -110,7 +110,7 @@ Rectangle {
 
     // true if connected to PI via bluetooth
     function connected() {
-        return root.tabview.tabsModel.children[3].connected;
+        return root.tabview.tabsModel.children[3].loader.item.connected;
     }
 
 }

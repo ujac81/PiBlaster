@@ -7,6 +7,7 @@ import "../items"
  *
  */
 Rectangle {
+    id: connect
     anchors.fill: parent
     color: "transparent"
 
@@ -59,6 +60,12 @@ Rectangle {
     Component.onCompleted:
     {
         root.status = "Not connected."
+        console.log("Connect.qml start")
+    }
+
+    Component.onDestruction:
+    {
+        console.log("Connect.qml quit")
     }
 
     function activated()

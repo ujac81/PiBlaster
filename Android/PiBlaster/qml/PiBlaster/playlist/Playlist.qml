@@ -1,6 +1,8 @@
 import QtQuick 2.0
 
 Rectangle {
+
+    id: playlist
     anchors.fill: parent
     color: "transparent"
 

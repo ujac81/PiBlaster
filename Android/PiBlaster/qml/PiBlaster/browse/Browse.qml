@@ -8,6 +8,7 @@ import "../items"
  *
  */
 Rectangle {
+    id: browse
     anchors.fill: parent
     color: "transparent"
 
@@ -108,7 +109,7 @@ Rectangle {
     ]
 
     function activated() {
-        if (! connect.connected) {
+        if (! root.connected()) {
             state = "StateNotConnected";
         } else {
             state = "StateConnected";

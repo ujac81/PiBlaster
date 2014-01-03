@@ -112,8 +112,6 @@ int RFCOMMClient::initAndCountBluetoothMessages()
 
 int RFCOMMClient::execCommand(const QString& command)
 {
-    qDebug() << "Invoking: " << command;
-
     m_cmdResult.clear();
 
 #ifndef DUMMY_MODE
@@ -270,9 +268,7 @@ int RFCOMMClient::execCommand(const QString& command)
     for ( int i = 0; i < m_cmdResult.size(); ++i )
     {
         m_cmdResultFields.append( m_cmdResult.at( i ).split("||") );
-        qDebug() << m_cmdResultFields[i];
     }
-
 
     return m_status;
 }

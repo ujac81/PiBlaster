@@ -305,6 +305,8 @@ public class RfcommClient extends org.qtproject.qt5.android.bindings.QtActivity
 
     public static int sendReceive(String msg) {
 
+        long startTime = System.currentTimeMillis();
+
         m_rfcommMsg.clear();
 
         if (m_bluetoothstatus < 2) {
@@ -323,8 +325,6 @@ public class RfcommClient extends org.qtproject.qt5.android.bindings.QtActivity
 
         // read return value, return msg, return list size and return list
 
-        Log.d(TAG, "Reading...");
-
         boolean doRead = true;
         int linecnt = -1;
         int status = -1;
@@ -332,9 +332,6 @@ public class RfcommClient extends org.qtproject.qt5.android.bindings.QtActivity
 
         // @todo prevent loop from deadlocking + add timeouts to readLine()
         while ( doRead ) {
-
-            Log.d(TAG, "--do read--");
-
             String[] input = readLine().split(" !EOL! ");
 
             if (m_bluetoothstatus < 2) {
@@ -345,8 +342,6 @@ public class RfcommClient extends org.qtproject.qt5.android.bindings.QtActivity
 
             for (int i = 0; i < input.length; i++) {
                 m_rfcommMsg.add(input[i].trim());
-                Log.d(TAG, "SPLIT LINE: -- "+ (m_rfcommMsg.size()-1)+ ": --"
-                 + m_rfcommMsg.lastElement() + "--");
             }
             if (m_rfcommMsg.size() >= 3 && linecnt == -1) {
                 try {
@@ -360,10 +355,18 @@ public class RfcommClient extends org.qtproject.qt5.android.bindings.QtActivity
             }
 
             if (linecnt != -1 && m_rfcommMsg.size() == linecnt + 3) {
-                Log.d(TAG, "Done reading, payload count: " + linecnt);
                 doRead = false;
             }
         }
+
+        long durTime = System.currentTimeMillis() - startTime;
+
+        String short_cmd = msg;
+        if ( short_cmd.length() > 20 )
+            short_cmd = msg.substring(0, 19) + "...";
+
+        m_bluetoothmessages.add("BT command '" + short_cmd + "' executed in '" + durTime + "ms");
+
 
         return m_rfcommMsg.size();
     }
