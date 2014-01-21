@@ -23,53 +23,33 @@ Rectangle {
             id: conButton
             text: "Connect"
 
-            MouseArea {
-                anchors.fill: parent
-                onClicked: {
-                    if ( parent.active ) {
-                        parent.color = root.buttonColorPressed;
-                        var constat = rfcommClient.tryConnect
-                        root.status = "Connected: " + constat
-                        parent.color = root.buttonColorActive;
-                        connect.activated()
-                    }
-                }
-                onPressed: { if ( parent.active ) { parent.color = root.buttonColorPressed; } }
-                onReleased: { if ( parent.active ) { parent.color = root.buttonColorActive; } }
+            onPressed: {
+                var constat = rfcommClient.tryConnect
+                connect.activated();
             }
         }
+
         Button {
             id: disconButton
             text: "Disconnect"
 
-            MouseArea {
-                anchors.fill: parent
-                onClicked: {
-                    if ( parent.active ) {
-                        var constat = rfcommClient.disconnect;
-                        connect.activated()
-                    }
-                }
-                onPressed: { if ( parent.active ) { parent.color = root.buttonColorPressed; } }
-                onReleased: { if ( parent.active ) { parent.color = root.buttonColorActive; } }
+            onPressed: {
+                var constat = rfcommClient.disconnect;
+                connect.activated();
             }
         }
     }
 
 
-    Component.onCompleted:
-    {
+    Component.onCompleted: {
         root.status = "Not connected."
-        console.log("Connect.qml start")
     }
 
-    Component.onDestruction:
-    {
-        console.log("Connect.qml quit")
+    Component.onDestruction: {
+        // TODO: disconnect
     }
 
-    function activated()
-    {
+    function activated() {
         var status = rfcommClient.connectionStatus;
         if ( status >= 3 ) {
             conButton.disable();

@@ -4,20 +4,33 @@ import QtQuick 2.0
 ListModel {
     id: browseModel
 
-    property int level: 0
-
-
-
+    property var parentDir: new Array()
 
     function clearAll() {
         clear();
     }
 
 
+    function dir_up() {
+
+        console.log(parentDir);
+        if (parentDir.length > 1) {
+            parentDir.pop();
+            load(parentDir[parentDir.length-1]);
+        }
+    }
+
+
     function load(dir_id) {
         clearAll();
 
+        // prevent doublets in parent dir list
+        if ( dir_id != parentDir[parentDir.length-1] )
+            parentDir.push(dir_id)
+
         if (dir_id == "root") {
+
+            parentDir = ["root"];
 
             var status = rfcommClient.execCommand("showdevices");
 
@@ -33,6 +46,12 @@ ListModel {
                             "dirs": arr[5],
                             "free": arr[7],
                             "used": arr[8],
+                            "dirid": "",    // dummy values for all possible fields required
+                            "fileid": "",
+                            "time": "",
+                            "artist": "",
+                            "album": "",
+                            "title": "",
                             "selected": false,
                            })
                 }
@@ -53,6 +72,11 @@ ListModel {
                             "dirs": arr[4],
                             "files": arr[5],
                             "name": arr[6],
+                            "fileid": "", // dummy values for all possible fields required
+                            "time": "",
+                            "artist": "",
+                            "album": "",
+                            "title": "",
                             "selected": false,
                            })
                 }
@@ -73,7 +97,7 @@ ListModel {
                             "album": arr[6],
                             "title": arr[7],
                             "selected": false,
-                           })
+                           });
                 }
             } else {
                 // TODO error -- disconnected?
@@ -81,58 +105,60 @@ ListModel {
         } // subdir
     }
 
-    function itemText(index) {
-        if ( get(index).type == 0 ) {
-            return '<table width="100%">
-  <tr>
-    <td colspan="4"><strong>'+get(index).name+'</strong></td>
-  </tr>
-  <tr>
-    <td align="left" style="font-size: 14px;">free:</td>
-    <td align="right" width="60px" style="font-size: 14px;">'+get(index).free+'</td>
-    <td align="right" style="font-size: 14px;">dirs:</td>
-    <td align="right" width="40px" style="font-size: 14px;">'+get(index).dirs+'</td>
-  </tr>
-  <tr>
-    <td align="left" style="font-size: 14px;">used:</td>
-    <td align="right" width="60px" style="font-size: 14px;">'+get(index).used+'</td>
-    <td align="right" style="font-size: 14px;">files:</td>
-    <td align="right" width="40px" style="font-size: 14px;">'+get(index).files+'</td>
-  <tr>
-</table>';
-        } else if ( get(index).type == 1 ) {
-            return '<table width="100%">
-  <tr>
-    <td colspan="2"><strong>'+get(index).name+'</strong></td>
-  </tr>
-  <tr>
-    <td align="left" style="font-size: 14px;">sub dirs:</td>
-    <td align="right" width="60px" style="font-size: 14px;">'+get(index).dirs+'</td>
-  </tr>
-  <tr>
-    <td align="left" style="font-size: 14px;">files:</td>
-    <td align="right" width="60px" style="font-size: 14px;">'+get(index).files+'</td>
-  <tr>
-</table>';
-
-        } else if ( get(index).type == 2 ) {
-            return '<table width="100%">
-  <tr>
-    <td colspan="2"><strong>'+get(index).title+'</strong></td>
-  </tr>
-  <tr>
-    <td colspan="2" style="font-size: 14px;">'+get(index).album+'</td>
-  </tr>
-  <tr>
-    <td style="font-size: 14px;">'+get(index).artist+'</td>
-    <td align="right" style="font-size: 14px;">'+get(index).time+'</td>
-  </tr>
-</table>';
-
+    function checkAnyThingSelected() {
+        for ( var i = 0; i < count; i++ ) {
+            if ( get(i).selected ) return true;
         }
+        return false;
     }
 
 
+    function checkDirsInSelection() {
+        for ( var i = 0; i < count; i++ ) {
+            var elem = get(i);
+            if ( elem.selected && elem.type == 1 ) return true;
+            if ( elem.type == 2 ) return false; // dirs are on top, so no dirs more now
+        }
+        return false;
+    }
 
+
+    /**
+     * Invoke playlist append function
+     * Args:
+     *  - 1: append to playlist
+     *  - 2: append after current
+     *  - 3: random insert
+     */
+    function addToPlaylist(add_mode)
+    {
+        console.log("addToPlaylist("+add_mode+") called.");
+
+        rfcommClient.preparePlaylistAdd(add_mode);
+
+        for ( var i = 0; i < count; i++ )
+        {
+            var elem = get(i);
+            if ( elem.selected )
+            {
+                if ( elem.type == 1 )
+                    rfcommClient.addPlaylistItem("DIR "+elem.storid+" "+elem.dirid);
+                else if ( elem.type == 2 )
+                    rfcommClient.addPlaylistItem("FILE "+elem.storid+" "+elem.dirid+" "+elem.fileid);
+            }
+        }
+
+        deselect_all();
+    }
+
+    /**
+     * Set all selected properties to false in current view.
+     * Called after addToPlaylist()
+     */
+    function deselect_all() {
+        for ( var i = 0; i < count; i++ ) {
+            get(i).selected = false;
+        }
+    }
 }
 

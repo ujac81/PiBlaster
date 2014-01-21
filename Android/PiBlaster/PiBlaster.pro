@@ -1,11 +1,12 @@
 
 QT += quick
 
-DUMMY_MODE = 0
+DUMMY_MODE = 1
 
 contains(DUMMY_MODE, 1) {
     message("Running in dummy mode")
     DEFINES += "DUMMY_MODE=1"
+    DEFINES += "QT_QML_DEBUG"
 } else {
     message("Running in full android mode")
     QT += androidextras
@@ -22,9 +23,11 @@ QML_IMPORT_PATH =
 
 
 SOURCES += src/main.cpp \
-    src/RFCommClient.cpp
+    src/RFCommClient.cpp \
+    src/Helpers.cpp
 HEADERS += \
-    src/RFCommClient.h
+    src/RFCommClient.h \
+    src/Helpers.h
 
 RESOURCES += images.qrc
 
@@ -37,7 +40,3 @@ RESOURCES += images.qrc
 # Please do not modify the following two lines. Required for deployment.
 include(src/QtQuick2ApplicationViewer.pri)
 qtcAddDeployment()
-
-
-
-

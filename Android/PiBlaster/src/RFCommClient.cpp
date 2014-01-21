@@ -5,11 +5,15 @@
 #ifndef DUMMY_MODE
     #include <QtAndroidExtras/QAndroidJniObject>
 #endif
+
+#include <QThread>
 #include <QtDebug>
 
-RFCOMMClient::RFCOMMClient(QObject *parent)
-    : QObject(parent)
+RFCOMMClient::RFCOMMClient(QObject *parent, QGuiApplication* app)
+    : QObject(parent),
+    m_app(app)
 {
+    qDebug() << "RFCOMMClient ctor";
     connect(this, SIGNAL(notificationChanged()), this, SLOT(updateAndroidNotification()));
 
 #ifndef DUMMY_MODE
@@ -272,6 +276,40 @@ int RFCOMMClient::execCommand(const QString& command)
 
     return m_status;
 }
+
+
+void RFCOMMClient::preparePlaylistAdd( int mode )
+{
+    _plAddList.clear();
+    _plAddMode = mode;
+}
+
+
+void RFCOMMClient::addPlaylistItem( const QString&row )
+{
+    _plAddList.append( row );
+}
+
+
+int RFCOMMClient::sendPlaylistAdd()
+{
+#ifndef DUMMY_MODE
+
+
+    return 1;
+
+#else
+
+//    QThread::msleep( 2000 );
+
+
+    m_statusMessage = "XYZ items added to playlist.";
+    return m_status = 1;
+
+#endif
+}
+
+
 
 
 

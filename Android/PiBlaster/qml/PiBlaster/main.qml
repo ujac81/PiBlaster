@@ -2,6 +2,7 @@
 import QtQuick 2.0
 
 import "tabview"
+import "items"
 
 /**
  * Root for full App
@@ -13,8 +14,8 @@ import "tabview"
 Rectangle {
     id: root
 
-    property int mainWidth: 320   // default for testing, will be changed upon start
-    property int mainHeight: 480  // default for testing, will be changed upon start
+    property int mainWidth: 540   // default for testing, will be changed upon start
+    property int mainHeight: 800  // default for testing, will be changed upon start
 
 
     ///// application constants /////
@@ -24,20 +25,22 @@ Rectangle {
     property string color1: "#94d9ff"   // upper background gradient color
     property string color2: "#67B3FF"   // lower background gradient color
     property int statusbarHeight: 20    // lower status bar
-    property int barHeight: 30          // tab bar
-    property int baseFontSize: 20       // standard font pixel size
+    property int barHeight: 36          // tab bar
+    property int baseFontSize: 24       // standard font pixel size
     property int buttonHeight: 40       // default height for pop-up buttons1
     property int buttonWidth: 220       // default width for pop-up buttons1
     property int buttonRadius: 5        // corner radius for button
     property int buttonSpacing: 20      // spacing between multiple buttons
-    property string buttonColorActive: "#2382FF"            // clickable button color
+    property string buttonColorActive: "#1855FF"            // clickable button color
     property string buttonColorPressed: "#1212FF"           // pressed down (active) button color
     property string buttonColorActiveText: "black"          // active button text color
     property string buttonColorInactive: "#8B8E91"          // greyed out button color
     property string buttonColorInactiveText: "#5C5E60"      // greyed out button text color
     property string colorSelected: "#1212FF"                // background color for selected items in lists
-    property string colorUnselected: "transparent"          // background color for odd-indexed items in lists
-    property string colorUnselected2: "#2382FF"             // background color for even-indexed items in lists
+    property string colorUnselected: "#dddddd"          // background color for odd-indexed items in lists
+    property string colorUnselected2: "#bbbbbb"             // background color for even-indexed items in lists
+    property string colorButtonBox:         "#2382FF"
+    property string colorButtonBoxFrame:    buttonColorPressed
 
     property alias status: status.text
     property alias tabview: tabview
@@ -45,6 +48,12 @@ Rectangle {
     width: mainWidth
     height: mainHeight
     focus: true
+
+    MessageWindow {
+        id: messageWindow
+        visible: false
+    }
+
 
     // background color gradient -- all rectangles should be transparent
     gradient: Gradient {
@@ -112,5 +121,15 @@ Rectangle {
     function connected() {
         return root.tabview.tabsModel.children[3].loader.item.connected;
     }
+
+
+
+    ////////////////// OVERLAYS //////////////////
+
+    WaitOverlay {
+        id: waitOverlay
+        parent: root
+    }
+
 
 }

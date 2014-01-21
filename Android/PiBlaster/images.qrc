@@ -2,5 +2,9 @@
     <qresource prefix="/images">
         <file>images/usb.png</file>
         <file>images/folder.png</file>
+        <file>images/up.png</file>
+        <file>images/home.png</file>
+        <file>images/add.png</file>
+        <file>images/x-nopad.png</file>
     </qresource>
 </RCC>

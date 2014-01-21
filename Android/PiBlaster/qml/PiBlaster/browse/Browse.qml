@@ -8,112 +8,296 @@ import "../items"
  *
  */
 Rectangle {
+
     id: browse
     anchors.fill: parent
     color: "transparent"
+    focus: true
+
+
+    ////////////// OVERLAYS //////////////
+
+    // Question dialog if dirs should be added.
+    // Invoked if dirs in selection found.
+    // Invokes model.addToPlaylist(mode)
+    // Set addMode bevore raise with show()
+    MessageWindow {
+        id: addDirsDialog
+        property int addMode: -1 // remember mode while waiting for dialog to close
+        boxHeight: 400
+
+        caption: "Add directories"
+        text: "Directories will be added recursively. Your selection contains directories. Adding directories to playlists is allowed, but may result in huge playlists."
+
+        onAccepted: browse.addToPlaylist(addMode)
+    }
+
+    // Add elements dialog
+    Item {
+        id: addDialog
+        z: 50
+        anchors.fill: parent
+        visible: opacity !== 0
+        // show() will raise opacity
+        opacity: 0
+
+        // Fill complete area with MouseArea to catch touch events
+        Rectangle {
+            anchors.fill: parent
+            color: "#000000"
+            opacity: 0.6
+            MouseArea { anchors.fill: parent }
+        }
+
+        ButtonBox {
+
+            anchors.centerIn: parent
+            width: 300
+            height: 400
+
+            Rectangle {
+                id: header
+                width: parent.width
+                anchors.top: parent.top
+
+                height: root.buttonHeight
+                radius: 10
+                border.width: 4
+                border.color:  root.colorButtonBoxFrame
+                color: "white"
+
+                Text {
+                    anchors.centerIn: parent
+                    anchors.rightMargin: root.buttonHeight + 5
+                    color: root.buttonColorActiveText
+                    font.pixelSize: root.baseFontSize
+                    text: "Add to Playlist      "
+                }
+
+                Rectangle {
+                    height: root.buttonHeight
+                    width: root.buttonHeight * 1.5
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+
+                    radius: 10
+                    border.width: 4
+                    border.color:  root.colorButtonBoxFrame
+                    color: root.buttonColorInactive
+
+                    Image {
+                        anchors.centerIn: parent
+                        width: root.buttonHeight - 15
+                        height: root.buttonHeight - 15
+                        source: "qrc:///images/images/x-nopad.png"
+                    }
+                    MouseArea {
+                        anchors.fill: parent
+                        onPressed: addDialog.close()
+                    }
+                }
+            }
+
+            Column {
+
+                anchors.centerIn: parent
+                anchors.top: header.bottom
+
+                width: parent.width - 2 * root.buttonSpacing
+                spacing: root.buttonSpacing
+
+                Button {
+                    id: browseAppend
+                    text: "Append"
+                    width: parent.width
+                    onPressed: addDialog.append(0);
+                }
+                Button {
+                    id: browseInsertAfterCurrent
+                    text: "Insert after current"
+                    width: parent.width
+                    onPressed: addDialog.append(1);
+                }
+                Button {
+                    id: browseInsertRandom
+                    text: "Random insert"
+                    width: parent.width
+                    onPressed: addDialog.append(2);
+                }
+            }
+        }
+
+        // animate opacity, 250ms to raise/fall
+        Behavior on opacity {
+            NumberAnimation { duration: 250 }
+        }
+
+        function close() {
+            opacity = 0;
+        }
+
+        function append(mode) {
+            if ( browseList.model.checkDirsInSelection() == 1 ) {
+                addDirsDialog.addMode = mode;
+                addDirsDialog.show();
+            }
+            else
+                browse.addToPlaylist(mode)
+            close();
+        }
+
+        function show() {
+            if ( browseList.model.checkAnyThingSelected() )
+                opacity = 1;
+        }
+    } // and Item for add overlay
+
+
+    // connect overlay -- raised if not connected
+    Item {
+        id: connectOverlay
+        z: 101
+        anchors.fill: parent
+        visible: opacity !== 0
+        opacity: 0
+
+        // Fill complete area with MouseArea to catch touch events
+        Rectangle {
+            anchors.fill: parent
+            color: "#000000"
+            opacity: 0.6
+            MouseArea { anchors.fill: parent }
+        }
+
+        // animate opacity, 250ms to raise/fall
+        Behavior on opacity {
+            NumberAnimation { duration: 250 }
+        }
+
+        Button {
+            id: browseConnectButton
+            anchors.centerIn: parent
+            text: "Connect"
+            onPressed: root.tabview.tabbedUI.tabClicked(3);
+        }
+
+        function show() {
+            if (! root.connected())
+                opacity = 1;
+            else
+            {
+                opacity = 0;
+                browseList.model.load("root");
+
+            }
+        }
+    }
+
+
+
+    ////////////// top tool bar //////////////
+
+    Rectangle {
+        id: browseToolBar
+        height: 56
+        anchors.top: parent.top
+        width: parent.width
+        color: "#66666666"
+
+        Row {
+            id: browseButtonRow
+            height: 48
+            anchors.centerIn: parent
+            spacing: 4
+
+            Image {
+                id: browseHomeButton
+                source: "qrc:///images/images/home.png"
+                width: parent.height
+                height: parent.height
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: browseList.model.load("root")
+                }
+            }
+            Image {
+                id: browseUpButton
+                source: "qrc:///images/images/up.png"
+                width: parent.height
+                height: parent.height
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: browseList.model.dir_up()
+                }
+            }
+
+            LineInput {
+                id: browseQuickFilter
+                height: parent.height - 8
+                y: 4
+                width: browseToolBar.width - 3*parent.height - 3*4
+
+                onEnterPressed: console.log("Filter: "+ browseQuickFilter.text)
+                onCleared: console.log("Filter cleared")
+
+
+            }
+            Image {
+                id: browseAddButton
+                source: "qrc:///images/images/add.png"
+                width: parent.height
+                height: parent.height
+
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: addDialog.show()
+                }
+            }
+        }
+    }
+
+    ////////////// central list view //////////////
 
     Rectangle {
         id: browseBox
-        anchors.fill: parent
+        anchors.top: browseToolBar.bottom
+        anchors.bottom: parent.bottom
+        width: parent.width
         color: "transparent"
 
-        ListView {
-            id: browseList
-            anchors.fill: parent
-            clip: true
-
-            model: BrowseModel{}
-            delegate: Rectangle {
-                id: browseDelegate
-                width: parent.width
-                height: root.baseFontSize * 3.8
-                clip: true
-
-                color: selected ? root.colorSelected : (index % 2 == 0 ? root.colorUnselected : root.colorUnselected2 )
-
-                Row {
-                    width: parent.width
-                    // usb devices and folders get extra image column
-                    // media files (type == 2) do not get prefix
-                    Text {
-                        id: rowimg
-                        anchors.top: parent.top
-                        anchors.bottom: parent.bottom
-                        anchors.left: parent.left
-                        text: type == 0 ? '<img src="qrc:///images/images/usb.png" width="32px" height="32px"/>' :
-                                ( type == 1 ? '<img src="qrc:///images/images/folder.png" width="32px" height="32px"/>'  :
-                                  "" )
-                        width: type < 2 ? 40 : 0
-                        verticalAlignment: Text.AlignBottom
-                    }
-                    // entry, content created via BrowseModel.itemText()
-                    Text {
-                        anchors.top: parent.top
-                        anchors.bottom: parent.bottom
-                        anchors.right: parent.right
-                        anchors.left: rowimg.right
-                        textFormat: Text.RichText
-                        text: browseList.model.itemText(index)
-                        font.pixelSize: root.baseFontSize
-                    }
-                }
-
-                MouseArea {
-                    id: elements_click_check
-                    anchors.fill: parent
-                    onClicked: {
-                        if ( browseList.model.get(index).type != 0 ) {
-                            browseList.model.get(index).selected = ! browseList.model.get(index).selected
-                        }
-                    }
-                    onDoubleClicked: {
-                        if ( browseList.model.get(index).type == 0 ) {
-                            browseList.model.load(browseList.model.get(index).storid+" 0");
-                        } else if ( browseList.model.get(index).type == 1 ) {
-                            browseList.model.load(browseList.model.get(index).storid+" "+
-                                                  browseList.model.get(index).dirid);
-                        }
-                    }
-                }
-            }
-        }
+        BrowseList{ id: browseList }
     }
 
 
-    Button {
-        id: browseConnectButton
-        anchors.centerIn: parent
-        text: "Connect"
+    ////////////// Send worker //////////////
 
-        MouseArea {
-            anchors.fill: parent
-            onClicked: {
-                root.tabview.tabbedUI.tabClicked(3);
-            }
-            onPressed: { if ( parent.active ) { parent.color = root.buttonColorPressed; } }
-            onReleased: { if ( parent.active ) { parent.color = root.buttonColorActive; } }
-        }
-    }
+//    WorkerScript {
+//        id: sendWorker
+//        source: "SendWorker.js"
 
-    states: [
-        State {
-            name: "StateNotConnected"
-            PropertyChanges { target: browseBox; visible: false }
-            PropertyChanges { target: browseConnectButton; visible: true }
-        },
-        State {
-            name: "StateConnected"
-            PropertyChanges { target: browseBox; visible: true }
-            PropertyChanges { target: browseConnectButton; visible: false }
-        }
-    ]
+//        onMessage: {
+//            console.log("send worker done: "+messageObject.message);
+//            root.status = messageObject.message;
+//            waitOverlay.close();
+//        }
+//    }
+
+    ////////////// helpers //////////////
 
     function activated() {
-        if (! root.connected()) {
-            state = "StateNotConnected";
-        } else {
-            state = "StateConnected";
-            browseList.model.load("root");
-        }
+        connectOverlay.show();
+    }
+
+    function addToPlaylist(add_mode) {
+        waitOverlay.caption = "Adding to playlist";
+        waitOverlay.text = "Please stand by while adding to playlist...";
+        // waitOverlay.show();
+
+        browseList.model.addToPlaylist(add_mode)
+
+        var status = rfcommClient.sendPlaylistAdd();
+
+        root.status = rfcommClient.statusMessage();
+
     }
 }

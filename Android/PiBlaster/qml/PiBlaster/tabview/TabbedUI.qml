@@ -30,11 +30,6 @@ Rectangle {
     // hide all the tab views and select default tab
     Component.onCompleted:
     {
-//        for(var i = 0; i < tabsModel.children.length; i++)
-//        {
-//            //tabsModel.children[i].load();
-//            tabsModel.children[i].loader.item.visible = false;
-//        }
         tabsModel.children[tabIndex].load();
         tabClicked(tabIndex);
     }
@@ -50,28 +45,15 @@ Rectangle {
         else
             bottomTabs.children[tabIndex-3].color = root.buttonColorActive
 
-        print("=========old===========")
-        print(tabsModel.children[tabIndex])
-        print(tabsModel.children[tabIndex].loader)
-        print(tabsModel.children[tabIndex].loader.source)
-        print(tabsModel.children[tabIndex].loader.item)
-
         tabsModel.children[tabIndex].loader.item.visible = false;
         tabIndex = index;
-
 
         if (tabIndex < 3)
             topTabs.children[tabIndex].color = root.buttonColorPressed;
         else
             bottomTabs.children[tabIndex-3].color = root.buttonColorPressed;
 
-        print("=========new===========")
         tabsModel.children[tabIndex].load();
-        print(tabsModel.children[tabIndex])
-        print(tabsModel.children[tabIndex].loader)
-        print(tabsModel.children[tabIndex].loader.source)
-        print(tabsModel.children[tabIndex].loader.item)
-
         tabsModel.children[tabIndex].loader.item.visible = true;
         tabsModel.children[tabIndex].loader.item.activated();
     }

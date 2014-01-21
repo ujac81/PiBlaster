@@ -5,6 +5,7 @@
 #include "QtQuick2ApplicationViewer.h"
 
 #include "RFCommClient.h"
+#include "Helpers.h"
 
 #include <QtDebug>
 
@@ -21,12 +22,17 @@ int main(int argc, char *argv[])
 
     qDebug() << "==== 3 ====";
 
-    RFCOMMClient *rfcommClient = new RFCOMMClient(&viewer);
+    RFCOMMClient* rfcommClient = new RFCOMMClient( &viewer, &app );
+    Helpers* helpers = new Helpers( &viewer, &app );
 
     qDebug() << "==== 4 ====";
 
-    viewer.engine()->rootContext()->setContextProperty(QLatin1String("rfcommClient"),
-                                                       rfcommClient);
+    viewer.engine()->rootContext()->
+            setContextProperty( "rfcommClient", rfcommClient );
+
+    viewer.engine()->rootContext()->
+            setContextProperty( "helpers", helpers );
+
     qDebug() << "==== 5 ====";
 
 

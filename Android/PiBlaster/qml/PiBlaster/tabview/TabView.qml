@@ -16,6 +16,7 @@ Rectangle {
 
     property alias tabbedUI: tabUI
     property alias tabsModel: tabsModel
+    focus: true
 
 
     // holds all central objects -- enabled and disabled by TabbedUI
@@ -29,16 +30,14 @@ Rectangle {
             Loader { anchors.fill: parent; id: pageloader0 }
             function load() {
                 pageloader0.source = "../playlist/Playlist.qml"
-//                pageloader0.item.activated()
             }
         }
         Item {
             property alias loader: pageloader1
             anchors.fill: parent
-            Loader { anchors.fill: parent; id: pageloader1 }
+            Loader { anchors.fill: parent; id: pageloader1; focus: true }
             function load() {
                 pageloader1.source = "../browse/Browse.qml"
-//                pageloader1.item.activated()
             }
         }
         Item {
@@ -47,7 +46,6 @@ Rectangle {
             Loader { anchors.fill: parent; id: pageloader2 }
             function load() {
                 pageloader2.source = "../search/Search.qml"
-//                pageloader2.item.activated()
             }
         }
         Item {
@@ -56,7 +54,6 @@ Rectangle {
             Loader { anchors.fill: parent; id: pageloader3 }
             function load() {
                 pageloader3.source = "../connect/Connect.qml"
-//                pageloader3.item.activated()
             }
         }
         Item {
@@ -65,7 +62,6 @@ Rectangle {
             Loader { anchors.fill: parent; id: pageloader4 }
             function load() {
                 pageloader4.source = "../log/Log.qml"
-//                pageloader4.item.activated()
             }
         }
         Item {
@@ -74,7 +70,6 @@ Rectangle {
             Loader { anchors.fill: parent; id: pageloader5 }
             function load() {
                 pageloader5.source = "../settings/Settings.qml"
-//                pageloader5.item.activated()
             }
         }
     }
