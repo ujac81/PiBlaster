@@ -35,8 +35,7 @@ int main(int argc, char *argv[])
 
     qDebug() << "==== 5 ====";
 
-
-    viewer.setMainQmlFile(QStringLiteral("qml/PiBlaster/main.qml"));
+    viewer.setSource(QUrl("qrc:/qml/PiBlaster/main.qml"));
     viewer.showExpanded();
 
     qDebug() << "==== 6 ====";

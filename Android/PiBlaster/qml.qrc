@@ -1,0 +1,22 @@
+<RCC>
+    <qresource prefix="/">
+        <file>qml/PiBlaster/settings/Settings.qml</file>
+        <file>qml/PiBlaster/search/Search.qml</file>
+        <file>qml/PiBlaster/tabview/TabbedUI.qml</file>
+        <file>qml/PiBlaster/tabview/TabView.qml</file>
+        <file>qml/PiBlaster/items/Button.qml</file>
+        <file>qml/PiBlaster/items/LineInput.qml</file>
+        <file>qml/PiBlaster/items/Dialog.qml</file>
+        <file>qml/PiBlaster/items/ButtonBox.qml</file>
+        <file>qml/PiBlaster/items/Tab.qml</file>
+        <file>qml/PiBlaster/items/MessageWindow.qml</file>
+        <file>qml/PiBlaster/items/WaitOverlay.qml</file>
+        <file>qml/PiBlaster/log/Log.qml</file>
+        <file>qml/PiBlaster/connect/Connect.qml</file>
+        <file>qml/PiBlaster/playlist/Playlist.qml</file>
+        <file>qml/PiBlaster/browse/BrowseModel.qml</file>
+        <file>qml/PiBlaster/browse/BrowseList.qml</file>
+        <file>qml/PiBlaster/browse/Browse.qml</file>
+        <file>qml/PiBlaster/main.qml</file>
+    </qresource>
+</RCC>
