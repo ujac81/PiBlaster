@@ -1,6 +1,6 @@
 
-
 #include "RFCommClient.h"
+#include "RFCommThread.h"
 
 #ifndef DUMMY_MODE
     #include <QtAndroidExtras/QAndroidJniObject>
@@ -300,7 +300,11 @@ int RFCOMMClient::sendPlaylistAdd()
 
 #else
 
-//    QThread::msleep( 2000 );
+    RFCommThread* send = new RFCommThread( this );
+    connect( send, &RFCommThread::gotReply, this, &RFCOMMClient::addToPlaylistFinished );
+    connect( send, &RFCommThread::finished, send, &QObject::deleteLater );
+    send->start();
+
 
 
     m_statusMessage = "XYZ items added to playlist.";
@@ -308,8 +312,6 @@ int RFCOMMClient::sendPlaylistAdd()
 
 #endif
 }
-
-
 
 
 

@@ -2,10 +2,12 @@
 #ifndef RFCOMMCLIENT_H
 #define RFCOMMCLIENT_H
 
+#include <QQmlEngine>
 #include <QGuiApplication>
 #include <QObject>
 #include <QVariant>
 #include <QDebug>
+#include <qqml.h>
 
 class QAndroidJniObject;
 
@@ -50,9 +52,9 @@ public:
     Q_INVOKABLE int sendPlaylistAdd();
 
 
-
 signals:
     void notificationChanged();
+    void addToPlaylistFinished(const QString& );
 
 private slots:
     void updateAndroidNotification();
@@ -73,5 +75,7 @@ private:
     QList<QString> m_logentries;    // tempory storage of log entries as list cannot be sent to QML
     int m_curlogentry;              // reset by initAndCountBluetoothMessages(), used by nextBluetoothMessage()
 };
+
+QML_DECLARE_TYPEINFO(RFCOMMClient, QML_HAS_ATTACHED_PROPERTIES)
 
 #endif // RFCOMMClient_H

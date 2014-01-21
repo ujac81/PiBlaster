@@ -269,18 +269,11 @@ Rectangle {
     }
 
 
-    ////////////// Send worker //////////////
+    Component.onCompleted: {
 
-//    WorkerScript {
-//        id: sendWorker
-//        source: "SendWorker.js"
+        rfcommClient.addToPlaylistFinished.connect(addFinished);
+    }
 
-//        onMessage: {
-//            console.log("send worker done: "+messageObject.message);
-//            root.status = messageObject.message;
-//            waitOverlay.close();
-//        }
-//    }
 
     ////////////// helpers //////////////
 
@@ -288,16 +281,28 @@ Rectangle {
         connectOverlay.show();
     }
 
+    /**
+     * Raise wait overlay and invoke RFCOMMClient::sendPlaylistAdd().
+     * This will fire up a send thread which will send a signal
+     * addToPlaylistFinished(msg) which is connected to addFinished here.
+     */
     function addToPlaylist(add_mode) {
         waitOverlay.caption = "Adding to playlist";
         waitOverlay.text = "Please stand by while adding to playlist...";
-        // waitOverlay.show();
+        waitOverlay.show();
 
         browseList.model.addToPlaylist(add_mode)
-
-        var status = rfcommClient.sendPlaylistAdd();
-
-        root.status = rfcommClient.statusMessage();
-
+        rfcommClient.sendPlaylistAdd();
     }
+
+    /**
+     * Hide wait overlay after send operation is done.
+     * Invoked if rfcommClient emits addToPlaylistFinished
+     */
+    function addFinished(msg) {
+        waitOverlay.close();
+        root.status = msg;
+    }
+
+
 }
