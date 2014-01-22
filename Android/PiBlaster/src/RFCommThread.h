@@ -11,7 +11,7 @@ public:
 
     RFCommThread( QObject* parent ) : QThread( parent ) {}
 
-    void run();
+    void run() Q_DECL_OVERRIDE;
 
 
 signals:

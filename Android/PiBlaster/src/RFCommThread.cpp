@@ -3,11 +3,11 @@
 
 #include "RFCommThread.h"
 
-void RFCommThread::run() Q_DECL_OVERRIDE
+void RFCommThread::run()
 {
-    QString result = "msg";
+    QString result = "XYZ items added to playlist";
 
-    QThread::msleep( 4000 );
+    QThread::msleep( 3000 );
 
     emit gotReply( result );
 }
