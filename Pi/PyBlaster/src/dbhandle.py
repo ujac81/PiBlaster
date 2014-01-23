@@ -9,7 +9,7 @@ import sqlite3
 
 import log
 
-DBVERSION = 17
+DBVERSION = 18
 
 
 class DBDirEntries:
@@ -79,25 +79,46 @@ class DBFileEntries:
 
 class DBPlayLists:
   """Enum and create syntax for Usbdevs database table"""
-  ID, NAME, CREATED, CREATOR, ITEMSCOUNT, POSITION = range(6)
+  ID, NAME, CREATED, CREATOR, POSITION, STATE = range(6)
+
+  # id          -- playlist id
+  # name        -- given name for this list, should be unique
+  # created     -- creation date
+  # creator     -- creator name
+  # position    -- current track position = index in Playlists
+  # state       -- state index, increased with every playlist change
+  #                required for undo actions
+
 
   DropSyntax    = """DROP TABLE IF EXISTS Playlists;"""
   CreateSyntax  = """CREATE TABLE Playlists(
     id INT, name TEXT, created INT, creator TEXT,
-    itemcount INT, position INT);"""
+    itemcount INT, position INT, state INT);"""
 
   # end class DBPlayLists #
 
 
 class DBPlayListEntries:
   """Enum and create syntax for Usbdevs database table"""
-  ID, INDEX, STORID, REVISION, DIRID, FILEID, TITLE, PLAYED, PATH = range(9)
+  ID, INDEX, STORID, REVISION, DIRID, FILEID, \
+  TITLE, PLAYED, PATH, STATE = range(10)
+
+  # playlistid  -- refers to id in Playlists
+  # position    -- position in playlist
+  # usbid       -- usb device id of track
+  # usbrev      -- usb revision number in moment of add
+  # dirid       -- directory id on device
+  # fileid      -- file id in directory
+  # disptitle   -- display text in playlist
+  # played      -- = 1 if item played (for random walk)
+  # path        -- path on device (if revision change, but path stil valid)
+  # state       -- state index of add action (for undo add)
 
   DropSyntax    = """DROP TABLE IF EXISTS Playlistentries;"""
   CreateSyntax  = """CREATE TABLE Playlistentries(
-    playlistid INT, entryin INT,
+    playlistid INT, position INT,
     usbid INT, usbrev INT, dirid INT,
-    fileid INT, disptitle TEXT, played INT, path TEXT);"""
+    fileid INT, disptitle TEXT, played INT, path TEXT, state INT);"""
 
   # end class DBPlayListEntries #
 
@@ -117,12 +138,9 @@ class DBSettings:
   ID, KEY, VALUE = range(3)
 
   DropSyntax    = """DROP TABLE IF EXISTS Settings;"""
-  CreateSyntax  = """CREATE TABLE Settings(
-    id INT, key TEXT, value TEXT);"""
+  CreateSyntax  = """CREATE TABLE Settings(id INT, key TEXT, value TEXT);"""
 
   # end class DBUsbDevs #
-
-
 
 class DBHandle:
   """ Manage sqlite db file which contains playlist and known usb devices

@@ -36,14 +36,14 @@ class PlayListItem:
 
     return res
 
-  def append_to_db_list(self, listref, listid, entryid):
+  def append_to_db_list(self, listref, listid, entryid, state):
     """
     """
 
     listref.append([listid, entryid, self.db_row[FE.STORID],
                     self.revision, self.db_row[FE.DIRID],
                     self.db_row[FE.ID], self.db_row[FE.DISPTITLE],
-                    self.played, self.db_row[FE.PATH]
+                    self.played, self.db_row[FE.PATH], state
                     ])
 
 

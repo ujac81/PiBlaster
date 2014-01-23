@@ -55,7 +55,7 @@ class PlayListManager:
 
     for row in self.parent.dbhandle.cur.execute(
         "SELECT usbid, usbrev, dirid, fileid, played, path "\
-        "FROM Playlistentries WHERE playlistid=0 ORDER BY entryin"):
+        "FROM Playlistentries WHERE playlistid=0 ORDER BY position"):
       entries.append(row)
 
     for row in entries:
@@ -119,16 +119,16 @@ class PlayListManager:
     self.parent.dbhandle.con.commit()
 
     self.parent.dbhandle.cur.execute(
-        'INSERT INTO Playlists VALUES (?, ?, ?, ?, ?, ?)',
+        'INSERT INTO Playlists VALUES (?, ?, ?, ?, ?, ?, ?)',
         (0, self.name, self.time, self.creator,
-         len(self.playlist), self.playlist_pos))
+         len(self.playlist), self.playlist_pos, 0))
 
     pl_items = []
     for i in range(len(self.playlist)):
-      self.playlist[i].append_to_db_list(pl_items, self.playlist_id, i)
+      self.playlist[i].append_to_db_list(pl_items, self.playlist_id, i, 0)
 
     self.parent.dbhandle.cur.executemany(
-      'INSERT INTO Playlistentries VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO Playlistentries VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
       pl_items)
 
     self.parent.dbhandle.con.commit()
@@ -159,16 +159,16 @@ class PlayListManager:
     self.parent.dbhandle.con.commit()
 
     self.parent.dbhandle.cur.execute(
-        'INSERT INTO Playlists VALUES (?, ?, ?, ?, ?, ?)',
+        'INSERT INTO Playlists VALUES (?, ?, ?, ?, ?, ?, ?)',
         (self.playlist_id, self.name, self.time, self.creator,
-         len(self.playlist), self.playlist_pos,))
+         len(self.playlist), self.playlist_pos, 0,))
 
     pl_items = []
     for i in range(len(self.playlist)):
-      self.playlist[i].append_to_db_list(pl_items, self.playlist_id, i)
+      self.playlist[i].append_to_db_list(pl_items, self.playlist_id, i, 0)
 
     self.parent.dbhandle.cur.executemany(
-      'INSERT INTO Playlistentries VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO Playlistentries VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
       pl_items)
 
     self.parent.dbhandle.set_settings_value(
