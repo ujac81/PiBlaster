@@ -303,10 +303,110 @@ public class RfcommClient extends org.qtproject.qt5.android.bindings.QtActivity
         return m_bluetoothstatus;
     }
 
+    /**
+     * @brief Prepare multiple row command like "plappendmultiple MODE N_ROWS"
+     * @return 0 if send ok
+     */
+    public static int prepareMassSend(String initCmd) {
+
+        if (m_bluetoothstatus < 2) {
+            // not connected
+            m_bluetoothmessages.add("BT ERROR tried to send on closed connection");
+            return -1;
+        }
+        try {
+            m_outStream.write(initCmd.getBytes());
+        } catch (IOException e) {
+            Log.d(TAG, "Fatal Error: outstream.write: " + e.getMessage() + ".");
+            m_bluetoothmessages.add("BT ERROR cannot write to stream: "+ e.getMessage() + ".");
+            m_bluetoothstatus = BT_ERR_STREAM_WRITE;
+            return m_bluetoothstatus;
+        }
+        return 0;
+    }
+
+
+    /**
+     * @brief Send single row while in mass send mode -- need to call prepareMassSend() before
+     */
+    public static int sendSingleRow(String row) {
+        if (m_bluetoothstatus < 2) {
+            // not connected
+            m_bluetoothmessages.add("BT ERROR tried to send on closed connection");
+            return -1;
+        }
+        row += " !EOL! ";
+        try {
+            m_outStream.write(row.getBytes());
+        } catch (IOException e) {
+            Log.d(TAG, "Fatal Error: outstream.write: " + e.getMessage() + ".");
+            m_bluetoothmessages.add("BT ERROR cannot write to stream: "+ e.getMessage() + ".");
+            m_bluetoothstatus = BT_ERR_STREAM_WRITE;
+            return m_bluetoothstatus;
+        }
+        return 0;
+    }
+
+    /**
+     * @brief Wait for answer from PyBlaster after sending multiple commands via prepareMassSend() and sendSingleRow()
+     *
+     * Result may be parsed by rfcommMessage(0|1)
+     * @return should be 2 if everything ok
+     */
+    public static int waitForMassCommand() {
+        long startTime = System.currentTimeMillis();
+        m_rfcommMsg.clear();
+
+        if (m_bluetoothstatus < 2) {
+            // not connected
+            m_bluetoothmessages.add("BT ERROR tried to send on closed connection");
+            return -1;
+        }
+
+        // read return value and return msg
+
+        boolean doRead = true;
+        int status = -1;
+
+        // @todo prevent loop from deadlocking + add timeouts to readLine()
+        while ( doRead ) {
+            String[] input = readLine().split(" !EOL! ");
+
+            if (m_bluetoothstatus < 2) {
+                Log.d(TAG, "STREAM DIED");
+                m_bluetoothmessages.add("BT ERROR stream died.");
+                break;
+            }
+
+            for (int i = 0; i < input.length; i++) {
+                m_rfcommMsg.add(input[i].trim());
+            }
+            if (m_rfcommMsg.size() >= 3) {
+                try {
+                    m_rfcommStatus = Integer.parseInt(m_rfcommMsg.get(0));
+                    m_rfcommStatusMsg = m_rfcommMsg.get(1);
+                } catch (NumberFormatException e) {
+                    Log.d(TAG, "Fatal Error: wrong number format");
+                    m_bluetoothmessages.add("BT ERROR faulty numbers from stream");
+                }
+                doRead = false;
+            }
+        }
+
+        long durTime = System.currentTimeMillis() - startTime;
+        m_bluetoothmessages.add("BT multi command executed in '" + durTime + "ms");
+
+        return m_rfcommMsg.size();
+    }
+
+
+
+
+
+
     public static int sendReceive(String msg) {
 
         long startTime = System.currentTimeMillis();
-
         m_rfcommMsg.clear();
 
         if (m_bluetoothstatus < 2) {
@@ -320,7 +420,8 @@ public class RfcommClient extends org.qtproject.qt5.android.bindings.QtActivity
         } catch (IOException e) {
             Log.d(TAG, "Fatal Error: outstream.write: " + e.getMessage() + ".");
             m_bluetoothmessages.add("BT ERROR cannot write to stream: "+ e.getMessage() + ".");
-            return BT_ERR_STREAM_WRITE;
+            m_bluetoothstatus = BT_ERR_STREAM_WRITE;
+            return m_bluetoothstatus;
         }
 
         // read return value, return msg, return list size and return list

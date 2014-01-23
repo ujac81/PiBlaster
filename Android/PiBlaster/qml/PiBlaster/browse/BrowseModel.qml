@@ -130,7 +130,7 @@ ListModel {
      *  - 2: append after current
      *  - 3: random insert
      */
-    function addToPlaylist(add_mode)
+    function push_to_playlist_send_list(add_mode)
     {
         console.log("addToPlaylist("+add_mode+") called.");
 

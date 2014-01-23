@@ -22,7 +22,7 @@ int main(int argc, char *argv[])
 
     qDebug() << "==== 3 ====";
 
-    RFCOMMClient* rfcommClient = new RFCOMMClient( &viewer, &app );
+    RFCommClient* rfcommClient = new RFCommClient( &viewer, &app );
     Helpers* helpers = new Helpers( &viewer, &app );
 
     qDebug() << "==== 4 ====";

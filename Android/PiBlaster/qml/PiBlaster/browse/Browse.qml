@@ -15,7 +15,7 @@ Rectangle {
     focus: true
 
 
-    ////////////// OVERLAYS //////////////
+    //////////////////////////// OVERLAYS ////////////////////////////
 
     // Question dialog if dirs should be added.
     // Invoked if dirs in selection found.
@@ -150,10 +150,13 @@ Rectangle {
             if ( browseList.model.checkAnyThingSelected() )
                 opacity = 1;
         }
-    } // and Item for add overlay
+    } // end Item for add overlay
 
 
-    // connect overlay -- raised if not connected
+    /**
+     * Connect button overlay -- raised if not connected.
+     * Show connect button if root.connected() is false and switch to connect tab.
+     */
     Item {
         id: connectOverlay
         z: 101
@@ -193,6 +196,8 @@ Rectangle {
         }
     }
 
+
+    //////////////////////////// CENTRAL WINDOW ////////////////////////////
 
 
     ////////////// top tool bar //////////////
@@ -269,14 +274,23 @@ Rectangle {
     }
 
 
+    /**
+     * Init function.
+     * * connect signals
+     */
     Component.onCompleted: {
-
+        // when sending to playlist, wait until send done and invoke
+        // addFinished() to hide wait overlay.
         rfcommClient.addToPlaylistFinished.connect(addFinished);
     }
 
 
-    ////////////// helpers //////////////
+    //////////////////////////// HELPERS ////////////////////////////
 
+    /**
+     * Called upon tab select.
+     * Check if connected, if not raise connect overlay.
+     */
     function activated() {
         connectOverlay.show();
     }
@@ -291,8 +305,10 @@ Rectangle {
         waitOverlay.text = "Please stand by while adding to playlist...";
         waitOverlay.show();
 
-        browseList.model.addToPlaylist(add_mode)
+        browseList.model.push_to_playlist_send_list(add_mode)
         rfcommClient.sendPlaylistAdd();
+
+        // waitOverlay will now block view until signal from rfcommClient received
     }
 
     /**
@@ -301,7 +317,7 @@ Rectangle {
      */
     function addFinished(msg) {
         waitOverlay.close();
-        root.status = msg;
+        root.status = rfcommClient.statusMessage();
     }
 
 

@@ -3,19 +3,25 @@
 
 #include <QThread>
 
+class RFCommClient;
+
 class RFCommThread : public QThread
 {
 Q_OBJECT
 
 public:
 
-    RFCommThread( QObject* parent ) : QThread( parent ) {}
+    RFCommThread( RFCommClient* parent );
 
     void run() Q_DECL_OVERRIDE;
 
 
 signals:
-    void gotReply( const QString& );
+    void gotReply( int );
+
+private:
+
+    RFCommClient* _parent;
 
 
 };
