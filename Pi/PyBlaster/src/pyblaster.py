@@ -19,220 +19,220 @@ from settings import Settings
 from usbmanager import UsbManager
 
 class PyBlaster:
-  """Daemon for PiBlaster project"""
+    """Daemon for PiBlaster project"""
 
-  def __init__(self):
-    """Whole project is run from this constructor"""
+    def __init__(self):
+        """Whole project is run from this constructor"""
 
-    # +++++++++++++++ Init +++++++++++++++ #
+        # +++++++++++++++ Init +++++++++++++++ #
 
-    self.keep_run   = 0 # used in run for daemon loop, reset by SIGTERM
+        self.keep_run   = 0 # used in run for daemon loop, reset by SIGTERM
 
-    self.log          = Log(self)
-    self.settings     = Settings(self)
-    self.led          = LED(self)
-    self.dbhandle     = DBHandle(self)
-    self.usb          = UsbManager(self)
-    self.rfcomm       = RFCommServer(self)
-    self.cmd          = EvalCmd(self)
-    self.listmngr     = PlayListManager(self)
+        self.log        = Log(self)
+        self.settings   = Settings(self)
+        self.led        = LED(self)
+        self.dbhandle   = DBHandle(self)
+        self.usb        = UsbManager(self)
+        self.rfcomm     = RFCommServer(self)
+        self.cmd        = EvalCmd(self)
+        self.listmngr   = PlayListManager(self)
 
-    self.led.reset_leds()
+        self.led.reset_leds()
 
-    # invoke arg parser and parse config or create new config if not found
-    self.settings.parse()
+        # invoke arg parser and parse config or create new config if not found
+        self.settings.parse()
 
-    # check if we can load database, create otherwise
-    self.dbhandle.dbconnect()
+        # check if we can load database, create otherwise
+        self.dbhandle.dbconnect()
 
-    # load connected usb before bluetooth
-    self.usb.check_new_usb()
-
-    # load last playlist from database
-    self.listmngr.load_active_playlist()
-
-    # open cmd fifo to read commands
-    self.cmd.open_fifo()
-
-    # fire up bluetooth service
-    self.rfcomm.start_server()
-
-    # +++++++++++++++ Daemoninze +++++++++++++++ #
-
-    self.check_pidfile()
-    self.daemonize()
-    self.create_pidfile()
-
-    self.led.show_init_done()
-
-    # +++++++++++++++ Daemon loop +++++++++++++++ #
-
-    self.run()
-
-    # +++++++++++++++ Finalize +++++++++++++++ #
-
-    self.listmngr.save_active()
-    self.led.cleanup()
-    self.delete_pidfile()
-
-
-  def run(self):
-    """Daemon loop"""
-
-    # Expensive operations like new usb drive check
-    # should not be run every loop run.
-    poll_count    = 0
-
-    # -e flag is set, run only init and exit directly.
-    self.keep_run = 0 if self.settings.exitafterinit else 1
-
-    reset_poll_count = self.settings.keep_alive_count * self.settings.usb_count
-
-    # # # # # # DAEMON LOOP ENTRY # # # # # #
-
-    while self.keep_run:
-
-      poll_count += 1
-
-      # Check cmd fifo for new commands.
-      self.cmd.read_fifo()
-
-      # Check bluetooth channel for new messages/connections.
-      self.rfcomm.read_socket()
-
-      time.sleep(self.settings.polltime / 1000.) # 30ms default in config
-
-      # (Un)flash keep alive led.
-      if poll_count % self.settings.keep_alive_count == 0:
-        self.led.set_led_green(1)
-      if ( poll_count - self.settings.flash_count ) % \
-          self.settings.keep_alive_count == 0:
-        self.led.set_led_green(0)
-
-      # Check for new USB drives.
-      if poll_count % self.settings.usb_count == 0:
-        # If new usb device found, a new usbdev instance will be created,
-        # including dir and mp3 entries.
-        # If usb device got lost, all coresponding entries will be removed.
+        # load connected usb before bluetooth
         self.usb.check_new_usb()
 
-      # Multiple of all poll counts reached:
-      # may reset poll count at reset_poll_count.
-      if poll_count >= reset_poll_count:
+        # load last playlist from database
+        self.listmngr.load_active_playlist()
+
+        # open cmd fifo to read commands
+        self.cmd.open_fifo()
+
+        # fire up bluetooth service
+        self.rfcomm.start_server()
+
+        # +++++++++++++++ Daemoninze +++++++++++++++ #
+
+        self.check_pidfile()
+        self.daemonize()
+        self.create_pidfile()
+
+        self.led.show_init_done()
+
+        # +++++++++++++++ Daemon loop +++++++++++++++ #
+
+        self.run()
+
+        # +++++++++++++++ Finalize +++++++++++++++ #
+
+        self.listmngr.save_active()
+        self.led.cleanup()
+        self.delete_pidfile()
+
+
+    def run(self):
+        """Daemon loop"""
+
+        # Expensive operations like new usb drive check
+        # should not be run every loop run.
         poll_count = 0
 
-      # end daemon loop #
+        # -e flag is set, run only init and exit directly.
+        self.keep_run = 0 if self.settings.exitafterinit else 1
 
-    # # # # # # DAEMON LOOP EXIT # # # # # #
+        reset_poll_count = self.settings.keep_alive_count * \
+                           self.settings.usb_count
 
-    self.log.write(log.MESSAGE, "---- closed regularly ----")
+        # # # # # # DAEMON LOOP ENTRY # # # # # #
 
-  # end run() #
+        while self.keep_run:
 
-  def daemonize(self):
-    """Fork process and disable print in log object"""
+            poll_count += 1
 
-    signal.signal(signal.SIGTERM, self.term_handler)
-    signal.signal(signal.SIGINT, self.term_handler)
+            # Check cmd fifo for new commands.
+            self.cmd.read_fifo()
 
-    if not self.settings.daemonize:
-      self.log.init_log()
-      return
+            # Check bluetooth channel for new messages/connections.
+            self.rfcomm.read_socket()
 
-    self.log.write(log.DEBUG1, "daemonizing")
+            time.sleep(self.settings.polltime / 1000.) # 30ms default in config
 
-    try:
-      pid = os.fork()
-    except OSError:
-      self.log.write(log.EMERGENCY, "Failed to fork daemon")
-      raise
+            # (Un)flash keep alive led.
+            if poll_count % self.settings.keep_alive_count == 0:
+                self.led.set_led_green(1)
+            if ( poll_count - self.settings.flash_count ) % \
+                    self.settings.keep_alive_count == 0:
+                self.led.set_led_green(0)
 
-    if ( pid == 0 ):
-      os.setsid()
-      try:
-        pid = os.fork()
-      except OSError:
-        self.log.write(log.EMERGENCY, "Failed to fork daemon")
-        raise
+            # Check for new USB drives.
+            if poll_count % self.settings.usb_count == 0:
+                # If new usb device found, new usbdev instance will be created,
+                # including dir and mp3 entries.
+                # If usb device got lost, all its entries will be removed.
+                self.usb.check_new_usb()
 
-      if ( pid == 0 ):
-        os.chdir("/tmp")
-        os.umask(0)
+            # Multiple of all poll counts reached:
+            # may reset poll count at reset_poll_count.
+            if poll_count >= reset_poll_count:
+                poll_count = 0
 
-      else:
-        os._exit(0)
-    else:
-      os._exit(0)
+            # end daemon loop #
 
-    self.settings.is_daemonized = True
-    self.log.init_log()
-    self.log.write(log.MESSAGE, "daemonized.")
+        # # # # # # DAEMON LOOP EXIT # # # # # #
 
-  # end daemonize() #
+        self.log.write(log.MESSAGE, "---- closed regularly ----")
 
-  def term_handler(self, *args):
-    """ Signal handler to stop daemon loop"""
-    self.keep_run = 0
+    # end run() #
 
-  def check_pidfile(self):
-    """Check if daemon already running, throw if pid file found"""
+    def daemonize(self):
+        """Fork process and disable print in log object"""
 
-    if os.path.exists(self.settings.pidfile):
-      self.log.write(log.EMERGENCY,
-                     "Found pid file for pyblaster, another process running?")
-      raise Exception("pid file found")
+        signal.signal(signal.SIGTERM, self.term_handler)
+        signal.signal(signal.SIGINT, self.term_handler)
 
-  def create_pidfile(self):
-    """Write getpid() to file after daemonize()"""
+        if not self.settings.daemonize:
+            self.log.init_log()
+            return
 
-    try:
-      fpid = open(self.settings.pidfile, "w")
-    except IOError:
-      self.log.write(log.EMERGENCY,
-                     "failed to create pidfile %s" % self.settings.pidfile)
-      raise
+        self.log.write(log.DEBUG1, "daemonizing")
 
-    fpid.write("%s\n" % os.getpid())
+        try:
+            pid = os.fork()
+        except OSError:
+            self.log.write(log.EMERGENCY, "Failed to fork daemon")
+            raise
 
-  def delete_pidfile(self):
-    """Try to remove pid file after daemon should exit"""
+        if ( pid == 0 ):
+            os.setsid()
+            try:
+                pid = os.fork()
+            except OSError:
+                self.log.write(log.EMERGENCY, "Failed to fork daemon")
+                raise
 
-    if os.path.exists(self.settings.pidfile):
-      try:
-        os.remove(self.settings.pidfile)
-      except OSError:
-        self.log.write(log.EMERGENCY, "failed to remove pidfile %s" %
-                       self.settings.pidfile)
-        raise
+            if ( pid == 0 ):
+                os.chdir("/tmp")
+                os.umask(0)
+            else:
+                os._exit(0)
+        else:
+            os._exit(0)
 
-  def kill_other_pyblaster(self):
-    """Check if pid found in pid file and try to kill this (old) process"""
+        self.settings.is_daemonized = True
+        self.log.init_log()
+        self.log.write(log.MESSAGE, "daemonized.")
 
-    if not os.path.exists(self.settings.pidfile): return
+    # end daemonize() #
 
-    try:
-      f = open(self.settings.pidfile, "r")
-    except IOError:
-      self.log.write(log.EMERGENCY, "failed to read pidfile %s" %
-                     self.settings.pidfile)
-      raise
+    def term_handler(self, *args):
+        """ Signal handler to stop daemon loop"""
+        self.keep_run = 0
 
-    pid = int(f.readline().strip())
+    def check_pidfile(self):
+        """Check if daemon already running, throw if pid file found"""
 
-    print("Trying to kill old process with pid %s..." % pid)
+        if os.path.exists(self.settings.pidfile):
+            self.log.write(log.EMERGENCY, "Found pid file for pyblaster, "\
+                           "another process running?")
+            raise Exception("pid file found")
 
-    try:
-      os.kill(pid, signal.SIGTERM)
-    except OSError:
-      self.log.write(log.EMERGENCY, "failed to kill process with pid %s" % pid)
-      raise
+    def create_pidfile(self):
+        """Write getpid() to file after daemonize()"""
 
-    exit(0)
+        try:
+            fpid = open(self.settings.pidfile, "w")
+        except IOError:
+            self.log.write(log.EMERGENCY, "failed to create pidfile %s" %
+                           self.settings.pidfile)
+            raise
 
-    # end kill_other_pyblaster() #
+        fpid.write("%s\n" % os.getpid())
+
+    def delete_pidfile(self):
+        """Try to remove pid file after daemon should exit"""
+
+        if os.path.exists(self.settings.pidfile):
+            try:
+                os.remove(self.settings.pidfile)
+            except OSError:
+                self.log.write(log.EMERGENCY, "failed to remove pidfile %s" %
+                               self.settings.pidfile)
+                raise
+
+    def kill_other_pyblaster(self):
+        """Check if pid found in pid file and try to kill this (old) process"""
+
+        if not os.path.exists(self.settings.pidfile): return
+
+        try:
+            f = open(self.settings.pidfile, "r")
+        except IOError:
+            self.log.write(log.EMERGENCY, "failed to read pidfile %s" %
+                           self.settings.pidfile)
+            raise
+
+        pid = int(f.readline().strip())
+
+        print("Trying to kill old process with pid %s..." % pid)
+
+        try:
+            os.kill(pid, signal.SIGTERM)
+        except OSError:
+            self.log.write(log.EMERGENCY,
+                           "failed to kill process with pid %s" % pid)
+            raise
+
+        exit(0)
+
+        # end kill_other_pyblaster() #
 
 
 if __name__ == '__main__':
-  blaster = PyBlaster()
-
+    blaster = PyBlaster()
 

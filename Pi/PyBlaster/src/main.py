@@ -9,15 +9,15 @@ import sys
 
 
 def main():
-  """Init PyBlaster daemon
-  """
+    """Init PyBlaster daemon
+    """
 
-  #try:
-  blaster = PyBlaster()
-  #except:
-    #blaster.led.set_led_red(1)
-    #e = sys.exc_info()[0]
-    #print("ERROR [GOT EXCEPTION] %s" % e)
+    #try:
+    blaster = PyBlaster()
+    #except:
+        #blaster.led.set_led_red(1)
+        #e = sys.exc_info()[0]
+        #print("ERROR [GOT EXCEPTION] %s" % e)
 
 
 
