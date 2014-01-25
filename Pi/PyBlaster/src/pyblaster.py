@@ -101,14 +101,10 @@ class PyBlaster:
             # Check bluetooth channel for new messages/connections.
             self.rfcomm.read_socket()
 
+            # read bluetooth has internal BT timeout of 1sec,
+            # but if connection got lost, fast polling will occur.
             time.sleep(self.settings.polltime / 1000.) # 30ms default in config
-
-            # (Un)flash keep alive led.
-            if poll_count % self.settings.keep_alive_count == 0:
-                self.led.set_led_green(1)
-            if ( poll_count - self.settings.flash_count ) % \
-                    self.settings.keep_alive_count == 0:
-                self.led.set_led_green(0)
+            self.led.set_led_green((poll_count)%2)
 
             # Check for new USB drives.
             if poll_count % self.settings.usb_count == 0:

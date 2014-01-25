@@ -314,6 +314,7 @@ public class RfcommClient extends org.qtproject.qt5.android.bindings.QtActivity
             m_bluetoothmessages.add("BT ERROR tried to send on closed connection");
             return -1;
         }
+        initCmd += " !EOL! ";
         try {
             m_outStream.write(initCmd.getBytes());
         } catch (IOException e) {
@@ -372,6 +373,8 @@ public class RfcommClient extends org.qtproject.qt5.android.bindings.QtActivity
         while ( doRead ) {
             String[] input = readLine().split(" !EOL! ");
 
+            Log.d(TAG, "MassWait input: "+input);
+
             if (m_bluetoothstatus < 2) {
                 Log.d(TAG, "STREAM DIED");
                 m_bluetoothmessages.add("BT ERROR stream died.");
@@ -389,6 +392,7 @@ public class RfcommClient extends org.qtproject.qt5.android.bindings.QtActivity
                     Log.d(TAG, "Fatal Error: wrong number format");
                     m_bluetoothmessages.add("BT ERROR faulty numbers from stream");
                 }
+                Log.d(TAG, "MassWait done");
                 doRead = false;
             }
         }

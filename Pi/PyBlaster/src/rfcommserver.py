@@ -13,8 +13,8 @@ import evalcmd
 
 
 NOTCONNECTED    = 0
-CONNECTED         = 1
-AUTHORIZED        = 2
+CONNECTED       = 1
+AUTHORIZED      = 2
 
 class RFCommServer:
     """Send/recv commands/results via bluetooth channel"""
@@ -27,9 +27,11 @@ class RFCommServer:
         self.client_sock    = None
         self.client_info    = None
         self.timeout        = 1     # socket timeouts for non blocking con.
-        self.timeoutpolls   = 3000  # disconnect after N inactivity timeouts
+        self.timeoutpolls   = 500   # disconnect after N inactivity timeouts
         self.nowpolls       = 0     # reset after each receive,
                                     # incremented while waiting for data
+        self.cmdbuffer      = []    # split incoming commands by ' !EOL! '
+
 
     def start_server(self):
         """Open bluetooth server socket and advertise service"""
@@ -83,6 +85,7 @@ class RFCommServer:
                 self.client_sock.settimeout(self.timeout)
                 self.parent.led.set_led_blue(1)
                 self.nowpolls = 0
+                self.cmdbuffer = []
 
             # if NOTCONNECTED #
 
@@ -104,7 +107,6 @@ class RFCommServer:
                                       "Timeout poll count %d" % self.nowpolls)
 
             if data:
-                self.parent.log.write(log.DEBUG1, "DEBUG recv: %s" % data)
                 self.nowpolls = 0
 
                 if self.mode == CONNECTED:
@@ -119,12 +121,17 @@ class RFCommServer:
                         self.disconnect()
 
                 elif self.mode == AUTHORIZED:
-                    # parse command
-                    self.read_command(data)
+                    # split command
+                    self.split_cmd_to_buffer(data)
 
                 # if data #
 
             # if CONNECTED or AUTHORIZED #
+
+        if self.mode == AUTHORIZED:
+            # dry run buffer if connected
+            while len(self.cmdbuffer):
+                self.read_command(self.cmdbuffer.pop(0))
 
         # end read_socket() #
 
@@ -150,18 +157,31 @@ class RFCommServer:
         """
 
         # TODO timeout mechanism
+        self.parent.log.write(log.DEBUG1, "DEBUG send: %d || %s || %d" %
+                              (status, msg, len(message_list)))
         self.client_sock.send(str(status) + ' !EOL! ')
         self.client_sock.send(msg + ' !EOL! ')
         self.client_sock.send(str(len(message_list)) + ' !EOL! ')
         for line in message_list:
             self.client_sock.send(line.encode('utf-8') + ' !EOL! ')
 
+
         # end send_client() #
+
+    def split_cmd_to_buffer(self, cmd):
+        """Split incoming commands with !EOL! """
+        rows = cmd.split(' !EOL! ')
+        for i in rows:
+            add = i.strip()
+            if add != '':
+                self.parent.log.write(log.DEBUG1, "DEBUG recv: %s" % add)
+                self.cmdbuffer.append(add)
 
     def read_command(self, cmd):
         """Evalute command received from client socket if AUTHORIZED."""
 
         self.nowpolls = 0
+
         status, msg, res_list = self.parent.cmd.evalcmd(cmd, 'rfcomm')
         self.send_client(status, msg, res_list)
 
@@ -189,12 +209,15 @@ class RFCommServer:
             except bluetooth.btcommon.BluetoothError:
                 return []
 
-            rows = data.split(' !EOL! ')
-            for i in rows:
-                add = i.strip()
-                if add != '':
-                    result.append(add)
+            self.split_cmd_to_buffer(data)
+
+            while len(self.cmdbuffer):
+                if len(result) == count:
+                    break
+                result.append(self.cmdbuffer.pop(0))
 
         return result
+
+        # end read_rows() #
 
 

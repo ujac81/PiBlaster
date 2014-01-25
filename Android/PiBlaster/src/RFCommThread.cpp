@@ -33,7 +33,7 @@ void RFCommThread::run()
                 "prepareMassSend", "(Ljava/lang/String;)I", javaCommand.object<jstring>() );
     if ( sendOk != 0 )
     {
-        _parent->setStatusMessage( "Communication broken!" );
+        _parent->setStatusMessage( "Mass send communication broken on init!" );
         emit gotReply( 2 );
         return;
     }
@@ -47,17 +47,17 @@ void RFCommThread::run()
                     "sendSingleRow", "(Ljava/lang/String;)I", javaCommand.object<jstring>() );
         if ( sendOk != 0 )
         {
-            _parent->setStatusMessage( "Communication broken!" );
+            _parent->setStatusMessage( "Mass send communication broken on row!" );
             emit gotReply( 2 );
             return;
         }
     }
 
     jint res = QAndroidJniObject::callStaticMethod<jint>( "org/piblaster/piblaster/rfcomm/RfcommClient",
-                                                          "waitForMassCommand()" );
-    if ( res != 2 )
+                                                          "waitForMassCommand" );
+    if ( res != 3 )
     {
-        _parent->setStatusMessage( "Communication broken!" );
+        _parent->setStatusMessage( "Mass send communication broken on wait!" );
         emit gotReply( 2 );
         return;
     }

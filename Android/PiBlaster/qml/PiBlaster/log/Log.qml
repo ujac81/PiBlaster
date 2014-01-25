@@ -17,6 +17,9 @@ Rectangle {
         wrapMode: Text.WrapAnywhere
         color: "white"
         font.pixelSize: 20
+        elide: Text.ElideRight
+        maximumLineCount: 1000
+        width: parent.width
     }
 
     function activated()
