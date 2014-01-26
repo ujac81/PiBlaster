@@ -9,7 +9,7 @@
     #include <QtAndroidExtras/QAndroidJniObject>
 #endif
 
-RFCommThread::RFCommThread(RFCommClient *parent) :
+RFCommThread::RFCommThread( RFCommClient *parent ) :
     QThread( dynamic_cast<QObject*>(parent) ),
     _parent( parent )
 {}
