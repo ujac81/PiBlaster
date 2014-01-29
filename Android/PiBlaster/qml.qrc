@@ -6,7 +6,6 @@
         <file>qml/PiBlaster/tabview/TabView.qml</file>
         <file>qml/PiBlaster/items/Button.qml</file>
         <file>qml/PiBlaster/items/LineInput.qml</file>
-        <file>qml/PiBlaster/items/Dialog.qml</file>
         <file>qml/PiBlaster/items/ButtonBox.qml</file>
         <file>qml/PiBlaster/items/Tab.qml</file>
         <file>qml/PiBlaster/items/MessageWindow.qml</file>

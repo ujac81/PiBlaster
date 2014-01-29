@@ -204,6 +204,8 @@ class DBHandle:
                                   "Database is empty, rebuilding...")
             self.db_gentables()
 
+        self.load_settings()
+
         # Remove broken and orphaned entries (if shut down while creating rows)
         self.cleandb()
 
@@ -397,6 +399,17 @@ class DBHandle:
         self.con.commit()
         return True
 
+    def load_settings(self):
+        """
+        """
+
+        self.parent.settings.pin1 = \
+            self.get_settings_value("pin1", self.parent.settings.pin1_default)
+        self.parent.settings.pin2 = \
+            self.get_settings_value("pin2", self.parent.settings.pin2_default)
+
+        # end load_settings() #
+
     def set_settings_value(self, key, value):
         """
         """
@@ -417,11 +430,11 @@ class DBHandle:
 
         # end set_settings_value() #
 
-    def get_settings_value(self, key):
+    def get_settings_value(self, key, fallback=None):
         """
         """
 
-        res = None
+        res = fallback
         for row in self.cur.execute("SELECT value FROM Settings WHERE key=?",
                                     (key,)):
             res = row[0]

@@ -12,16 +12,21 @@ ListModel {
 
 
     function dir_up() {
-
         console.log(parentDir);
         if (parentDir.length > 1) {
             parentDir.pop();
-            load(parentDir[parentDir.length-1]);
+            request_load(parentDir[parentDir.length-1]);
         }
     }
 
 
-    function load(dir_id) {
+    /**
+     * Send browse request to PyBlaster
+     * Answer will be received by RFCommRecvThread and will be received
+     * as QT signal.
+     *
+     */
+    function request_load(dir_id){
         clearAll();
 
         // prevent doublets in parent dir list
@@ -29,82 +34,104 @@ ListModel {
             parentDir.push(dir_id)
 
         if (dir_id == "root") {
-
             parentDir = ["root"];
-
-            var status = rfcommClient.execCommand("showdevices");
-
-            if ( status == 0 )
-            {
-                for ( var i = 0; i < rfcommClient.numResults(); i++ )
-                {
-                    var arr = rfcommClient.result(i);
-                    append({"type": 0,
-                            "storid": arr[1],
-                            "name": arr[3],
-                            "files": arr[6],
-                            "dirs": arr[5],
-                            "free": arr[7],
-                            "used": arr[8],
-                            "dirid": "",    // dummy values for all possible fields required
-                            "fileid": "",
-                            "time": "",
-                            "artist": "",
-                            "album": "",
-                            "title": "",
-                            "selected": false,
-                           })
-                }
-            } else {
-                // TODO error -- disconnected?
-            }
-        // dir = root
+            var status = rfcomm.execCommand("showdevices");
         } else {
-            var status = rfcommClient.execCommand("lsdirs "+dir_id);
-            if ( status == 0 ) {
-                for ( var i = 0; i < rfcommClient.numResults(); i++ )
-                {
-                    var arr = rfcommClient.result(i);
-                    append({"type": 1,
-                            "storid": arr[1],
-                            "dirid": arr[2],
-                            "parentid": arr[3],
-                            "dirs": arr[4],
-                            "files": arr[5],
-                            "name": arr[6],
-                            "fileid": "", // dummy values for all possible fields required
-                            "time": "",
-                            "artist": "",
-                            "album": "",
-                            "title": "",
-                            "selected": false,
-                           })
-                }
-            } else {
-                // TODO error -- disconnected?
-            }
-            status = rfcommClient.execCommand("lsfiles "+dir_id);
-            if ( status == 0 ) {
-                for ( var i = 0; i < rfcommClient.numResults(); i++ )
-                {
-                    var arr = rfcommClient.result(i);
-                    append({"type": 2,
-                            "storid": arr[1],
-                            "dirid": arr[2],
-                            "fileid": arr[3],
-                            "time": arr[4],
-                            "artist": arr[5],
-                            "album": arr[6],
-                            "title": arr[7],
-                            "selected": false,
-                           });
-                }
-            } else {
-                // TODO error -- disconnected?
-            }
-        } // subdir
+            rfcomm.execCommand("lsdirs "+dir_id);
+            rfcomm.execCommand("lsfiles"+dir_id);
+        }
+
     }
 
+
+
+//    function load(dir_id) {
+//        clearAll();
+
+//        // prevent doublets in parent dir list
+//        if ( dir_id != parentDir[parentDir.length-1] )
+//            parentDir.push(dir_id)
+
+//        if (dir_id == "root") {
+
+//            parentDir = ["root"];
+
+//            var status = rfcommClient.execCommand("showdevices");
+
+//            if ( status == 0 )
+//            {
+//                for ( var i = 0; i < rfcommClient.numResults(); i++ )
+//                {
+//                    var arr = rfcommClient.result(i);
+//                    append({"type": 0,
+//                            "storid": arr[1],
+//                            "name": arr[3],
+//                            "files": arr[6],
+//                            "dirs": arr[5],
+//                            "free": arr[7],
+//                            "used": arr[8],
+//                            "dirid": "",    // dummy values for all possible fields required
+//                            "fileid": "",
+//                            "time": "",
+//                            "artist": "",
+//                            "album": "",
+//                            "title": "",
+//                            "selected": false,
+//                           })
+//                }
+//            } else {
+//                // TODO error -- disconnected?
+//            }
+//        // dir = root
+//        } else {
+//            var status = rfcommClient.execCommand("lsdirs "+dir_id);
+//            if ( status == 0 ) {
+//                for ( var i = 0; i < rfcommClient.numResults(); i++ )
+//                {
+//                    var arr = rfcommClient.result(i);
+//                    append({"type": 1,
+//                            "storid": arr[1],
+//                            "dirid": arr[2],
+//                            "parentid": arr[3],
+//                            "dirs": arr[4],
+//                            "files": arr[5],
+//                            "name": arr[6],
+//                            "fileid": "", // dummy values for all possible fields required
+//                            "time": "",
+//                            "artist": "",
+//                            "album": "",
+//                            "title": "",
+//                            "selected": false,
+//                           })
+//                }
+//            } else {
+//                // TODO error -- disconnected?
+//            }
+//            status = rfcommClient.execCommand("lsfiles "+dir_id);
+//            if ( status == 0 ) {
+//                for ( var i = 0; i < rfcommClient.numResults(); i++ )
+//                {
+//                    var arr = rfcommClient.result(i);
+//                    append({"type": 2,
+//                            "storid": arr[1],
+//                            "dirid": arr[2],
+//                            "fileid": arr[3],
+//                            "time": arr[4],
+//                            "artist": arr[5],
+//                            "album": arr[6],
+//                            "title": arr[7],
+//                            "selected": false,
+//                           });
+//                }
+//            } else {
+//                // TODO error -- disconnected?
+//            }
+//        } // subdir
+//    }
+
+    /**
+     * True if any item selected
+     */
     function checkAnyThingSelected() {
         for ( var i = 0; i < count; i++ ) {
             if ( get(i).selected ) return true;
@@ -113,6 +140,9 @@ ListModel {
     }
 
 
+    /**
+     * True if directories selected (ask if should be inserted)
+     */
     function checkDirsInSelection() {
         for ( var i = 0; i < count; i++ ) {
             var elem = get(i);
@@ -123,33 +153,33 @@ ListModel {
     }
 
 
-    /**
-     * Invoke playlist append function
-     * Args:
-     *  - 1: append to playlist
-     *  - 2: append after current
-     *  - 3: random insert
-     */
-    function push_to_playlist_send_list(add_mode)
-    {
-        console.log("addToPlaylist("+add_mode+") called.");
+//    /**
+//     * Invoke playlist append function
+//     * Args:
+//     *  - 1: append to playlist
+//     *  - 2: append after current
+//     *  - 3: random insert
+//     */
+//    function push_to_playlist_send_list(add_mode)
+//    {
+//        console.log("addToPlaylist("+add_mode+") called.");
 
-        rfcommClient.preparePlaylistAdd(add_mode);
+//        rfcommClient.preparePlaylistAdd(add_mode);
 
-        for ( var i = 0; i < count; i++ )
-        {
-            var elem = get(i);
-            if ( elem.selected )
-            {
-                if ( elem.type == 1 )
-                    rfcommClient.addPlaylistItem("DIR "+elem.storid+" "+elem.dirid);
-                else if ( elem.type == 2 )
-                    rfcommClient.addPlaylistItem("FILE "+elem.storid+" "+elem.dirid+" "+elem.fileid);
-            }
-        }
+//        for ( var i = 0; i < count; i++ )
+//        {
+//            var elem = get(i);
+//            if ( elem.selected )
+//            {
+//                if ( elem.type == 1 )
+//                    rfcommClient.addPlaylistItem("DIR "+elem.storid+" "+elem.dirid);
+//                else if ( elem.type == 2 )
+//                    rfcommClient.addPlaylistItem("FILE "+elem.storid+" "+elem.dirid+" "+elem.fileid);
+//            }
+//        }
 
-        deselect_all();
-    }
+//        deselect_all();
+//    }
 
     /**
      * Set all selected properties to false in current view.

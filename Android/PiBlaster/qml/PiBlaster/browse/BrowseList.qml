@@ -107,14 +107,14 @@ ListView {
                                           browseList.model.get(index).dirid);
                 }
             }
-            onPressAndHold: {
-                if ( browseList.model.get(index).type == 0 ) {
-                    browseList.model.load(browseList.model.get(index).storid+" 0");
-                } else if ( browseList.model.get(index).type == 1 ) {
-                    browseList.model.load(browseList.model.get(index).storid+" "+
-                                          browseList.model.get(index).dirid);
-                }
-            }
+//            onPressAndHold: {
+//                if ( browseList.model.get(index).type == 0 ) {
+//                    browseList.model.load(browseList.model.get(index).storid+" 0");
+//                } else if ( browseList.model.get(index).type == 1 ) {
+//                    browseList.model.load(browseList.model.get(index).storid+" "+
+//                                          browseList.model.get(index).dirid);
+//                }
+//            }
         }
     }
 }

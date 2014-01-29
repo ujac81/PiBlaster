@@ -16,6 +16,8 @@ NOTCONNECTED    = 0
 CONNECTED       = 1
 AUTHORIZED      = 2
 
+LINEBREAK       = ' !EOL! '
+
 class RFCommServer:
     """Send/recv commands/results via bluetooth channel"""
 
@@ -103,35 +105,17 @@ class RFCommServer:
                 self.disconnect()
 
             if self.nowpolls % 500 == 0:
-                self.parent.log.write(log.DEBUG1,
-                                      "Timeout poll count %d" % self.nowpolls)
+                self.parent.log.write(log.DEBUG1, "Timeout poll count %d" %
+                                      self.nowpolls)
 
             if data:
                 self.nowpolls = 0
-
-                if self.mode == CONNECTED:
-                    # check authorization
-                    if data == "1234":
-                        self.mode = AUTHORIZED
-                        self.parent.log.write(log.MESSAGE,
-                                              "Authorized connection.")
-                        self.send_client(0, "Password OK", ["accepted."])
-                    else:
-                        self.send_client(1, "Wrong password", ["rejected."])
-                        self.disconnect()
-
-                elif self.mode == AUTHORIZED:
-                    # split command
-                    self.split_cmd_to_buffer(data)
-
-                # if data #
+                self.split_cmd_to_buffer(data)
+                # dry run buffer if connected
+                while len(self.cmdbuffer):
+                    self.read_command(self.cmdbuffer.pop(0))
 
             # if CONNECTED or AUTHORIZED #
-
-        if self.mode == AUTHORIZED:
-            # dry run buffer if connected
-            while len(self.cmdbuffer):
-                self.read_command(self.cmdbuffer.pop(0))
 
         # end read_socket() #
 
@@ -148,7 +132,7 @@ class RFCommServer:
         self.parent.log.write(log.MESSAGE, "Closed connection.")
         self.start_server()
 
-    def send_client(self, status, msg, message_list):
+    def send_client(self, msg_id, status, code, msg, message_list):
         """Send data package
 
             - result code from evalcmd
@@ -157,13 +141,14 @@ class RFCommServer:
         """
 
         # TODO timeout mechanism
-        self.parent.log.write(log.DEBUG1, "DEBUG send: %d || %s || %d" %
-                              (status, msg, len(message_list)))
-        self.client_sock.send(str(status) + ' !EOL! ')
-        self.client_sock.send(msg + ' !EOL! ')
-        self.client_sock.send(str(len(message_list)) + ' !EOL! ')
+        self.parent.log.write(log.DEBUG1,
+                              "DEBUG send: %d || %d || %d || %d || %s" %
+                              (msg_id, status, code, len(message_list),msg))
+        self.client_sock.send(str(msg_id)+' '+str(status)+' '+str(code)+' '+
+                              str(len(message_list))+' '+msg+LINEBREAK)
         for line in message_list:
-            self.client_sock.send(line.encode('utf-8') + ' !EOL! ')
+            self.client_sock.send(str(msg_id)+' '+line.encode('utf-8')+
+                                  LINEBREAK)
 
 
         # end send_client() #
@@ -182,12 +167,29 @@ class RFCommServer:
 
         self.nowpolls = 0
 
-        status, msg, res_list = self.parent.cmd.evalcmd(cmd, 'rfcomm')
-        self.send_client(status, msg, res_list)
+        # message id is first field in command, truncate from rest of command
+        id_header = cmd.split(' ')[0]
+        msg_id = int(id_header)
+        cmd = cmd[len(id_header)+1:]
 
-        if status == evalcmd.STATUSEXIT or status == evalcmd.STATUSDISCONNECT:
-            self.parent.log.write(log.MESSAGE, "Got disconnect command.")
-            self.disconnect()
+        if self.mode != AUTHORIZED:
+            # check if password has been sent
+            if cmd == self.parent.settings.pin1:
+                self.mode = AUTHORIZED
+                self.parent.log.write(log.MESSAGE, "BT AUTHORIZED")
+                self.send_client(0, 0, 1, "Password ok.", [])
+            else:
+                self.parent.log.write(log.MESSAGE, "BT NOT AUTHORIZED")
+                self.send_client(0, 0, 0, "Wrong password.", [])
+                self.disconnect()
+        elif self.mode == AUTHORIZED:
+            status, code, msg, res_list = \
+                self.parent.cmd.evalcmd(cmd, 'rfcomm')
+            self.send_client(msg_id, status, code, msg, res_list)
+            if status == evalcmd.STATUSEXIT or \
+                    status == evalcmd.STATUSDISCONNECT:
+                self.parent.log.write(log.MESSAGE, "Got disconnect command.")
+                self.disconnect()
 
         # end read_command() #
 

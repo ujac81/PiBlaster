@@ -42,8 +42,6 @@
 package org.piblaster.piblaster.rfcomm;
 
 import android.app.Activity;
-import android.app.Notification;
-import android.app.NotificationManager;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
@@ -91,11 +89,8 @@ public class RfcommClient extends org.qtproject.qt5.android.bindings.QtActivity
 
     private static final int BT_DEV_ENABLED         = 1;
     private static final int BT_CONNECTED           = 2;
-    private static final int BT_AUTH_OK             = 3; // state should be 3 for functional connection
 
 
-    private static NotificationManager m_notificationManager;
-    private static Notification.Builder m_builder;
     private static BluetoothAdapter m_BluetoothAdapter = null;
     private static BluetoothSocket m_btSocket = null;
     private static OutputStream m_outStream = null;
@@ -106,35 +101,37 @@ public class RfcommClient extends org.qtproject.qt5.android.bindings.QtActivity
     private static final int REQUEST_CONNECT_DEVICE = 1;
     private static final int REQUEST_ENABLE_BT = 2;
 
-
-
-
     private static int m_bluetoothstatus = BT_NOT_INITIALIZED;
 
     private static Vector<String> m_bluetoothmessages = new Vector<String>();
-    private static Vector<String> m_rfcommMsg = new Vector<String>();
-    private static String m_rfcommStatusMsg = "";
-    private static int m_rfcommStatus = -1;
 
 
     // MAC for Pi bluetooth device, set via APP settings
     private static String m_pibt_address = "00:1A:7D:DA:71:14";
     // UUID for pyblaster service
     private static final UUID MY_UUID = UUID.fromString("94f39d29-7d6d-437d-973b-fba39e49d4ee");
-    // password for pyblaster servie
-    private static String m_pibt_passwd = "1234";
 
 
     public RfcommClient() {
         m_instance = this;
     }
 
+    public static int numBluetoothMessages() { return m_bluetoothmessages.size(); }
 
-    public static int bluetoothMessagesCount() { return m_bluetoothmessages.size(); }
-    public static String bluetoothMessage(int i) { return m_bluetoothmessages.get(i); }
 
-    public static int rfcommMessagesCount() { return m_rfcommMsg.size(); }
-    public static String rfcommMessage(int i) { return m_rfcommMsg.get(i); }
+    public static String popBluetoothMessages()
+    {
+        if ( m_bluetoothmessages.size() == 0 ) {
+            return "";
+        }
+        else {
+            String result = m_bluetoothmessages.get(0);
+            m_bluetoothmessages.remove(0);
+            return result;
+        }
+    }
+
+
 
 
     public static int bluetoothConnectionStatus() { return m_bluetoothstatus; }
@@ -200,21 +197,13 @@ public class RfcommClient extends org.qtproject.qt5.android.bindings.QtActivity
         }
     }
 
-    public static int disableBT() {
-        if(m_BluetoothAdapter != null) {
-            m_BluetoothAdapter.disable();
-            return 0;
-        }
-        return 1;
-    }
-
 
     /**
      * @brief Connect to PyBlaster service
      * Called via RFCOMMClient::tryConnect()
      *
      */
-    public static int tryConnect() {
+    public static int connect() {
 
         Log.d(TAG, "try connect..." + m_bluetoothstatus);
 
@@ -280,63 +269,19 @@ public class RfcommClient extends org.qtproject.qt5.android.bindings.QtActivity
 
         m_bluetoothstatus = BT_CONNECTED; // connected, but not authenticated
 
-        sendReceive(m_pibt_passwd);
-
-        // Try to authenticate
-        if (m_rfcommStatus == 0) {
-            m_bluetoothstatus = BT_AUTH_OK; // authenticated
-            Log.d(TAG, "BT AUTH GOOD.");
-            m_bluetoothmessages.add("BT AUTH OK");
-        } else {
-            m_bluetoothstatus = BT_NO_AUTH; // wrong pw
-            Log.d(TAG, "BT AUTH BAD.");
-            m_bluetoothmessages.add("BT AUTH WRONG PASSWORD");
-            try {
-                m_btSocket.close();
-            } catch (IOException e) {
-                Log.d(TAG, "Fatal Error: while closing socket:" + e.getMessage() + ".");
-                m_bluetoothmessages.add("BT ERROR while closing socket: "+ e.getMessage() + ".");
-                m_bluetoothstatus = BT_NO_CLEANCONNECT;
-            }
-        }
-
         return m_bluetoothstatus;
-    }
-
-    /**
-     * @brief Prepare multiple row command like "plappendmultiple MODE N_ROWS"
-     * @return 0 if send ok
-     */
-    public static int prepareMassSend(String initCmd) {
-
-        if (m_bluetoothstatus < 2) {
-            // not connected
-            m_bluetoothmessages.add("BT ERROR tried to send on closed connection");
-            return -1;
-        }
-        initCmd += " !EOL! ";
-        try {
-            m_outStream.write(initCmd.getBytes());
-        } catch (IOException e) {
-            Log.d(TAG, "Fatal Error: outstream.write: " + e.getMessage() + ".");
-            m_bluetoothmessages.add("BT ERROR cannot write to stream: "+ e.getMessage() + ".");
-            m_bluetoothstatus = BT_ERR_STREAM_WRITE;
-            return m_bluetoothstatus;
-        }
-        return 0;
     }
 
 
     /**
      * @brief Send single row while in mass send mode -- need to call prepareMassSend() before
      */
-    public static int sendSingleRow(String row) {
+    public static int sendLine(String row) {
         if (m_bluetoothstatus < 2) {
             // not connected
             m_bluetoothmessages.add("BT ERROR tried to send on closed connection");
             return -1;
         }
-        row += " !EOL! ";
         try {
             m_outStream.write(row.getBytes());
         } catch (IOException e) {
@@ -348,156 +293,8 @@ public class RfcommClient extends org.qtproject.qt5.android.bindings.QtActivity
         return 0;
     }
 
-    /**
-     * @brief Wait for answer from PyBlaster after sending multiple commands via prepareMassSend() and sendSingleRow()
-     *
-     * Result may be parsed by rfcommMessage(0|1)
-     * @return should be 2 if everything ok
-     */
-    public static int waitForMassCommand() {
-        long startTime = System.currentTimeMillis();
-        m_rfcommMsg.clear();
-
-        if (m_bluetoothstatus < 2) {
-            // not connected
-            m_bluetoothmessages.add("BT ERROR tried to send on closed connection");
-            return -1;
-        }
-
-        // read return value and return msg
-
-        boolean doRead = true;
-        int status = -1;
-
-        // @todo prevent loop from deadlocking + add timeouts to readLine()
-        while ( doRead ) {
-            String[] input = readLine().split(" !EOL! ");
-
-            Log.d(TAG, "MassWait input: "+input);
-
-            if (m_bluetoothstatus < 2) {
-                Log.d(TAG, "STREAM DIED");
-                m_bluetoothmessages.add("BT ERROR stream died.");
-                break;
-            }
-
-            for (int i = 0; i < input.length; i++) {
-                m_rfcommMsg.add(input[i].trim());
-            }
-            if (m_rfcommMsg.size() >= 3) {
-                try {
-                    m_rfcommStatus = Integer.parseInt(m_rfcommMsg.get(0));
-                    m_rfcommStatusMsg = m_rfcommMsg.get(1);
-                } catch (NumberFormatException e) {
-                    Log.d(TAG, "Fatal Error: wrong number format");
-                    m_bluetoothmessages.add("BT ERROR faulty numbers from stream");
-                }
-                Log.d(TAG, "MassWait done");
-                doRead = false;
-            }
-        }
-
-        long durTime = System.currentTimeMillis() - startTime;
-        m_bluetoothmessages.add("BT multi command executed in '" + durTime + "ms");
-
-        return m_rfcommMsg.size();
-    }
-
-
-
-
-
-
-    public static int sendReceive(String msg) {
-
-        long startTime = System.currentTimeMillis();
-        m_rfcommMsg.clear();
-
-        if (m_bluetoothstatus < 2) {
-            // not connected
-            m_bluetoothmessages.add("BT ERROR tried to send on closed connection");
-            return -1;
-        }
-
-        try {
-            m_outStream.write(msg.getBytes());
-        } catch (IOException e) {
-            Log.d(TAG, "Fatal Error: outstream.write: " + e.getMessage() + ".");
-            m_bluetoothmessages.add("BT ERROR cannot write to stream: "+ e.getMessage() + ".");
-            m_bluetoothstatus = BT_ERR_STREAM_WRITE;
-            return m_bluetoothstatus;
-        }
-
-        // read return value, return msg, return list size and return list
-
-        boolean doRead = true;
-        int linecnt = -1;
-        int status = -1;
-        m_rfcommMsg.clear();
-
-        // @todo prevent loop from deadlocking + add timeouts to readLine()
-        while ( doRead ) {
-            String[] input = readLine().split(" !EOL! ");
-
-            if (m_bluetoothstatus < 2) {
-                Log.d(TAG, "STREAM DIED");
-                m_bluetoothmessages.add("BT ERROR stream died.");
-                break;
-            }
-
-            for (int i = 0; i < input.length; i++) {
-                m_rfcommMsg.add(input[i].trim());
-            }
-            if (m_rfcommMsg.size() >= 3 && linecnt == -1) {
-                try {
-                    linecnt = Integer.parseInt(m_rfcommMsg.get(2));
-                    m_rfcommStatus = Integer.parseInt(m_rfcommMsg.get(0));
-                    m_rfcommStatusMsg = m_rfcommMsg.get(1);
-                } catch (NumberFormatException e) {
-                    Log.d(TAG, "Fatal Error: wrong number format");
-                    m_bluetoothmessages.add("BT ERROR faulty numbers from stream");
-                }
-            }
-
-            if (linecnt != -1 && m_rfcommMsg.size() == linecnt + 3) {
-                doRead = false;
-            }
-        }
-
-        long durTime = System.currentTimeMillis() - startTime;
-
-        String short_cmd = msg;
-        if ( short_cmd.length() > 20 )
-            short_cmd = msg.substring(0, 19) + "...";
-
-        m_bluetoothmessages.add("BT command '" + short_cmd + "' executed in '" + durTime + "ms");
-
-
-        return m_rfcommMsg.size();
-    }
-
-    public static int disconnect() {
-
-        if (m_bluetoothstatus < 3) { return -2; } // not connected
-
-        sendReceive("disconnect");
-        m_bluetoothstatus = BT_DISCONNECTED;
-        m_bluetoothmessages.add("BT DISCONNECTED.");
-
-        try {
-            m_btSocket.close();
-        } catch (IOException e) {
-            Log.d(TAG, "Fatal Error: while closing socket:" + e.getMessage() + ".");
-            m_bluetoothmessages.add("BT ERROR while closing socket: "+ e.getMessage() + ".");
-            m_bluetoothstatus = BT_NO_CLEANCONNECT;
-        }
-        if ( m_rfcommStatus == 101 ) { return 0; } // disconnect ok
-        return -1; // disconnect failed somehow
-    }
-
-    private static String readLine() {
+    public static String readLine() {
         String line = "";
-
         if (m_bluetoothstatus < 2) { return line; } // not connected
 
         Reader in;
@@ -516,26 +313,12 @@ public class RfcommClient extends org.qtproject.qt5.android.bindings.QtActivity
             if (bytes > 0) {
                 out.append(buffer, 0, bytes);
                 line = out.toString();
-                Log.d(TAG, "==== READ LINE: --" + line + "--");
             }
         } catch (IOException e) {
             Log.d(TAG, "Fatal Error: read stream" + e.getMessage() + ".");
-            m_bluetoothmessages.add("BT ERROR cannot read from stream: "+ e.getMessage() + ".");
+            m_bluetoothmessages.add("BT stream closed.");
             m_bluetoothstatus = BT_NO_STREAMS;
         }
         return line;
-    }
-
-
-    public static void notify(String s)
-    {
-        if (m_notificationManager == null) {
-            m_notificationManager = (NotificationManager)m_instance.getSystemService(Context.NOTIFICATION_SERVICE);
-            m_builder = new Notification.Builder(m_instance);
-            m_builder.setSmallIcon(R.drawable.icon);
-            m_builder.setContentTitle("A message from Qt!");
-        }
-        m_builder.setContentText(s);
-        m_notificationManager.notify(1, m_builder.build());
     }
 }

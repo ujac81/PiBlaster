@@ -22,45 +22,56 @@ Rectangle {
         Button {
             id: conButton
             text: "Connect"
-
-            onPressed: {
-                var constat = rfcommClient.tryConnect
-                connect.activated();
-            }
+            onPressed: connectToPi()
         }
 
         Button {
             id: disconButton
             text: "Disconnect"
-
-            onPressed: {
-                var constat = rfcommClient.disconnect;
-                connect.activated();
-            }
+            onPressed: rfcomm.execCommand('disconnect');
         }
     }
 
 
     Component.onCompleted: {
-        root.status = "Not connected."
+        root.status = "Not connected.";
+
+        console.log("Checking BT...");
+        rfcomm.checkBluetoothOn();
+        console.log("Connect completed.");
     }
+
 
     Component.onDestruction: {
         // TODO: disconnect
     }
 
+
     function activated() {
-        var status = rfcommClient.connectionStatus;
-        if ( status >= 3 ) {
-            conButton.disable();
+        // var status = rfcommClient.connectionStatus;
+        // if ( status >= 3 ) {
+            conButton.enable();
             disconButton.enable();
             root.status = "Connected.";
-            connected = true;
+//            connected = true;
+//        } else {
+//            conButton.enable();
+//            disconButton.disable();
+//            root.status = "Disconnected.";
+//            connected = true;
+//        }
+    }
+
+    function connectToPi() {
+        if ( rfcomm.connectBluetooth() == 2 ) {
+            rfcomm.execCommand("1234"); // TODO password from settings
+//            waitOverlay.caption = "Connecting";
+//            waitOverlay.text = "Please stand by while connecting to PI...";
+//            waitOverlay.show();
         } else {
-            conButton.enable();
-            disconButton.disable();
-            root.status = "Disconnected.";
-            connected = true;
+            ;
+
         }
     }
+
 }

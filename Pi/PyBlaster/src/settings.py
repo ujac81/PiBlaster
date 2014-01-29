@@ -35,7 +35,12 @@ class Settings:
         self.polltime           = 30    # daemon poll time in ms
         self.flash_count        = 2     # flash activity LED n poll
         self.keep_alive_count   = 20    # let activity LED flash every n polls
-        self.usb_count          = 30    # check usb drives every n polls
+        self.usb_count          = 1     # check usb drives every n polls
+        self.pin1_default       = "1234"
+        self.pin2_default       = "4567"
+        self.puk                = "1234567890"
+        self.pin1               = None  # loaded from db
+        self.pin2               = None  # loaded from db
         self.dbfile             = "/var/lib/pyblaster/pyblaster.sqlite"
 
         # end __init__() #
@@ -134,20 +139,6 @@ pidfile /var/run/pyblaster.pid
 
 
 ####################################
-# timings
-####################################
-
-# sleep N ms in each loop
-polltime 30
-
-# number of poll cycles for LED flash
-flash_count 2
-
-# flash green keep alive every N polls
-keep_alive_count 20
-
-
-####################################
 # command
 ####################################
 
@@ -165,6 +156,28 @@ cmdout    /var/lib/pyblaster/pyblastercmd.log
 ####################################
 
 dbfile /var/lib/pyblaster/pyblaster.sqlite
+
+
+####################################
+# Passwords
+####################################
+
+# Initial connection password.
+# Will be transfered to database if not inside.
+# May be changed in database via command interface
+# using puk.
+# If database is rebuilt for some reason (broken, format changes, ...)
+# pin will be reset to this value.
+initial_pin 1234
+
+# Same behaviour as above.
+# This key is not required for connection, but for deleting files
+# or reseting database or other invasive actions.
+initial_pin2 4567
+
+# Required for password changes.
+# Passwords will be changed in database, values above are only defaults.
+puk 1234567890
 
 
 """
@@ -212,10 +225,8 @@ dbfile /var/lib/pyblaster/pyblaster.sqlite
             try:
                 if key == "loglevel" and not self.loglevel_from_cmd:
                     self.loglevel = int(val)
-
                 if key == "logfile":
                     self.logfile = val
-
                 if key == "polltime":
                     self.polltime = int(val)
                 if key == "pidfile":
@@ -230,6 +241,12 @@ dbfile /var/lib/pyblaster/pyblaster.sqlite
                     self.fifoin = os.path.expanduser(val)
                 if key == "cmdout":
                     self.cmdout = os.path.expanduser(val)
+                if key == "intial_pin1":
+                    self.pin1_default = val
+                if key == "intial_pin2":
+                    self.pin2_default = val
+                if key == "puk":
+                    self.puk = val
 
             except ValueError:
                 self.parent.log.write(log.EMERGENCY,

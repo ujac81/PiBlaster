@@ -30,8 +30,13 @@ Rectangle {
     // hide all the tab views and select default tab
     Component.onCompleted:
     {
-        tabsModel.children[tabIndex].load();
+        for(var i = 0; i < tabsModel.children.length; i++)
+        {
+            tabsModel.children[i].visible = false;
+        }
         tabClicked(tabIndex);
+
+        console.log("TabbedUI completed.");
     }
 
     /**
@@ -45,7 +50,7 @@ Rectangle {
         else
             bottomTabs.children[tabIndex-3].color = root.buttonColorActive
 
-        tabsModel.children[tabIndex].loader.item.visible = false;
+        tabsModel.children[tabIndex].visible = false;
         tabIndex = index;
 
         if (tabIndex < 3)
@@ -53,9 +58,8 @@ Rectangle {
         else
             bottomTabs.children[tabIndex-3].color = root.buttonColorPressed;
 
-        tabsModel.children[tabIndex].load();
-        tabsModel.children[tabIndex].loader.item.visible = true;
-        tabsModel.children[tabIndex].loader.item.activated();
+        tabsModel.children[tabIndex].visible = true;
+        tabsModel.children[tabIndex].activated();
     }
 
 

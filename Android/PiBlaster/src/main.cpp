@@ -4,9 +4,10 @@
 
 #include "QtQuick2ApplicationViewer.h"
 
-#include "RFCommClient.h"
-#include "Helpers.h"
+#include "RFCommMaster.h"
+#include "RFCommMessageObject.h"
 
+#include <QMetaType>
 #include <QtDebug>
 
 int main(int argc, char *argv[])
@@ -15,6 +16,7 @@ int main(int argc, char *argv[])
     qDebug() << "==== 1 ====";
 
     QGuiApplication app(argc, argv);
+    qRegisterMetaType<RFCommMessageObject>( "RFCommMessageObject" );
 
     qDebug() << "==== 2 ====";
 
@@ -22,16 +24,11 @@ int main(int argc, char *argv[])
 
     qDebug() << "==== 3 ====";
 
-    RFCommClient* rfcommClient = new RFCommClient( &viewer, &app );
-    Helpers* helpers = new Helpers( &viewer, &app );
+    RFCommMaster* rfcomm = new RFCommMaster( &viewer );
 
     qDebug() << "==== 4 ====";
 
-    viewer.engine()->rootContext()->
-            setContextProperty( "rfcommClient", rfcommClient );
-
-    viewer.engine()->rootContext()->
-            setContextProperty( "helpers", helpers );
+    viewer.engine()->rootContext()->setContextProperty( "rfcomm", rfcomm );
 
     qDebug() << "==== 5 ====";
 

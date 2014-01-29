@@ -109,17 +109,37 @@ Rectangle {
         if (event.key === Qt.Key_Back) {
             event.accepted = true;
 
-            rfcommClient.disconnect;
-            rfcommClient.diableBT;
+            // TODO disconnect?
 
             Qt.quit();
         }
     }
 
-
     // true if connected to PI via bluetooth
     function connected() {
-        return root.tabview.tabsModel.children[3].loader.item.connected;
+        return root.tabview.tabsModel.children[3].connected;
+    }
+
+    Component.onCompleted: {
+
+        // emitted by RFCommSendThread if send to BT socket ok
+        rfcomm.commandSent.connect(messageSent)
+
+        // emitted by RFCommSendThread if send to BT socket not ok
+        // emitted by RFCommRecvThread if socket broken
+        rfcomm.commBroken.connect(commBroken)
+
+        // emitted by RFCommMaster after checking bluetooth
+        rfcomm.bluetoothState.connect(bluetoothState)
+
+        // emitted by RFCommMaster after checking bluetooth
+        rfcomm.bluetoothMessage.connect(bluetoothMessage)
+
+
+        // emitted by RFCommRecvThread for each incomming message
+        rfcomm.receivedMessage.connect(messageRecvd)
+
+        console.log("main completed.");
     }
 
 
@@ -130,6 +150,31 @@ Rectangle {
         id: waitOverlay
         parent: root
     }
+
+    ////////////////// COMMUNICATION //////////////////
+
+    function messageSent(code) {
+        console.log("Message has been sent "+code);
+    }
+
+    function commBroken(code) {
+        console.log("RFComm broken -- code "+code);
+    }
+
+    function bluetoothState(code) {
+        console.log("Bluetooth state changed -- code "+code);
+    }
+
+    function bluetoothMessage(msg) {
+        console.log("Bluetooth msg: "+msg);
+    }
+
+    function messageRecvd(msg) {
+        console.log("Got message: id="+msg.id()+", status="+msg.status()+", code="+msg.code()+
+                    ", payload_size="+msg.payloadSize()+", msg="+msg.message());
+    }
+
+
 
 
 }

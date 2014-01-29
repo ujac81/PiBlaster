@@ -102,7 +102,7 @@ class EvalCmd:
 
         Called by read_fifo() and RFCommServer.
 
-        return [status, status_msg, result_list]
+        return [status, code, status_msg, result_list]
         """
         cmdline = cmdline.strip()
         line = cmdline.split()
@@ -122,7 +122,8 @@ class EvalCmd:
                 int_args.append(None)
 
         ret_stat = STATUSOK
-        ret_msg    = "OK"
+        ret_msg  = "OK"
+        ret_code = -1
         ret_list = []
 
         self.parent.log.write(log.MESSAGE, "Eval cmd [%s]: %s" %
@@ -214,12 +215,12 @@ class EvalCmd:
         elif cmd == "lsalldirs":
             if len(line) != 2 or int_args[1] is None:
                 ret_stat = ERRORARGS
-                ret_msg    = "lsalldirs needs 1 arg"
+                ret_msg  = "lsalldirs needs 1 arg"
             else:
                 stor = self.parent.usb.get_dev_by_storid(int_args[1])
                 if stor is None:
                     ret_stat = ERRORARGS
-                    ret_msg    = "illegal storage id"
+                    ret_msg  = "illegal storage id"
                 else:
                     ret_list = stor.list_all_dirs()
 
@@ -229,14 +230,15 @@ class EvalCmd:
         elif cmd == "lsdirs":
             if len(line) != 3:
                 ret_stat = ERRORARGS
-                ret_msg    = "lsalldirs needs 2 args"
+                ret_msg  = "lsalldirs needs 2 args"
             else:
                 stor = self.parent.usb.get_dev_by_storid(int_args[1])
                 if stor is None:
                     ret_stat = ERRORARGS
-                    ret_msg    = "illegal storage id"
+                    ret_msg  = "illegal storage id"
                 else:
                     ret_list = stor.list_dirs(int_args[2])
+                    ret_code = 102
 
         # # # # lsfiles <storid> <dirid> # # # #
 
@@ -251,6 +253,7 @@ class EvalCmd:
                     ret_msg    = "illegal storage id"
                 else:
                     ret_list = stor.list_files(int_args[2])
+                    ret_code = 103
 
         # # # # keepalive # # # #
 
@@ -401,6 +404,7 @@ class EvalCmd:
                                 humansize(dev.bytes_free),
                                 humansize(dev.cur_tot_bytes)))
             if not ret_list: ret_list = ["-1 NONE"]
+            ret_code = 101
 
         else:
             ret_stat = ERRORUNKNOWN
@@ -409,6 +413,6 @@ class EvalCmd:
         self.write_log_file(cmd, ret_stat, ret_msg, ret_list)
 
         self.parent.log.write(log.MESSAGE, ">>> %s" % ret_msg)
-        return [ret_stat, ret_msg, ret_list]
+        return [ret_stat, ret_code, ret_msg, ret_list]
 
         # end evalcmd() #

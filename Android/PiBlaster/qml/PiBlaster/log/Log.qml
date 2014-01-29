@@ -22,13 +22,20 @@ Rectangle {
         width: parent.width
     }
 
+
+    Component.onCompleted: {
+
+
+        console.log("Log completed.");
+    }
+
     function activated()
     {
         logText.text = "Log opened....\n";
-        var count = rfcommClient.initAndCountBluetoothMessages
-        for(var i = 0; i < count; i++)
-        {
-            logText.text += "--> " + rfcommClient.nextBluetoothMessage + "\n";
-        }
+//        var count = rfcommClient.initAndCountBluetoothMessages
+//        for(var i = 0; i < count; i++)
+//        {
+//            logText.text += "--> " + rfcommClient.nextBluetoothMessage + "\n";
+//        }
     }
 }

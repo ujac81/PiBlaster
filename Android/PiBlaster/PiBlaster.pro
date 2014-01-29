@@ -18,13 +18,14 @@ QML_IMPORT_PATH =
 
 
 SOURCES += src/main.cpp \
-    src/RFCommClient.cpp \
-    src/Helpers.cpp \
-    src/RFCommThread.cpp
+    src/RFCommSendThread.cpp \
+    src/RFCommRecvThread.cpp \
+    src/RFCommMaster.cpp
 HEADERS += \
-    src/RFCommClient.h \
-    src/Helpers.h \
-    src/RFCommThread.h
+    src/RFCommSendThread.h \
+    src/RFCommMessageObject.h \
+    src/RFCommRecvThread.h \
+    src/RFCommMaster.h
 
 RESOURCES += images.qrc
 RESOURCES += qml.qrc
@@ -51,7 +52,6 @@ OTHER_FILES += \
     qml/PiBlaster/items/Tab.qml \
     qml/PiBlaster/items/MessageWindow.qml \
     qml/PiBlaster/items/LineInput.qml \
-    qml/PiBlaster/items/Dialog.qml \
     qml/PiBlaster/items/ButtonBox.qml \
     qml/PiBlaster/items/Button.qml \
     qml/PiBlaster/connect/Connect.qml \

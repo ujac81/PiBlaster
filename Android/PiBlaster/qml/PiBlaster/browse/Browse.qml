@@ -190,8 +190,7 @@ Rectangle {
             else
             {
                 opacity = 0;
-                browseList.model.load("root");
-
+                browseList.model.request_load("root");
             }
         }
     }
@@ -222,7 +221,7 @@ Rectangle {
                 height: parent.height
                 MouseArea {
                     anchors.fill: parent
-                    onClicked: browseList.model.load("root")
+                    onClicked: browseList.model.request_load("root")
                 }
             }
             Image {
@@ -281,7 +280,7 @@ Rectangle {
     Component.onCompleted: {
         // when sending to playlist, wait until send done and invoke
         // addFinished() to hide wait overlay.
-        rfcommClient.addToPlaylistFinished.connect(addFinished);
+        // rfcommClient.addToPlaylistFinished.connect(addFinished);
     }
 
 
@@ -306,7 +305,7 @@ Rectangle {
         waitOverlay.show();
 
         browseList.model.push_to_playlist_send_list(add_mode)
-        rfcommClient.sendPlaylistAdd();
+        // rfcommClient.sendPlaylistAdd();
 
         // waitOverlay will now block view until signal from rfcommClient received
     }
@@ -317,7 +316,7 @@ Rectangle {
      */
     function addFinished(msg) {
         waitOverlay.close();
-        root.status = rfcommClient.statusMessage();
+        // root.status = rfcommClient.statusMessage();
     }
 
 
