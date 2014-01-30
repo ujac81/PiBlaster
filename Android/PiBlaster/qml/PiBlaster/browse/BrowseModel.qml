@@ -10,13 +10,17 @@ ListModel {
         clear();
     }
 
-
     function dir_up() {
-        console.log(parentDir);
         if (parentDir.length > 1) {
             parentDir.pop();
             request_load(parentDir[parentDir.length-1]);
         }
+    }
+
+    function on_root_dir() {
+        if (parentDir.length <= 1)
+            return true;
+        return false;
     }
 
 
@@ -28,6 +32,8 @@ ListModel {
      */
     function request_load(dir_id) {
 
+        clearAll(); // delete already upon request to prevent mutiple request while user should wait.
+
         // prevent doublets in parent dir list
         if ( dir_id != parentDir[parentDir.length-1] )
             parentDir.push(dir_id)
@@ -36,8 +42,7 @@ ListModel {
             parentDir = ["root"];
             var status = rfcomm.execCommand("showdevices");
         } else {
-            rfcomm.execCommand("lsdirs "+dir_id);
-            rfcomm.execCommand("lsfiles"+dir_id);
+            rfcomm.execCommand("lsfulldir "+dir_id);
         }
 
     }
@@ -65,99 +70,55 @@ ListModel {
                         "album": "",
                         "title": "",
                         "selected": false,
-                       })
+                       });
             }
         } else {
             root.log_error("Bad return status for 'showdevices'");
         }
-
     }
 
 
+    /**
+     * Called by main if lsfulldir message received from PI
+     */
+    function received_dir(msg) {
+        clearAll();
+        if ( msg.status() == 0 ) {
+            for ( var i = 0; i < msg.payloadSize(); i++ ) {
+                var arr = msg.payloadElements(i);
+                if ( arr[1] == "1") {
+                    append({"type": 1,
+                            "storid": arr[2],
+                            "dirid": arr[3],
+                            "parentid": arr[4],
+                            "dirs": arr[5],
+                            "files": arr[6],
+                            "name": arr[7],
+                            "fileid": "", // dummy values for all possible fields required
+                            "time": "",
+                            "artist": "",
+                            "album": "",
+                            "title": "",
+                            "selected": false,
+                           });
+                } else if ( arr[1] == "2" ) {
+                    append({"type": 2,
+                            "storid": arr[2],
+                            "dirid": arr[3],
+                            "fileid": arr[4],
+                            "time": arr[5],
+                            "artist": arr[6],
+                            "album": arr[7],
+                            "title": arr[8],
+                            "selected": false,
+                            });
+                }
+            }
+        } else {
+            root.log_error("Bad return status for 'lsfulldir'");
+        }
+    }
 
-//    function load(dir_id) {
-//        clearAll();
-
-//        // prevent doublets in parent dir list
-//        if ( dir_id != parentDir[parentDir.length-1] )
-//            parentDir.push(dir_id)
-
-//        if (dir_id == "root") {
-
-//            parentDir = ["root"];
-
-//            var status = rfcommClient.execCommand("showdevices");
-
-//            if ( status == 0 )
-//            {
-//                for ( var i = 0; i < rfcommClient.numResults(); i++ )
-//                {
-//                    var arr = rfcommClient.result(i);
-//                    append({"type": 0,
-//                            "storid": arr[1],
-//                            "name": arr[3],
-//                            "files": arr[6],
-//                            "dirs": arr[5],
-//                            "free": arr[7],
-//                            "used": arr[8],
-//                            "dirid": "",    // dummy values for all possible fields required
-//                            "fileid": "",
-//                            "time": "",
-//                            "artist": "",
-//                            "album": "",
-//                            "title": "",
-//                            "selected": false,
-//                           })
-//                }
-//            } else {
-//                // TODO error -- disconnected?
-//            }
-//        // dir = root
-//        } else {
-//            var status = rfcommClient.execCommand("lsdirs "+dir_id);
-//            if ( status == 0 ) {
-//                for ( var i = 0; i < rfcommClient.numResults(); i++ )
-//                {
-//                    var arr = rfcommClient.result(i);
-//                    append({"type": 1,
-//                            "storid": arr[1],
-//                            "dirid": arr[2],
-//                            "parentid": arr[3],
-//                            "dirs": arr[4],
-//                            "files": arr[5],
-//                            "name": arr[6],
-//                            "fileid": "", // dummy values for all possible fields required
-//                            "time": "",
-//                            "artist": "",
-//                            "album": "",
-//                            "title": "",
-//                            "selected": false,
-//                           })
-//                }
-//            } else {
-//                // TODO error -- disconnected?
-//            }
-//            status = rfcommClient.execCommand("lsfiles "+dir_id);
-//            if ( status == 0 ) {
-//                for ( var i = 0; i < rfcommClient.numResults(); i++ )
-//                {
-//                    var arr = rfcommClient.result(i);
-//                    append({"type": 2,
-//                            "storid": arr[1],
-//                            "dirid": arr[2],
-//                            "fileid": arr[3],
-//                            "time": arr[4],
-//                            "artist": arr[5],
-//                            "album": arr[6],
-//                            "title": arr[7],
-//                            "selected": false,
-//                           });
-//                }
-//            } else {
-//                // TODO error -- disconnected?
-//            }
-//        } // subdir
-//    }
 
     /**
      * True if any item selected

@@ -100,8 +100,8 @@ Rectangle {
         if ( rfcomm.connectBluetooth() == 2 ) {
             waitOverlay.caption = "Connecting";
             waitOverlay.text = "Please stand by while connecting to PI...";
-            rfcomm.execCommand("1234"); // TODO password from settings
             waitOverlay.show();
+            rfcomm.execCommand("1234"); // TODO password from settings
         } else {
             noBluetooth.show();
         }

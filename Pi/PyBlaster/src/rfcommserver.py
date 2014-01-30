@@ -8,6 +8,7 @@ To enable visible server do
 
 import bluetooth
 
+from codes import *
 import log
 import evalcmd
 
@@ -177,10 +178,10 @@ class RFCommServer:
             if cmd == self.parent.settings.pin1:
                 self.mode = AUTHORIZED
                 self.parent.log.write(log.MESSAGE, "BT AUTHORIZED")
-                self.send_client(0, 0, 1, "Password ok.", [])
+                self.send_client(0, 0, PASS_OK, "Password ok.", [])
             else:
                 self.parent.log.write(log.MESSAGE, "BT NOT AUTHORIZED")
-                self.send_client(0, 0, 0, "Wrong password.", [])
+                self.send_client(0, 0, PASS_ERROR, "Wrong password.", [])
                 self.disconnect()
         elif self.mode == AUTHORIZED:
             status, code, msg, res_list = \

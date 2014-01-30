@@ -333,6 +333,23 @@ class UsbDevice:
     # end list_dirs() #
 
 
+    def list_full_dir(self, dirid):
+        """Combined dir and file list for dirid.
+
+        Prepends "1" for dirs and "2" for files.
+        """
+        ret = []
+        dirs = self.list_dirs(dirid)
+        for item in dirs:
+            ret.append("||1"+item)
+        files = self.list_files(dirid)
+        for item in files:
+            ret.append("||2"+item)
+        return ret
+
+    # end list_full_dir() #
+
+
     def get_fileentry_by_path(self, path):
         """
         """

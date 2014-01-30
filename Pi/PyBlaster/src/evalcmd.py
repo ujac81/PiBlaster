@@ -9,6 +9,7 @@ import os
 import re
 import sys
 
+from codes import *
 import log
 from helpers import humansize
 
@@ -238,7 +239,7 @@ class EvalCmd:
                     ret_msg  = "illegal storage id"
                 else:
                     ret_list = stor.list_dirs(int_args[2])
-                    ret_code = 102
+                    ret_code = LS_DIRS
 
         # # # # lsfiles <storid> <dirid> # # # #
 
@@ -253,7 +254,22 @@ class EvalCmd:
                     ret_msg    = "illegal storage id"
                 else:
                     ret_list = stor.list_files(int_args[2])
-                    ret_code = 103
+                    ret_code = LS_FILES
+
+        # # # # lsfulldir <storid> <dirid> # # # #
+
+        elif cmd == "lsfulldir":
+            if len(line) != 3:
+                ret_stat = ERRORARGS
+                ret_msg    = "lsfulldir needs 2 args"
+            else:
+                stor = self.parent.usb.get_dev_by_storid(int_args[1])
+                if stor is None:
+                    ret_stat = ERRORARGS
+                    ret_msg    = "illegal storage id"
+                else:
+                    ret_list = stor.list_full_dir(int_args[2])
+                    ret_code = LS_FULL_DIR
 
         # # # # keepalive # # # #
 
@@ -404,7 +420,7 @@ class EvalCmd:
                                 humansize(dev.bytes_free),
                                 humansize(dev.cur_tot_bytes)))
             if not ret_list: ret_list = ["-1 NONE"]
-            ret_code = 101
+            ret_code = SHOW_DEVICES
 
         else:
             ret_stat = ERRORUNKNOWN

@@ -175,6 +175,8 @@ Rectangle {
             tabview.tabsModel.children[3].passwordWrong();
         } else if ( msg.code() == 101 ) {
             tabview.tabsModel.children[1].received_showdev_data(msg);
+        } else if ( msg.code() == 102 ) {
+            tabview.tabsModel.children[1].received_dir_data(msg);
         }
     }
 

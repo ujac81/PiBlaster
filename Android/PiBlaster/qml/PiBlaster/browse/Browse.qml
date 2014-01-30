@@ -272,24 +272,23 @@ Rectangle {
         BrowseList{ id: browseList }
     }
 
-    // key events
+    /// key events
     Keys.onPressed: {
+
+        // back key: dir up on subdir, switch to connect on root dir
         if (event.key === Qt.Key_Back) {
             event.accepted = true;
-            console.log("browse caught back event");
-            root.quit();
+            if ( browseList.model.on_root_dir() )
+                root.tabview.tabbedUI.tabClicked(3);
+            else
+                browseList.model.dir_up();
         }
     }
 
 
     /**
-     * Init function.
-     * * connect signals
      */
     Component.onCompleted: {
-        // when sending to playlist, wait until send done and invoke
-        // addFinished() to hide wait overlay.
-        // rfcommClient.addToPlaylistFinished.connect(addFinished);
     }
 
 
@@ -333,5 +332,9 @@ Rectangle {
         browseList.model.received_devices(msg);
     }
 
+    /// called by main on receive of lsfulldir data
+    function received_dir_data(msg) {
+        browseList.model.received_dir(msg);
+    }
 
 }

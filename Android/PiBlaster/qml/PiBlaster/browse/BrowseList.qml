@@ -101,9 +101,9 @@ ListView {
             }
             onDoubleClicked: {
                 if ( browseList.model.get(index).type == 0 ) {
-                    browseList.model.load(browseList.model.get(index).storid+" 0");
+                    browseList.model.request_load(browseList.model.get(index).storid+" 0");
                 } else if ( browseList.model.get(index).type == 1 ) {
-                    browseList.model.load(browseList.model.get(index).storid+" "+
+                    browseList.model.request_load(browseList.model.get(index).storid+" "+
                                           browseList.model.get(index).dirid);
                 }
             }
