@@ -110,15 +110,12 @@ Rectangle {
             event.accepted = true;
 
             // TODO disconnect?
+            console.log("main caught back event");
 
-            Qt.quit();
+            quit();
         }
     }
 
-    // true if connected to PI via bluetooth
-    function connected() {
-        return root.tabview.tabsModel.children[3].connected;
-    }
 
     Component.onCompleted: {
 
@@ -134,7 +131,6 @@ Rectangle {
 
         // emitted by RFCommMaster after checking bluetooth
         rfcomm.bluetoothMessage.connect(bluetoothMessage)
-
 
         // emitted by RFCommRecvThread for each incomming message
         rfcomm.receivedMessage.connect(messageRecvd)
@@ -172,9 +168,40 @@ Rectangle {
     function messageRecvd(msg) {
         console.log("Got message: id="+msg.id()+", status="+msg.status()+", code="+msg.code()+
                     ", payload_size="+msg.payloadSize()+", msg="+msg.message());
+
+        if ( msg.code() == 1 ) {
+            tabview.tabsModel.children[3].passwordOk();
+        } else if ( msg.code() == 2 ) {
+            tabview.tabsModel.children[3].passwordWrong();
+        } else if ( msg.code() == 101 ) {
+            tabview.tabsModel.children[1].received_showdev_data(msg);
+        }
     }
 
 
+    function connected() {
+        /// @todo check
+        return true;
+    }
+
+
+    /**
+     * Called on serious errors and if back pressed in main menu.
+     * Tries to disconnect bluetooth.
+     */
+    function quit() {
+
+        console.log("leaving...");
+
+        tabview.tabsModel.children[3].disconnect();
+
+        Qt.quit()
+    }
+
+    function log_error(msg) {
+        /// @todo add to log
+        // status = msg;
+    }
 
 
 }

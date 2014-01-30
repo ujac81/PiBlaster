@@ -61,11 +61,18 @@ public:
 
 
 public slots:
-    void gotMessage( RFCommMessageObject msg )
-    {
-       qDebug()  << " ==== YEAH got it ==== ";
-       emit receivedMessage( &msg );
-    }
+    /**
+     * @brief Message buffering slot for incomming messages from RFCommRecvThread
+     *
+     * This is a dirty hack. We want to send msg object by value from RFCommRecvThread
+     * so it may be deleted there (std::map<id,RFCommMessageObject*>), but we
+     * need to reemit as pointer to have a clean receive in QML. Don't know, if
+     * this is necessary, but it works. Alternative would be use of shared pointers,
+     * but seems too complicated.
+     *
+     * @param msg message object from PI
+     */
+    void gotMessage( RFCommMessageObject msg );
 
 
 

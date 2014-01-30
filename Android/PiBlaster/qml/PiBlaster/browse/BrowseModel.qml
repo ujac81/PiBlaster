@@ -26,8 +26,7 @@ ListModel {
      * as QT signal.
      *
      */
-    function request_load(dir_id){
-        clearAll();
+    function request_load(dir_id) {
 
         // prevent doublets in parent dir list
         if ( dir_id != parentDir[parentDir.length-1] )
@@ -39,6 +38,37 @@ ListModel {
         } else {
             rfcomm.execCommand("lsdirs "+dir_id);
             rfcomm.execCommand("lsfiles"+dir_id);
+        }
+
+    }
+
+    /**
+     * Called by main if shwowdevices message received from PI
+     */
+    function received_devices(msg) {
+        clearAll();
+
+        if ( msg.status() == 0 ) {
+            for ( var i = 0; i < msg.payloadSize(); i++ ) {
+                var arr = msg.payloadElements(i);
+                append({"type": 0,
+                        "storid": arr[1],
+                        "name": arr[3],
+                        "files": arr[6],
+                        "dirs": arr[5],
+                        "free": arr[7],
+                        "used": arr[8],
+                        "dirid": "",    // dummy values for all possible fields required
+                        "fileid": "",
+                        "time": "",
+                        "artist": "",
+                        "album": "",
+                        "title": "",
+                        "selected": false,
+                       })
+            }
+        } else {
+            root.log_error("Bad return status for 'showdevices'");
         }
 
     }

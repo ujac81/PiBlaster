@@ -272,6 +272,15 @@ Rectangle {
         BrowseList{ id: browseList }
     }
 
+    // key events
+    Keys.onPressed: {
+        if (event.key === Qt.Key_Back) {
+            event.accepted = true;
+            console.log("browse caught back event");
+            root.quit();
+        }
+    }
+
 
     /**
      * Init function.
@@ -304,7 +313,7 @@ Rectangle {
         waitOverlay.text = "Please stand by while adding to playlist...";
         waitOverlay.show();
 
-        browseList.model.push_to_playlist_send_list(add_mode)
+        // browseList.model.push_to_playlist_send_list(add_mode)
         // rfcommClient.sendPlaylistAdd();
 
         // waitOverlay will now block view until signal from rfcommClient received
@@ -317,6 +326,11 @@ Rectangle {
     function addFinished(msg) {
         waitOverlay.close();
         // root.status = rfcommClient.statusMessage();
+    }
+
+    /// called by main on receive of showdevice data
+    function received_showdev_data(msg) {
+        browseList.model.received_devices(msg);
     }
 
 

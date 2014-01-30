@@ -19,6 +19,21 @@ Item {
     property int boxHeight: 300
 
 
+    MessageWindow {
+        id: breakWaitAndExit
+        boxHeight: 400
+        z: 120
+        caption: "Exit application"
+        text: "App is in wait mode. Stop waiting and leave?"
+        onAccepted: root.quit();
+
+        // This is not nice, but will give a chance to hide wait overlay
+        // if it's deadlocking.
+        onCanceled: parent.close();
+    }
+
+
+
     // Fill complete area with MouseArea to catch touch events
     Rectangle {
         anchors.fill: parent
@@ -77,20 +92,30 @@ Item {
         }
     }
 
-//    // animate opacity, 250ms to raise/fall
-//    Behavior on opacity {
-//        NumberAnimation { duration: 250 }
-//    }
-
+    // animate opacity, 250ms to raise/fall
+    Behavior on opacity {
+        NumberAnimation { duration: 250 }
+    }
 
     // close and hide window
     function close() {
         waitOverlay.opacity = 0
+        waitOverlay.focus = false;
     }
 
     // invoke from outside to raise message
     function show() {
         waitOverlay.opacity = 1
+        waitOverlay.focus = true;
+    }
+
+    // if back key pressed while waiting, ask to quit.
+    Keys.onPressed: {
+        if (event.key === Qt.Key_Back) {
+            event.accepted = true;
+            console.log("wait overlay caught back event");
+            breakWaitAndExit.show();
+        }
     }
 
 }

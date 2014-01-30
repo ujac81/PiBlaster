@@ -39,7 +39,7 @@ void RFCommRecvThread::messageDone( int id, RFCommMessageObject* msg )
     assert( _recvBuffer.find( id ) != _recvBuffer.end() );
     assert( msg->payloadComplete() );
 
-    qDebug() << "message with id " << id << " done.";
+    msg->preparePayloadElements();
 
     emit gotMessage( *msg );
     delete msg;
@@ -62,8 +62,6 @@ void RFCommRecvThread::run()
 
     while( _run )
     {
-        qDebug() << ".. recv loop ..";
-
         QThread::msleep( PollTime );
 #ifndef DUMMY_MODE
         // check if message in queue
@@ -118,7 +116,6 @@ void RFCommRecvThread::run()
 
                 RFCommMessageObject* msgObj = newMessageObject( id, status, code, plSize, msg );
 
-                qDebug() << "RFCommRecvThread(): new msg: " << id << " " << status << " " << code << " " << plSize << " " << msg;
                 if ( msgObj->payloadComplete() )
                     messageDone( id, msgObj );
             }

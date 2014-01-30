@@ -5,6 +5,7 @@
 #include <QList>
 #include <QObject>
 #include <QString>
+#include <QStringList>
 
 class RFCommMessageObject : public QObject
 {
@@ -26,7 +27,8 @@ public:
         _code( copy._code ),
         _plSize( copy._plSize ),
         _cmd( copy._cmd ),
-        _payload( copy._payload )
+        _payload( copy._payload ),
+        _payloadElements( copy._payloadElements )
     {}
 
     RFCommMessageObject( int id, int status, int code, int plSize, const QString& cmd ) :
@@ -50,22 +52,38 @@ public:
     Q_INVOKABLE int payloadSize() const { return _payload.size(); }
     Q_INVOKABLE QString payload( int i ) const { return _payload[i]; }
 
+    Q_INVOKABLE QList<QString> payloadElements( int i ) const { return _payloadElements[i]; }
+
     bool addPayload( const QString& line )
     {
         _payload.push_back( line );
         return payloadComplete();
     }
 
+    /**
+     * @brief Split each payload line by || and store results in payloadElements(i)
+     */
+    void preparePayloadElements()
+    {
+        _payloadElements.clear();
+        for ( int i = 0; i < _payload.size(); ++i )
+        {
+            _payloadElements.append( _payload.at( i ).split( "||" ) );
+        }
+    }
 
 
 private:
+
+
     int                 _id;
     int                 _status;
     int                 _code;
     int                 _plSize;
     QString             _cmd;
 
-    QList<QString>      _payload;
+    QList<QString>          _payload;
+    QList<QList<QString> >  _payloadElements;
 
 
 };

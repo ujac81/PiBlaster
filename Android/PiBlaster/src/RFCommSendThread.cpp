@@ -34,7 +34,7 @@ void RFCommSendThread::run()
 
 
     if ( sendOk == 0 )
-        emit commandSent(_cmd);
+        emit commandSent( _cmd );
     else
         emit commBroken( sendOk );
 

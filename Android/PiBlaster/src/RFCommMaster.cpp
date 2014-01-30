@@ -65,6 +65,11 @@ int RFCommMaster::connectBluetooth()
 #endif
 }
 
+void RFCommMaster::gotMessage(RFCommMessageObject msg)
+{
+    emit receivedMessage( &msg );
+}
+
 
 void RFCommMaster::execCommand( const QString& command )
 {
@@ -85,10 +90,14 @@ void RFCommMaster::generateReceiveThread()
     qmlRegisterType<RFCommMessageObject>();
 
     _recv = new RFCommRecvThread( this );
-    connect( _recv, &RFCommRecvThread::gotMessage, this, &RFCommMaster::gotMessage );
     connect( _recv, &RFCommRecvThread::commBroken, this, &RFCommMaster::commBroken );
     connect( _recv, &RFCommRecvThread::bluetoothMessage, this, &RFCommMaster::bluetoothMessage );
     connect( _recv, &RFCommRecvThread::finished, _recv, &QObject::deleteLater );
+
+    // no signal-signal connection here - use of buffer to copy message might be required,
+    // need to send pointer to QML, not object. Real object is destroyed in thread
+    // after sending.
+    connect( _recv, &RFCommRecvThread::gotMessage, this, &RFCommMaster::gotMessage );
     _recv->start();
 
 }
