@@ -9,7 +9,7 @@ import sqlite3
 
 import log
 
-DBVERSION = 19
+DBVERSION = 20
 
 
 class DBDirEntries:

@@ -129,7 +129,7 @@ class UsbDevice:
 
             self.cur_dir_id = 0
             self.cur_tot_bytes = 0
-            self.recursive_rescan_into_db(mnt_pnt, -1)
+            self.recursive_rescan_into_db(mnt_pnt, "root", -1)
 
             stat_usb = os.statvfs(mnt_pnt)
             self.bytes_free = stat_usb.f_frsize * stat_usb.f_bavail
@@ -177,7 +177,7 @@ class UsbDevice:
         self.main.listmngr.usb_removed(self.storid)
 
 
-    def recursive_rescan_into_db(self, path, parentid):
+    def recursive_rescan_into_db(self, path, dirname, parentid):
         """
         """
 
@@ -189,7 +189,7 @@ class UsbDevice:
                         if os.path.isfile(os.path.join(path, f))
                         and f.endswith(".mp3")])
 
-        dirname = os.path.relpath(path, self.mnt_pnt)
+        dirpath = os.path.relpath(path, self.mnt_pnt)
 
         dirid = self.cur_dir_id
         if parentid >= 0:
@@ -197,7 +197,7 @@ class UsbDevice:
             self.main.dbhandle.cur.execute(
                 'INSERT INTO Dirs VALUES (?, ?, ?, ?, ?, ?, ?)',
                 (dirid, parentid, self.storid, len(dirs),
-                 len(files), dirname, dirname))
+                 len(files), dirname, dirpath))
 
         self.cur_dir_id += 1
 
@@ -263,7 +263,7 @@ class UsbDevice:
 
         for d in dirs:
             subdir = os.path.join(path, d)
-            self.recursive_rescan_into_db(subdir, dirid)
+            self.recursive_rescan_into_db(subdir, d, dirid)
 
 
     def update_alias(self, alias):
@@ -303,11 +303,11 @@ class UsbDevice:
 
         ret = []
         for row in self.main.dbhandle.cur.execute(
-                "SELECT id, parentid, numdirs, numfiles, dirname" \
+                "SELECT id, parentid, numdirs, numfiles, dirname, path" \
                 " from Dirs WHERE usbid=? AND parentid=? ORDER BY id;",
                     (self.storid,dirid,)):
-            ret.append(u"||%d||%d||%d||%d||%d||%s||" %
-                       (self.storid , row[0], row[1], row[2], row[3], row[4]))
+            ret.append(u"||%d||%d||%d||%d||%d||%s||%s||" %
+                       (self.storid,row[0],row[1],row[2],row[3],row[4],row[5]))
 
         return ret
 
