@@ -19,6 +19,7 @@ class LED:
         """Initialize GPIO to BOARD mode and disable warnings"""
 
         self.parent = parent
+        self.state = [0]*4
 
         GPIO.setmode(GPIO.BOARD)
         GPIO.setwarnings(False)
@@ -57,15 +58,25 @@ class LED:
 
     def set_led_green(self, state):
         GPIO.output(LED_GREEN, state)
+        self.state[0] = state
 
     def set_led_yellow(self, state):
         GPIO.output(LED_YELLOW, state)
+        self.state[1] = state
 
     def set_led_red(self, state):
         GPIO.output(LED_RED, state)
+        self.state[2] = state
 
     def set_led_blue(self, state):
         GPIO.output(LED_BLUE, state)
+        self.state[3] = state
+
+    def toggle_led_yellow(self):
+        if self.state[1]:
+            self.set_led(1, 0)
+        else:
+            self.set_led(1, 1)
 
     def cleanup(self):
         """Turn of LEDs and close GPIO"""

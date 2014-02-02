@@ -15,3 +15,5 @@ SHOW_DEVICES    = 101       # return on showdevices command
 LS_FULL_DIR     = 102       # return on lsfulldir command
 LS_DIRS         = 103       # return on lsdirs command
 LS_FILES        = 104       # return on lsfiles command
+
+PL_ADD_OK       = 201       # answer on plappendmultiple

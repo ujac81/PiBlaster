@@ -3,6 +3,7 @@
 @Author Ulrich Jansen <ulrich.jansen@rwth-aachen.de>
 """
 
+import random
 import time
 
 import log
@@ -20,9 +21,10 @@ class PlayListManager:
 
         Need to call load_playlist after other object initialized.
         """
-
+        random.seed()
         self.parent   = parent
         self.playlist = [] # needed on startup in usb_connected()
+        self.last_ins_pos = 0 # position of last insert (for append mode)
 
         # end __init__() #
 
@@ -33,9 +35,6 @@ class PlayListManager:
         self.playlist_pos   = 0
         self.playlist_id    = 0 # id of the source playlist in database
                                 # 0 = new playlist
-        self.name           = "New playlist"
-        self.creator        = "Anonymous"
-        self.time           = int(time.time())
 
         self.parent.log.write(log.MESSAGE, "[PLAYLISTMNGR] cleared.")
 
@@ -47,63 +46,83 @@ class PlayListManager:
         self.parent.led.set_led_yellow(1)
         self.clear()
 
-        connected_revs = {}
-        for storid, usb in self.parent.usb.alldevs.iteritems():
-            connected_revs[storid] = usb.revision
+        # make sure that we have a playlist with id=0
+        self.new_default_playlist()
 
-        entries = []
+        #connected_revs = {}
+        #for storid, usb in self.parent.usb.alldevs.iteritems():
+            #connected_revs[storid] = usb.revision
 
-        for row in self.parent.dbhandle.cur.execute(
-                "SELECT usbid, usbrev, dirid, fileid, played, path "\
-                "FROM Playlistentries WHERE playlistid=0 ORDER BY position"):
-            entries.append(row)
+        #entries = []
 
-        for row in entries:
-            if row[0] not in connected_revs:
-                """usb device is not connected, insert into playlist,
-                but flag as disabled.
-                """
-                self.parent.dbhandle.cur.execute("SELECT * FROM Fileentries "\
-                    "WHERE id=? AND dirid=? AND usbid=?",
-                    (row[3], row[2], row[0]))
-                fileentry = self.parent.dbhandle.cur.fetchone()
-                item = PlayListItem(fileentry, False, row[1])
-                item.played = row[4]
-                self.playlist.append(item)
-            if row[0] in connected_revs and connected_revs[row[0]] == row[1]:
-                """usb device is connected and revision is ok --> file ids
-                have not changed --> may insert item
-                """
-                self.parent.dbhandle.cur.execute("SELECT * FROM Fileentries "\
-                    "WHERE id=? AND dirid=? AND usbid=?",
-                    (row[3], row[2], row[0]))
-                fileentry = self.parent.dbhandle.cur.fetchone()
-                item = PlayListItem(fileentry, True, row[1])
-                item.played = row[4]
-                self.playlist.append(item)
-            if row[0] in connected_revs and connected_revs[row[0]] != row[1]:
-                """usb device is connected, but was updated --> check if may
-                insert with new fileentry.
-                """
-                newrow = self.parent.usb.get_dev_by_storid(row[0]). \
-                            get_fileentry_by_path(row[5])
-                if newrow is not None:
-                    """found path with new ids"""
-                    item = PlayListItem(newrow, True, connected_revs[row[0]])
-                    item.played = row[4]
-                    self.playlist.append(item)
+        #for row in self.parent.dbhandle.cur.execute(
+                #"SELECT usbid, usbrev, dirid, fileid, played, path "\
+                #"FROM Playlistentries WHERE playlistid=0 ORDER BY position"):
+            #entries.append(row)
 
-            # end for row in Playlistentries #
+        #for row in entries:
+            #if row[0] not in connected_revs:
+                #"""usb device is not connected, insert into playlist,
+                #but flag as disabled.
+                #"""
+                #self.parent.dbhandle.cur.execute("SELECT * FROM Fileentries "\
+                    #"WHERE id=? AND dirid=? AND usbid=?",
+                    #(row[3], row[2], row[0]))
+                #fileentry = self.parent.dbhandle.cur.fetchone()
+                #item = PlayListItem(fileentry, False, row[1])
+                #item.played = row[4]
+                #self.playlist.append(item)
+            #if row[0] in connected_revs and connected_revs[row[0]] == row[1]:
+                #"""usb device is connected and revision is ok --> file ids
+                #have not changed --> may insert item
+                #"""
+                #self.parent.dbhandle.cur.execute("SELECT * FROM Fileentries "\
+                    #"WHERE id=? AND dirid=? AND usbid=?",
+                    #(row[3], row[2], row[0]))
+                #fileentry = self.parent.dbhandle.cur.fetchone()
+                #item = PlayListItem(fileentry, True, row[1])
+                #item.played = row[4]
+                #self.playlist.append(item)
+            #if row[0] in connected_revs and connected_revs[row[0]] != row[1]:
+                #"""usb device is connected, but was updated --> check if may
+                #insert with new fileentry.
+                #"""
+                #newrow = self.parent.usb.get_dev_by_storid(row[0]). \
+                            #get_fileentry_by_path(row[5])
+                #if newrow is not None:
+                    #"""found path with new ids"""
+                    #item = PlayListItem(newrow, True, connected_revs[row[0]])
+                    #item.played = row[4]
+                    #self.playlist.append(item)
 
-        self.parent.led.set_led_yellow(0)
+            ## end for row in Playlistentries #
 
-        self.parent.log.write(log.MESSAGE,
-            "[PLAYLISTMNGR] Loaded active playlist with %d items" %
-            len(self.playlist))
+        #self.parent.led.set_led_yellow(0)
 
-        self.save_active() # usb revisions may have changed
+        #self.parent.log.write(log.MESSAGE,
+            #"[PLAYLISTMNGR] Loaded active playlist with %d items" %
+            #len(self.playlist))
+
+        #self.save_active() # usb revisions may have changed
 
         # end load_playlist() #
+
+    def new_default_playlist(self):
+        """Make sure we have a playlist with id=0, create an empty one if not
+        """
+
+        self.parent.dbhandle.cur.execute("SELECT * FROM Playlists WHERE id=0")
+        res = self.parent.dbhandle.cur.fetchall()
+
+        if len(res) == 0:
+            self.parent.log.write(log.MESSAGE,
+                "[PLAYLISTMNGR] Generating new empty default playlist...")
+
+            self.parent.dbhandle.cur.execute(
+                'INSERT INTO Playlists VALUES (?, ?, ?, ?, ?, ?)',
+                (0, "Default Playlist", int(time.time()), "Anonymous", -1, 0))
+
+            self.parent.dbhandle.con.commit()
 
     def save_active(self):
         """Save current playlist as playlist id 0.
@@ -111,31 +130,31 @@ class PlayListManager:
         Called after every change of playlist to recover status after restart
         """
 
-        self.time = int(time.time())
+        #self.time = int(time.time())
 
-        self.parent.led.set_led_yellow(1)
+        #self.parent.led.set_led_yellow(1)
 
-        self.parent.dbhandle.cur.execute('DELETE FROM Playlists WHERE id=0')
-        self.parent.dbhandle.cur.execute(
-            'DELETE FROM Playlistentries WHERE playlistid=0')
-        self.parent.dbhandle.con.commit()
+        #self.parent.dbhandle.cur.execute('DELETE FROM Playlists WHERE id=0')
+        #self.parent.dbhandle.cur.execute(
+            #'DELETE FROM Playlistentries WHERE playlistid=0')
+        #self.parent.dbhandle.con.commit()
 
-        self.parent.dbhandle.cur.execute(
-            'INSERT INTO Playlists VALUES (?, ?, ?, ?, ?, ?, ?)',
-            (0, self.name, self.time, self.creator,
-            len(self.playlist), self.playlist_pos, 0))
+        #self.parent.dbhandle.cur.execute(
+            #'INSERT INTO Playlists VALUES (?, ?, ?, ?, ?, ?, ?)',
+            #(0, self.name, self.time, self.creator,
+            #len(self.playlist), self.playlist_pos, 0))
 
-        pl_items = []
-        for i in range(len(self.playlist)):
-            self.playlist[i].append_to_db_list(pl_items,
-                                               self.playlist_id, i, 0)
+        #pl_items = []
+        #for i in range(len(self.playlist)):
+            #self.playlist[i].append_to_db_list(pl_items,
+                                               #self.playlist_id, i, 0)
 
-        self.parent.dbhandle.cur.executemany(
-            'INSERT INTO Playlistentries VALUES (?,?,?,?,?,?,?,?,?,?)',
-            pl_items)
+        #self.parent.dbhandle.cur.executemany(
+            #'INSERT INTO Playlistentries VALUES (?,?,?,?,?,?,?,?,?,?)',
+            #pl_items)
 
-        self.parent.dbhandle.con.commit()
-        self.parent.led.set_led_yellow(0)
+        #self.parent.dbhandle.con.commit()
+        #self.parent.led.set_led_yellow(0)
 
         # end save_active() #
 
@@ -148,48 +167,48 @@ class PlayListManager:
         Returns True if success, False if id == 0 or failed to write.
         """
 
-        if self.playlist_id == 0 or not len(self.playlist):
-            return False
+        #if self.playlist_id == 0 or not len(self.playlist):
+            #return False
 
-        self.time = int(time.time())
+        #self.time = int(time.time())
 
-        self.parent.led.set_led_yellow(1)
+        #self.parent.led.set_led_yellow(1)
 
-        self.parent.dbhandle.cur.execute(
-                'DELETE FROM Playlists WHERE id=?', (self.playlist_id,))
-        self.parent.dbhandle.cur.execute(
-                'DELETE FROM Playlistentries WHERE playlistid=?',
-                (self.playlist_id,))
-        self.parent.dbhandle.con.commit()
+        #self.parent.dbhandle.cur.execute(
+                #'DELETE FROM Playlists WHERE id=?', (self.playlist_id,))
+        #self.parent.dbhandle.cur.execute(
+                #'DELETE FROM Playlistentries WHERE playlistid=?',
+                #(self.playlist_id,))
+        #self.parent.dbhandle.con.commit()
 
-        self.parent.dbhandle.cur.execute(
-                'INSERT INTO Playlists VALUES (?, ?, ?, ?, ?, ?, ?)',
-                (self.playlist_id, self.name, self.time, self.creator,
-                 len(self.playlist), self.playlist_pos, 0,))
+        #self.parent.dbhandle.cur.execute(
+                #'INSERT INTO Playlists VALUES (?, ?, ?, ?, ?, ?, ?)',
+                #(self.playlist_id, self.name, self.time, self.creator,
+                 #len(self.playlist), self.playlist_pos, 0,))
 
-        pl_items = []
-        for i in range(len(self.playlist)):
-            self.playlist[i].append_to_db_list(pl_items, self.playlist_id, i,0)
+        #pl_items = []
+        #for i in range(len(self.playlist)):
+            #self.playlist[i].append_to_db_list(pl_items, self.playlist_id, i,0)
 
-        self.parent.dbhandle.cur.executemany(
-            'INSERT INTO Playlistentries VALUES (?,?,?,?,?,?,?,?,?,?)',
-            pl_items)
+        #self.parent.dbhandle.cur.executemany(
+            #'INSERT INTO Playlistentries VALUES (?,?,?,?,?,?,?,?,?,?)',
+            #pl_items)
 
-        self.parent.dbhandle.set_settings_value(
-            'curplaylist', '%d' % self.playlist_id)
+        #self.parent.dbhandle.set_settings_value(
+            #'curplaylist', '%d' % self.playlist_id)
 
-        self.parent.dbhandle.con.commit()
+        #self.parent.dbhandle.con.commit()
 
-        self.parent.led.set_led_yellow(0)
+        #self.parent.led.set_led_yellow(0)
 
-        self.parent.log.write(log.MESSAGE,
-            "[PLAYLISTMNGR]: Saved playlist %s created by %s at %s with " \
-            " length %d at position %d as id %d" %
-            (self.name, self.creator,
-             time.strftime("%x %X", time.localtime(self.time)),
-             len(self.playlist), self.playlist_pos, self.playlist_id))
+        #self.parent.log.write(log.MESSAGE,
+            #"[PLAYLISTMNGR]: Saved playlist %s created by %s at %s with " \
+            #" length %d at position %d as id %d" %
+            #(self.name, self.creator,
+             #time.strftime("%x %X", time.localtime(self.time)),
+             #len(self.playlist), self.playlist_pos, self.playlist_id))
 
-        return True
+        #return True
 
         # end save() #
 
@@ -199,24 +218,24 @@ class PlayListManager:
         Returns True if success, False if name exists or failed to write.
         """
 
-        # check if name is unique
-        self.parent.dbhandle.cur.execute("SELECT COUNT(name) FROM Playlists "\
-            "WHERE name=?;", (name,))
-        if self.parent.dbhandle.cur.fetchone()[0] != 0:
-            return False
+        ## check if name is unique
+        #self.parent.dbhandle.cur.execute("SELECT COUNT(name) FROM Playlists "\
+            #"WHERE name=?;", (name,))
+        #if self.parent.dbhandle.cur.fetchone()[0] != 0:
+            #return False
 
-        # get id for new playlist
-        new_id = 0
-        for row in self.parent.dbhandle.cur.execute(
-                "SELECT id FROM Playlists ORDER BY id"):
-            new_id = row[0]
-        new_id += 1
+        ## get id for new playlist
+        #new_id = 0
+        #for row in self.parent.dbhandle.cur.execute(
+                #"SELECT id FROM Playlists ORDER BY id"):
+            #new_id = row[0]
+        #new_id += 1
 
-        self.playlist_id = new_id
-        self.name = name
-        self.creator = creator
+        #self.playlist_id = new_id
+        #self.name = name
+        #self.creator = creator
 
-        return self.save()
+        #return self.save()
 
         # end save_as() #
 
@@ -226,22 +245,22 @@ class PlayListManager:
         Returns True if success, False if not exists or failed to write.
         """
 
-        # check if id exists
-        self.parent.dbhandle.cur.execute("SELECT COUNT(id) FROM Playlists "\
-            "WHERE id=?;", (playlist_id,))
-        if self.parent.dbhandle.cur.fetchone()[0] != 1:
-            return False
+        ## check if id exists
+        #self.parent.dbhandle.cur.execute("SELECT COUNT(id) FROM Playlists "\
+            #"WHERE id=?;", (playlist_id,))
+        #if self.parent.dbhandle.cur.fetchone()[0] != 1:
+            #return False
 
-        self.parent.dbhandle.cur.execute("SELECT name, creator FROM " \
-            " Playlists WHERE id=?;", (playlist_id,))
+        #self.parent.dbhandle.cur.execute("SELECT name, creator FROM " \
+            #" Playlists WHERE id=?;", (playlist_id,))
 
-        row = self.parent.dbhandle.cur.fetchone()
+        #row = self.parent.dbhandle.cur.fetchone()
 
-        self.playlist_id = playlist_id
-        self.name = row[0]
-        self.creator = row[1]
+        #self.playlist_id = playlist_id
+        #self.name = row[0]
+        #self.creator = row[1]
 
-        return self.save()
+        #return self.save()
 
     def usb_removed(self, storid):
         """Called by UsbDevice.release() if usb device got lost
@@ -251,16 +270,16 @@ class PlayListManager:
 
         # TODO if playing song from this USB, skip to next valid track
 
-        if not self.playlist:
-            return
+        #if not self.playlist:
+            #return
 
-        disabled = 0
-        for item in self.playlist:
-            disabled += item.set_connected_by_storid(storid, False)
+        #disabled = 0
+        #for item in self.playlist:
+            #disabled += item.set_connected_by_storid(storid, False)
 
-        self.parent.log.write(log.MESSAGE,
-            "[PLAYLISTMNGR]: USB #%d got removed, disabled %d items " \
-            "in playlist" % (storid, disabled))
+        #self.parent.log.write(log.MESSAGE,
+            #"[PLAYLISTMNGR]: USB #%d got removed, disabled %d items " \
+            #"in playlist" % (storid, disabled))
 
         # end usb_removed() #
 
@@ -271,31 +290,31 @@ class PlayListManager:
         Check if items still on drive.
         """
 
-        if not self.playlist:
-            return
+        #if not self.playlist:
+            #return
 
-        self.parent.led.set_led_yellow(1)
+        #self.parent.led.set_led_yellow(1)
 
-        enabled = 0
-        dropped = 0
+        #enabled = 0
+        #dropped = 0
 
-        tmp_list = self.playlist
-        self.playlist = []
+        #tmp_list = self.playlist
+        #self.playlist = []
 
-        for item in tmp_list:
-            if item.check_revision_matches(revision, usbdev):
-                self.playlist.append(item)
-                enabled += item.set_connected_by_storid(storid, True)
-            else:
-                dropped += 1
+        #for item in tmp_list:
+            #if item.check_revision_matches(revision, usbdev):
+                #self.playlist.append(item)
+                #enabled += item.set_connected_by_storid(storid, True)
+            #else:
+                #dropped += 1
 
-        self.parent.log.write(log.MESSAGE,
-            "[PLAYLISTMNGR]: USB #%d got connected, enabled %d items in " \
-            "playlist and dropped %d items." % (storid, enabled, dropped))
+        #self.parent.log.write(log.MESSAGE,
+            #"[PLAYLISTMNGR]: USB #%d got connected, enabled %d items in " \
+            #"playlist and dropped %d items." % (storid, enabled, dropped))
 
-        self.save_active()
+        #self.save_active()
 
-        self.parent.led.set_led_yellow(0)
+        #self.parent.led.set_led_yellow(0)
 
         # end usb_connected() #
 
@@ -313,36 +332,8 @@ class PlayListManager:
         Returns: True if insert ok.
         """
 
-        self.save_active()
+        #self.save_active()
         return True
-
-    def insert_dir(self, ids, position=-1,
-                                 random_insert=False, after_current=False):
-        """Push back alld die items from database to playlist.
-
-        Keywords:
-            ids             -- [usbstorid, dirid, fileid] from database]
-            position        -- insert position in playlist if not random
-                               and not after_current (-1 = append)
-            random_insert   -- put somewhere in playlist
-            after_current   -- insert after current track
-
-        Returns: Number of insertions
-        """
-
-        ins_cnt = 0
-
-        is_connected = self.parent.usb.is_connected(ids[0])
-        revision     = self.parent.usb.revision(ids[0])
-
-        for row in self.parent.dbhandle.cur.execute(
-                "SELECT * FROM Fileentries WHERE dirid=? AND usbid=? " \
-                "ORDER BY id", (ids[1], ids[0],)):
-            self.playlist.append(PlayListItem(row, is_connected, revision))
-            ins_cnt += 1
-
-        self.save_active()
-        return ins_cnt
 
     def list_playlist(self,
                       playlist=0,
@@ -359,46 +350,200 @@ class PlayListManager:
         Returns string list: [Position, item count, item0, item1, ... itemN-1]
         """
 
-        res = [0, 0]
+        #res = [0, 0]
 
-        if playlist == 0:
-            res = [self.playlist_pos, 0]
+        #if playlist == 0:
+            #res = [self.playlist_pos, 0]
 
-            for i in range(start_at,
-                           min(len(self.playlist), start_at+max_items)):
-                if self.playlist[i].is_connected:
-                    res.append(self.playlist[i].print_self(printformat))
+            #for i in range(start_at,
+                           #min(len(self.playlist), start_at+max_items)):
+                #if self.playlist[i].is_connected:
+                    #res.append(self.playlist[i].print_self(printformat))
 
-        else:
-            for row in self.parent.dbhandle.cur.execute(
-                    "SELECT disptitle FROM Playlistentries WHERE playlistid=?"\
-                     " ORDER BY entryin LIMIT ? OFFSET ?",
-                    (playlist, max_items, start_at,) ):
-                res.append(row[0])
+        #else:
+            #for row in self.parent.dbhandle.cur.execute(
+                    #"SELECT disptitle FROM Playlistentries WHERE playlistid=?"\
+                     #" ORDER BY entryin LIMIT ? OFFSET ?",
+                    #(playlist, max_items, start_at,) ):
+                #res.append(row[0])
 
-        res[1] = len(res) - 2
+        #res[1] = len(res) - 2
 
-        return res
+        #return res
 
         # end list_playlist() #
 
     def list_playlists(self):
         '''Cretate list of saved playlists'''
 
-        res = []
+        #res = []
 
-        for row in self.parent.dbhandle.cur.execute(
-                "SELECT * FROM Playlists ORDER BY id"):
+        #for row in self.parent.dbhandle.cur.execute(
+                #"SELECT * FROM Playlists ORDER BY id"):
 
-            if row[PL.ID] != 0:
-                res.append(u'||%d||%s||%s||%s||%d||' %
-                           (row[PL.ID], row[PL.NAME], row[PL.CREATOR],
-                            time.strftime("%x %X",
-                                          time.localtime(row[PL.CREATED])),
-                            row[PL.ITEMSCOUNT]))
-        return res
+            #if row[PL.ID] != 0:
+                #res.append(u'||%d||%s||%s||%s||%d||' %
+                           #(row[PL.ID], row[PL.NAME], row[PL.CREATOR],
+                            #time.strftime("%x %X",
+                                          #time.localtime(row[PL.CREATED])),
+                            #row[PL.ITEMSCOUNT]))
+        #return res
 
         # end list_playlists() #
+
+    def get_playlist_state(self, listid):
+        """Latest state for playlist to have undo actions in playlist
+        """
+        self.parent.dbhandle.cur.execute(
+            "SELECT state FROM Playlists WHERE id=?", (listid,))
+        # there should be a row, so no check
+        res = self.parent.dbhandle.cur.fetchall()
+        return int(res[0][0])
+
+    def get_playlist_position(self, listid):
+        """Latest state for playlist to have undo actions in playlist
+        """
+        self.parent.dbhandle.cur.execute(
+            "SELECT position FROM Playlists WHERE id=?", (listid,))
+        # there should be a row, so no check
+        res = self.parent.dbhandle.cur.fetchall()
+        return int(res[0][0])
+
+    def get_playlist_last_position(self, listid):
+        """Latest state for playlist to have undo actions in playlist
+        """
+        self.parent.dbhandle.cur.execute(
+            "SELECT MAX(position) FROM Playlistentries WHERE playlistid=?",
+            (listid,))
+        # there should be a row, so no check
+        res = self.parent.dbhandle.cur.fetchall()[0][0]
+        if res is None:
+            return -1
+        return int(res)
+
+    def set_playlist_state(self, listid, state):
+        """Set current state for playlist for undo actions
+        """
+        self.parent.dbhandle.cur.execute(
+            "UPDATE Playlists SET state=? WHERE id=?", (state, listid))
+        self.parent.dbhandle.con.commit()
+
+    def append_multiple(self, add_instructions, add_mode):
+        """Called on plappendmultiple with payload instructions
+        """
+
+        list_id = 0
+
+        state = self.get_playlist_state(list_id) + 1
+        added = 0
+        self.last_ins_pos = self.get_playlist_position(list_id)
+        if add_mode == 0:
+            # insert at end
+            self.last_ins_pos = self.get_playlist_last_position(list_id)
+
+        for line in add_instructions:
+            instruction = line.split(' ')
+            if instruction[0] == 'DIR':
+                stor_id = int(instruction[1])
+                dir_id = int(instruction[2])
+                # append_file() wastes database pointer, so we need to
+                # create a list first (read-only) and then append
+                # items to playlist
+                append_list = []
+                self.append_dir(list_id, append_list, stor_id, dir_id,
+                                add_mode, state)
+                for item in append_list:
+                    added += self.append_file(list_id, item[0], item[1],
+                                              item[2], add_mode, state)
+            elif instruction[0] == 'FILE':
+                stor_id = int(instruction[1])
+                dir_id = int(instruction[2])
+                file_id = int(instruction[3])
+                added += self.append_file(list_id, stor_id, dir_id, file_id,
+                                          add_mode, state)
+            else:
+                self.parent.log.write(log.ERROR,
+                    "[PLAYLISTMNGR]: Unknown add command %s in " \
+                    "append_multiple()" % (instructions[0]))
+
+
+        self.set_playlist_state(list_id, state)
+        self.parent.dbhandle.con.commit()
+
+        self.parent.led.set_led_yellow(0)
+
+        self.parent.log.write(log.ERROR,
+            "[PLAYLISTMNGR]: Added %d items for playlist %d with state %d" %
+            (added, list_id, state))
+
+        return added
+
+        # end append_multiple() #
+
+    def append_dir(self, app_list, list_id, stor_id, dir_id, add_mode, state):
+        """
+        """
+        # need to copy subdirs to list, because recursion will break DB cursor
+        sub_dirs = []
+        for row in self.parent.dbhandle.cur.execute(
+                "SELECT id FROM Dirs WHERE usbid=? AND parentid=? ORDER BY id",
+                (stor_id, dir_id)):
+            sub_dirs += row
+
+        # dive into sub dirs
+        for item in sub_dirs:
+            self.append_dir(list_id, app_list, stor_id, item, add_mode, state)
+
+        # add files for this dir
+        self.parent.log.write(log.DEBUG1,
+            "DEBUG adding recursively dir %d %d" % (stor_id, dir_id))
+
+        for row in self.parent.dbhandle.cur.execute(
+                "SELECT id FROM Fileentries WHERE usbid=? AND dirid=? "\
+                "ORDER BY id", (stor_id, dir_id)):
+            print("--- FILE %s %s %s" % ( stor_id, dir_id, row[0]))
+            app_list += [[stor_id, dir_id, row[0]]]
+
+
+    def append_file(self, list_id, stor_id, dir_id, file_id, add_mode, state):
+        """
+        """
+
+        self.parent.dbhandle.cur.execute(
+            "SELECT path, disptitle FROM Fileentries "\
+            "WHERE usbid=? AND dirid=? AND id=?",
+            (stor_id, dir_id, file_id,))
+        res = self.parent.dbhandle.cur.fetchall()
+        if len(res) == 0:
+            # TODO error file not found in DB
+            return 0
+
+        path = res[0][0]
+        title = res[0][1]
+
+        # self.last_ins_pos is correctly set for both append modes
+        # in append_multiple()
+        insert_pos = self.last_ins_pos + 1
+
+        if add_mode == 1:
+            # insert into playlist -> raise position for items past insert pos
+            self.parent.dbhandle.cur.execute(
+                "UPDATE Playlistentries set position=position+1 WHERE "\
+                "playlistid=? AND position>=?", (list_id, insert_pos))
+
+        self.parent.dbhandle.cur.execute(
+            "INSERT INTO Playlistentries VALUES (?,?,?,?,?,?,?,?,?,?)",
+            (list_id, insert_pos, stor_id, self.parent.usb.revision(stor_id),
+             dir_id, file_id, 0, title, path, state))
+
+        # need to commit while adding because position ids change
+        # while adding. If too slow, need to change....
+        self.parent.dbhandle.con.commit()
+        self.last_ins_pos = insert_pos
+
+        self.parent.led.toggle_led_yellow()
+
+        return 1
 
 
 

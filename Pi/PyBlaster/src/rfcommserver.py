@@ -151,6 +151,7 @@ class RFCommServer:
         # TODO for really large payloads maybe we need to send bursts
         # recv buffer size at android app is 64K per single line atm.
         for line in message_list:
+            # TODO handle exception if comm breaks on send
             self.client_sock.send(str(msg_id)+' '+line.encode('utf-8')+
                                   LINEBREAK)
 
@@ -159,7 +160,7 @@ class RFCommServer:
 
     def split_cmd_to_buffer(self, cmd):
         """Split incoming commands with !EOL! """
-        rows = cmd.split(' !EOL! ')
+        rows = cmd.split(LINEBREAK)
         for i in rows:
             add = i.strip()
             if add != '':
@@ -172,9 +173,31 @@ class RFCommServer:
         self.nowpolls = 0
 
         # message id is first field in command, truncate from rest of command
-        id_header = cmd.split(' ')[0]
-        msg_id = int(id_header)
-        cmd = cmd[len(id_header)+1:]
+        cmd_split = cmd.split(' ')
+        msg_id = -1
+        payload_size = -1
+        error_cmd = False
+        if len(cmd_split) < 3:
+            error_cmd = True
+        else:
+            try:
+                msg_id = int(cmd_split[0])
+                payload_size = int(cmd_split[1])
+            except TypeError:
+                msg_id = -1
+                payload_size = -1
+                error_cmd = True
+            except ValueError:
+                msg_id = -1
+                payload_size = -1
+                error_cmd = True
+
+        if error_cmd:
+            self.parent.log.write(log.ERROR, "[ERROR] Protocol error: %s" %cmd)
+            return
+
+        cmd = cmd[len(cmd_split[0])+len(cmd_split[1])+2:]
+        payload = self.read_rows(payload_size)
 
         if self.mode != AUTHORIZED:
             # check if password has been sent
@@ -188,7 +211,9 @@ class RFCommServer:
                 self.disconnect()
         elif self.mode == AUTHORIZED:
             status, code, msg, res_list = \
-                self.parent.cmd.evalcmd(cmd, 'rfcomm')
+                self.parent.cmd.evalcmd(cmd, 'rfcomm', payload)
+            # TODO upon disconnect it may happen that disconnect has happend
+            # before send works --> exception?
             self.send_client(msg_id, status, code, msg, res_list)
             if status == evalcmd.STATUSEXIT or \
                     status == evalcmd.STATUSDISCONNECT:
@@ -203,8 +228,9 @@ class RFCommServer:
             return rows as list or empty list on BT error
         """
 
-        result = []
+        # TODO timeout mechanism
 
+        result = []
         while 1:
             if len(result) == count:
                 break

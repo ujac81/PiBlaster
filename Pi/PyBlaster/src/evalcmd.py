@@ -98,7 +98,7 @@ class EvalCmd:
 
         # end write_log_file() #
 
-    def evalcmd(self, cmdline, src='Unknonw'):
+    def evalcmd(self, cmdline, src='Unknonw', payload=[]):
         """Evaluate command and perform action
 
         Called by read_fifo() and RFCommServer.
@@ -155,14 +155,8 @@ class EvalCmd:
                 'keepalive',
                 '    reset disconnect poll count (noop)',
                 '',
-                'plappenddir <mode> <storid> <dirid>',
-                '    append directory to playlist',
-                '',
-                'plappendfile <mode> <storid> <dirid> <fileid>',
-                '    append directory to playlist',
-                '',
-                'plappendmultiple <mode> <num_rows>',
-                '    receive num_rows append instructions (BLUETOOTH only)'
+                'plappendmultiple <mode>',
+                '    receive append instructions (BLUETOOTH only)'
                 '',
                 'plclear',
                 '    clear current playlist and start up new one',
@@ -246,12 +240,12 @@ class EvalCmd:
         elif cmd == "lsfiles":
             if len(line) != 3:
                 ret_stat = ERRORARGS
-                ret_msg    = "lsfiles needs 2 args"
+                ret_msg  = "lsfiles needs 2 args"
             else:
                 stor = self.parent.usb.get_dev_by_storid(int_args[1])
                 if stor is None:
                     ret_stat = ERRORARGS
-                    ret_msg    = "illegal storage id"
+                    ret_msg  = "illegal storage id"
                 else:
                     ret_list = stor.list_files(int_args[2])
                     ret_code = LS_FILES
@@ -278,37 +272,20 @@ class EvalCmd:
             # in RFCommServer.read_command()
             ret_msg = "OK"
 
-        # # # # plappenddir # # # #
-
-        elif cmd == "plappenddir":
-            if len(line) != 3 or int_args[1] is None or int_args[2] is None:
-                ret_stat = ERRORARGS
-                ret_msg  = "plappenddir needs 3 args"
-            else:
-                num_ins = self.parent.listmngr.insert_dir(
-                    ids=[int_args[1], int_args[2]])
-                ret_list=[num_ins]
-                ret_msg = "%d items appended to playlist" % num_ins
-
         # # # # plappendmultiple # # # #
 
         elif cmd == "plappendmultiple":
-            if len(line) != 3 or int_args[1] is None or int_args[2] is None:
+            if len(line) != 2 or int_args[1] is None:
                 ret_stat = ERRORARGS
-                ret_msg  = "plappendmultiple needs 3 args"
+                ret_msg  = "plappendmultiple needs 2 args"
             elif src != 'rfcomm':
                 ret_stat = ERROREVAL
                 ret_msg  = "plappendmultiple need to be called via BT"
             else:
-                rows = self.parent.rfcomm.read_rows(int_args[2])
-
-                if len(rows) == 0:
-                    # we got BT error
-                    ret_list=[]
-                    ret_msg = "COMM ERROR"
-                else:
-                    ret_list=[]
-                    ret_msg = "%d items appended to playlist" % len(rows)
+                added = self.parent.listmngr.append_multiple(payload,
+                                                             int_args[1])
+                ret_msg = "%d items appended to playlist" % added
+                ret_code = PL_ADD_OK
 
         # # # # plclear # # # #
 

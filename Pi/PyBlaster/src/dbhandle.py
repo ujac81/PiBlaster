@@ -9,7 +9,7 @@ import sqlite3
 
 import log
 
-DBVERSION = 18
+DBVERSION = 19
 
 
 class DBDirEntries:
@@ -93,7 +93,7 @@ class DBPlayLists:
     DropSyntax   = """DROP TABLE IF EXISTS Playlists;"""
     CreateSyntax = """CREATE TABLE Playlists(
         id INT, name TEXT, created INT, creator TEXT,
-        itemcount INT, position INT, state INT);"""
+        position INT, state INT);"""
 
     # end class DBPlayLists #
 
