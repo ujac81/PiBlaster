@@ -65,18 +65,11 @@ Rectangle {
         rfcomm.checkBluetoothOn();
     }
 
-    // key events
-    Keys.onPressed: {
-        if (event.key === Qt.Key_Back) {
-            event.accepted = true;
-            console.log("connect caught back event");
-            root.quit();
-        }
-    }
+    //////////////////////////// TRIGGERS ////////////////////////////
 
-    //////////////////////////// FUNCTIONS ////////////////////////////
-
-    // called by tab selector upon tab switching to this view.
+    /**
+     * Called upon tab select.
+     */
     function activated() {
         // var status = rfcommClient.connectionStatus;
         // if ( status >= 3 ) {
@@ -90,6 +83,17 @@ Rectangle {
 //            connected = true;
 //        }
     }
+
+    /**
+     * Triggered via main if this view is active and we got back key.
+     * If not on top dir, go up one dir, otherwise do not handle back event.
+     */
+    function handleBackKey() {
+        return false;
+    }
+
+    //////////////////////////// FUNCTIONS ////////////////////////////
+
 
     /**
      * Call RFCommMaster.connectBluetooth() or raise error message.
@@ -110,6 +114,7 @@ Rectangle {
     /// Disconnect from PI, always use this function, don't send 'disconnect' command directly.
     function disconnect() {
         /// @todo check if connected
+        console.log("invoking disconnect...");
         waitOverlay.close();
         rfcomm.execCommand('disconnect');
         conButton.enable();

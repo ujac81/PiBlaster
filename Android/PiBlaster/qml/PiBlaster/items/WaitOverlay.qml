@@ -109,13 +109,13 @@ Item {
         waitOverlay.focus = true;
     }
 
-    // if back key pressed while waiting, ask to quit.
-    Keys.onPressed: {
-        if (event.key === Qt.Key_Back) {
-            event.accepted = true;
+    // If wait overlay is active and back key was pressed, ask to quit
+    function handleBackKey() {
+        if ( waitOverlay.opacity != 0 ) {
             console.log("wait overlay caught back event");
             breakWaitAndExit.show();
+            return true;
         }
+        return false;
     }
-
 }

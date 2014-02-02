@@ -272,27 +272,13 @@ Rectangle {
         BrowseList{ id: browseList }
     }
 
-    /// key events
-    Keys.onPressed: {
-
-        // back key: dir up on subdir, switch to connect on root dir
-        if (event.key === Qt.Key_Back) {
-            event.accepted = true;
-            if ( browseList.model.on_root_dir() )
-                root.tabview.tabbedUI.tabClicked(3);
-            else
-                browseList.model.dir_up();
-        }
-    }
-
 
     /**
      */
     Component.onCompleted: {
     }
 
-
-    //////////////////////////// HELPERS ////////////////////////////
+    //////////////////////////// TRIGGERS ////////////////////////////
 
     /**
      * Called upon tab select.
@@ -301,6 +287,19 @@ Rectangle {
     function activated() {
         connectOverlay.show();
     }
+
+    /**
+     * Triggered via main if this view is active and we got back key.
+     * If not on top dir, go up one dir, otherwise do not handle back event.
+     */
+    function handleBackKey() {
+        if ( browseList.model.on_root_dir() )
+            return false;
+        browseList.model.dir_up();
+        return true;
+    }
+
+    //////////////////////////// HELPERS ////////////////////////////
 
     /**
      * Raise wait overlay and invoke RFCOMMClient::sendPlaylistAdd().

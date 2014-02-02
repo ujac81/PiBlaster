@@ -106,7 +106,7 @@ public class RfcommClient extends org.qtproject.qt5.android.bindings.QtActivity
     private static Vector<String> m_bluetoothmessages = new Vector<String>();
 
 
-    // MAC for Pi bluetooth device, set via APP settings
+    // MAC for Pi bluetooth device, set via app settings
     private static String m_pibt_address = "00:1A:7D:DA:71:14";
     // UUID for pyblaster service
     private static final UUID MY_UUID = UUID.fromString("94f39d29-7d6d-437d-973b-fba39e49d4ee");
@@ -306,10 +306,14 @@ public class RfcommClient extends org.qtproject.qt5.android.bindings.QtActivity
             return line;
         }
 
-        char[] buffer = new char[1024];
+        // could be nice to use readline, but plain read using
+        // 64K buffer seems to work, may need to try for
+        // really large directories
+
+        char[] buffer = new char[64*1024];
         StringBuilder out = new StringBuilder();
         try {
-            int bytes = in.read(buffer, 0, 1024);
+            int bytes = in.read(buffer, 0, 64*1024);
             if (bytes > 0) {
                 out.append(buffer, 0, bytes);
                 line = out.toString();

@@ -147,6 +147,9 @@ class RFCommServer:
                               (msg_id, status, code, len(message_list),msg))
         self.client_sock.send(str(msg_id)+' '+str(status)+' '+str(code)+' '+
                               str(len(message_list))+' '+msg+LINEBREAK)
+
+        # TODO for really large payloads maybe we need to send bursts
+        # recv buffer size at android app is 64K per single line atm.
         for line in message_list:
             self.client_sock.send(str(msg_id)+' '+line.encode('utf-8')+
                                   LINEBREAK)

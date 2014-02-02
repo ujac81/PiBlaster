@@ -62,6 +62,10 @@ Rectangle {
         tabsModel.children[tabIndex].activated();
     }
 
+    function handleBackKey() {
+        tabsModel.children[tabIndex].handleBackKey();
+    }
+
 
     // top tab bar
     Rectangle {

@@ -40,4 +40,10 @@ Rectangle {
         anchors.fill: parent
     }
 
+
+
+    function connectTab() { return tabview.tabsModel.children[3]; }
+
+    function currentTab() { return tabsModel.children[tabUI.tabIndex]; }
+
 }

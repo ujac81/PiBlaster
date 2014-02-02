@@ -26,6 +26,9 @@ public:
 
     void showExpanded();
 
+    void keyPressEvent( QKeyEvent *e );
+    void keyReleaseEvent(QKeyEvent *e);
+
 private:
     class QtQuick2ApplicationViewerPrivate *d;
 };

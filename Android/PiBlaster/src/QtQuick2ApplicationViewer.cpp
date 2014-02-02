@@ -13,6 +13,10 @@
 #include <QtCore/QCoreApplication>
 #include <QtCore/QDir>
 #include <QtQml/QQmlEngine>
+#include <QQuickItem>
+
+#include <qdebug.h>
+
 
 class QtQuick2ApplicationViewerPrivate
 {
@@ -65,11 +69,6 @@ QtQuick2ApplicationViewer::~QtQuick2ApplicationViewer()
 void QtQuick2ApplicationViewer::setMainQmlFile(const QString &file)
 {
     d->mainQmlFile = QtQuick2ApplicationViewerPrivate::adjustPath(file);
-//#if defined(Q_OS_ANDROID) && !defined(Q_OS_ANDROID_NO_SDK)
-//    setSource(QUrl(QLatin1String("assets:/")+d->mainQmlFile));
-//#else
-//    setSource(QUrl::fromLocalFile(d->mainQmlFile));
-//#endif
     setSource(QUrl(d->mainQmlFile));
 }
 
@@ -86,3 +85,18 @@ void QtQuick2ApplicationViewer::showExpanded()
     show();
 #endif
 }
+
+void QtQuick2ApplicationViewer::keyPressEvent( QKeyEvent* e )
+{
+    if( e->key() != Qt::Key_Back ) // pass on everything but the back key
+        QQuickView::keyPressEvent( e );
+}
+
+void QtQuick2ApplicationViewer::keyReleaseEvent( QKeyEvent* e )
+{
+    if( e->key() != Qt::Key_Back ) // pass on everything but the back key
+        QQuickView::keyPressEvent( e );
+    else
+        QMetaObject::invokeMethod( rootObject(), "handleBackPressed" );
+}
+

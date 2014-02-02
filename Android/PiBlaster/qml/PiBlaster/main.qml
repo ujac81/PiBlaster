@@ -103,37 +103,24 @@ Rectangle {
         anchors.bottom: statusBar.top
     }
 
-    // key events
-    Keys.onPressed: {
-
-        if (event.key === Qt.Key_Back) {
-            event.accepted = true;
-
-            // TODO disconnect?
-            console.log("main caught back event");
-
-            quit();
-        }
-    }
-
 
     Component.onCompleted: {
 
         // emitted by RFCommSendThread if send to BT socket ok
-        rfcomm.commandSent.connect(messageSent)
+        rfcomm.commandSent.connect(messageSent);
 
         // emitted by RFCommSendThread if send to BT socket not ok
         // emitted by RFCommRecvThread if socket broken
-        rfcomm.commBroken.connect(commBroken)
+        rfcomm.commBroken.connect(commBroken);
 
         // emitted by RFCommMaster after checking bluetooth
-        rfcomm.bluetoothState.connect(bluetoothState)
+        rfcomm.bluetoothState.connect(bluetoothState);
 
         // emitted by RFCommMaster after checking bluetooth
-        rfcomm.bluetoothMessage.connect(bluetoothMessage)
+        rfcomm.bluetoothMessage.connect(bluetoothMessage);
 
         // emitted by RFCommRecvThread for each incomming message
-        rfcomm.receivedMessage.connect(messageRecvd)
+        rfcomm.receivedMessage.connect(messageRecvd);
 
         console.log("main completed.");
     }
@@ -146,6 +133,15 @@ Rectangle {
         id: waitOverlay
         parent: root
     }
+
+    MessageWindow {
+        id: quitQuestion
+        boxHeight: 300
+        caption: "Leave Application"
+        text: "Do you want to exit PiBlaster Remote App?"
+        onAccepted: root.quit();
+    }
+
 
     ////////////////// COMMUNICATION //////////////////
 
@@ -192,17 +188,32 @@ Rectangle {
      * Tries to disconnect bluetooth.
      */
     function quit() {
-
         console.log("leaving...");
-
         tabview.tabsModel.children[3].disconnect();
-
-        Qt.quit()
+        Qt.quit();
     }
 
     function log_error(msg) {
         /// @todo add to log
         // status = msg;
+    }
+
+
+    /**
+     * Back key handling in QML does not work properly.
+     * Back key is handled in the C++ part which calls this
+     * function if back key is released.
+     */
+    function handleBackPressed()
+    {
+        console.log("handleBackPressed caught back button");
+
+        // ask wait overlay 1st to catch back key
+        if ( ! waitOverlay.handleBackKey() )
+            // if active tab returns true, it used the back event
+            if ( ! tabview.currentTab().handleBackKey() )
+                // back event was unused -- ask to quit
+                quitQuestion.show();
     }
 
 
