@@ -48,7 +48,6 @@ public:
      * @brief Send plain command to PyBlaster via bluetooth
      * Fire up new RFCommSendThread to send message.
      * Message will be received by RFCommRecvThread which will emit signal
-     * @return return 1 if send ok (comm not broken)
      */
     Q_INVOKABLE void execCommand( const QString& command );
 
@@ -58,6 +57,26 @@ public:
      * @return See return codes in RfcommClient.java. Should be 2 for clean connect
      */
     Q_INVOKABLE int connectBluetooth();
+
+
+    /**
+     * @brief Clear send payload buffer. To be used before execCommandWithPayload() and addToSendPayload().
+     * Send payload is used for commands with multiple lines like playlist add commands.
+     */
+    Q_INVOKABLE void clearSendPayload() { _sendPayload.clear(); }
+
+
+    /**
+     * @brief Add a line to send payload. To be used before execCommandWithPayload().
+     */
+    Q_INVOKABLE void addToSendPayload( const QString& add ) { _sendPayload.append( add ); }
+
+    /**
+     * @brief Send command with prepared payload to PyBlaster via bluetooth
+     * Fire up new RFCommSendThread to send message.
+     * Message will be received by RFCommRecvThread which will emit signal.
+     */
+    Q_INVOKABLE void execCommandWithPayload( const QString& command );
 
 
 public slots:
@@ -88,6 +107,8 @@ private:
 
     RFCommRecvThread*   _recv;
     int                 _msgId;
+
+    QList<QString>      _sendPayload;
 
 
 

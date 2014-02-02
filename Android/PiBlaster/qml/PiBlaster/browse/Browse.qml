@@ -53,7 +53,7 @@ Rectangle {
 
             anchors.centerIn: parent
             width: 300
-            height: 400
+            height: 300
 
             Rectangle {
                 id: header
@@ -117,12 +117,6 @@ Rectangle {
                     text: "Insert after current"
                     width: parent.width
                     onPressed: addDialog.append(1);
-                }
-                Button {
-                    id: browseInsertRandom
-                    text: "Random insert"
-                    width: parent.width
-                    onPressed: addDialog.append(2);
                 }
             }
         }
@@ -311,19 +305,17 @@ Rectangle {
         waitOverlay.text = "Please stand by while adding to playlist...";
         waitOverlay.show();
 
-        // browseList.model.push_to_playlist_send_list(add_mode)
-        // rfcommClient.sendPlaylistAdd();
-
-        // waitOverlay will now block view until signal from rfcommClient received
+        browseList.model.push_to_playlist_send_list(add_mode)
+        // waitOverlay will now block view until signal from rfcomm received
     }
 
     /**
      * Hide wait overlay after send operation is done.
-     * Invoked if rfcommClient emits addToPlaylistFinished
+     * Invoked if playlist add code received
      */
-    function addFinished(msg) {
+    function addFinished(status, msg) {
         waitOverlay.close();
-        // root.status = rfcommClient.statusMessage();
+        root.log_status( msg );
     }
 
     /// called by main on receive of showdevice data

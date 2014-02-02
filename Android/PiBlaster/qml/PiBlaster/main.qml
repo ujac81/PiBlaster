@@ -166,13 +166,15 @@ Rectangle {
                     ", payload_size="+msg.payloadSize()+", msg="+msg.message());
 
         if ( msg.code() == 1 ) {
-            tabview.tabsModel.children[3].passwordOk();
+            tabview.connectTab().passwordOk();
         } else if ( msg.code() == 2 ) {
-            tabview.tabsModel.children[3].passwordWrong();
+            tabview.connectTab().passwordWrong();
         } else if ( msg.code() == 101 ) {
-            tabview.tabsModel.children[1].received_showdev_data(msg);
+            tabview.browseTab().received_showdev_data(msg);
         } else if ( msg.code() == 102 ) {
-            tabview.tabsModel.children[1].received_dir_data(msg);
+            tabview.browseTab().received_dir_data(msg);
+        } else if ( msg.code() == 201) {
+            tabview.browseTab().addFinished(msg.status(), msg.message());
         }
     }
 
@@ -189,13 +191,18 @@ Rectangle {
      */
     function quit() {
         console.log("leaving...");
-        tabview.tabsModel.children[3].disconnect();
+        tabview.connectTab().disconnect();
         Qt.quit();
     }
 
     function log_error(msg) {
         /// @todo add to log
         // status = msg;
+    }
+
+
+    function log_status(msg) {
+        root.status = msg;
     }
 
 

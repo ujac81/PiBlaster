@@ -41,8 +41,8 @@ Rectangle {
     }
 
 
-
-    function connectTab() { return tabview.tabsModel.children[3]; }
+    function connectTab() { return tabsModel.children[3]; }
+    function browseTab() { return tabsModel.children[1]; }
 
     function currentTab() { return tabsModel.children[tabUI.tabIndex]; }
 

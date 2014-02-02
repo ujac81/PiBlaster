@@ -21,7 +21,7 @@ Item {
 
     MessageWindow {
         id: breakWaitAndExit
-        boxHeight: 400
+        boxHeight: 250
         z: 120
         caption: "Exit application"
         text: "App is in wait mode. Stop waiting and leave?"

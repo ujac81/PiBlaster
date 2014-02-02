@@ -74,7 +74,21 @@ void RFCommMaster::gotMessage(RFCommMessageObject msg)
 void RFCommMaster::execCommand( const QString& command )
 {
     _msgId++;
-    RFCommSendThread* send = new RFCommSendThread( this, _msgId, command );
+    QList<QString> noPayload;
+    RFCommSendThread* send = new RFCommSendThread( this, _msgId, command, noPayload );
+    connect( send, &RFCommSendThread::commandSent, this, &RFCommMaster::commandSent );
+    connect( send, &RFCommSendThread::commBroken, this, &RFCommMaster::commBroken );
+    connect( send, &RFCommSendThread::finished, send, &QObject::deleteLater );
+    send->start();
+}
+
+
+void RFCommMaster::execCommandWithPayload( const QString& command )
+{
+    /// @todo prevent other exec command call while sending payload.
+    /// Should never happen, but if communication will be messed up.
+    _msgId++;
+    RFCommSendThread* send = new RFCommSendThread( this, _msgId, command, _sendPayload );
     connect( send, &RFCommSendThread::commandSent, this, &RFCommMaster::commandSent );
     connect( send, &RFCommSendThread::commBroken, this, &RFCommMaster::commBroken );
     connect( send, &RFCommSendThread::finished, send, &QObject::deleteLater );

@@ -144,33 +144,35 @@ ListModel {
     }
 
 
-//    /**
-//     * Invoke playlist append function
-//     * Args:
-//     *  - 1: append to playlist
-//     *  - 2: append after current
-//     *  - 3: random insert
-//     */
-//    function push_to_playlist_send_list(add_mode)
-//    {
-//        console.log("addToPlaylist("+add_mode+") called.");
+    /**
+     * Invoke playlist append function
+     * Args:
+     *  - 1: append to playlist
+     *  - 2: append after current
+     *  - 3: random insert
+     */
+    function push_to_playlist_send_list(add_mode)
+    {
+        console.log("addToPlaylist("+add_mode+") called.");
 
-//        rfcommClient.preparePlaylistAdd(add_mode);
+        rfcomm.clearSendPayload();
 
-//        for ( var i = 0; i < count; i++ )
-//        {
-//            var elem = get(i);
-//            if ( elem.selected )
-//            {
-//                if ( elem.type == 1 )
-//                    rfcommClient.addPlaylistItem("DIR "+elem.storid+" "+elem.dirid);
-//                else if ( elem.type == 2 )
-//                    rfcommClient.addPlaylistItem("FILE "+elem.storid+" "+elem.dirid+" "+elem.fileid);
-//            }
-//        }
+        for ( var i = 0; i < count; i++ )
+        {
+            var elem = get(i);
+            if ( elem.selected )
+            {
+                if ( elem.type == 1 )
+                    rfcomm.addToSendPayload("DIR "+elem.storid+" "+elem.dirid);
+                else if ( elem.type == 2 )
+                    rfcomm.addToSendPayload("FILE "+elem.storid+" "+elem.dirid+" "+elem.fileid);
+            }
+        }
 
-//        deselect_all();
-//    }
+        deselect_all();
+
+        rfcomm.execCommandWithPayload("plappendmultiple "+add_mode);
+    }
 
     /**
      * Set all selected properties to false in current view.
