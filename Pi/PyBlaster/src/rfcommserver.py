@@ -212,13 +212,24 @@ class RFCommServer:
         elif self.mode == AUTHORIZED:
             status, code, msg, res_list = \
                 self.parent.cmd.evalcmd(cmd, 'rfcomm', payload)
-            # TODO upon disconnect it may happen that disconnect has happend
-            # before send works --> exception?
-            self.send_client(msg_id, status, code, msg, res_list)
+
+            send_failed = False
+            try:
+                self.send_client(msg_id, status, code, msg, res_list)
+            except bluetooth.btcommon.BluetoothError:
+                self.parent.log.write(log.ERROR,
+                    "Failed to send to client -- disconnected? "\
+                    "Restarting server...")
+                self.disconnect()
+                send_failed = True
+
             if status == evalcmd.STATUSEXIT or \
                     status == evalcmd.STATUSDISCONNECT:
-                self.parent.log.write(log.MESSAGE, "Got disconnect command.")
-                self.disconnect()
+                if not send_failed:
+                    # already called if send_failed
+                    self.parent.log.write(log.MESSAGE,
+                                          "Got disconnect command.")
+                    self.disconnect()
 
         # end read_command() #
 
@@ -235,18 +246,26 @@ class RFCommServer:
             if len(result) == count:
                 break
 
-            data = None
-            try:
-                data = self.client_sock.recv(1024)
-            except bluetooth.btcommon.BluetoothError:
-                return []
-
-            self.split_cmd_to_buffer(data)
-
+            # 1st try to read buffers for pending instructions
             while len(self.cmdbuffer):
                 if len(result) == count:
                     break
                 result.append(self.cmdbuffer.pop(0))
+
+            if len(result) == count:
+                break
+
+            # if read buffer is empty, try receiving new instructions
+            data = None
+            try:
+                data = self.client_sock.recv(1024)
+            except bluetooth.btcommon.BluetoothError:
+                # WARNING: this will eliminate the payload! Problem?
+                # TODO: maybe timeout or other stuff
+                return []
+
+            if data is not None:
+                self.split_cmd_to_buffer(data)
 
         return result
 

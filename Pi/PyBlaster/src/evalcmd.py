@@ -127,8 +127,8 @@ class EvalCmd:
         ret_code = -1
         ret_list = []
 
-        self.parent.log.write(log.MESSAGE, "Eval cmd [%s]: %s" %
-                              (src, " || ".join(line)))
+        self.parent.log.write(log.MESSAGE, "Eval cmd [%s]: %s; "\
+            "payload size: %d" % (src, " || ".join(line), len(payload)))
 
         # Command evaluation, starting with 'help', then in alphabetical order.
 

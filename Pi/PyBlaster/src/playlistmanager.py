@@ -24,7 +24,6 @@ class PlayListManager:
         random.seed()
         self.parent   = parent
         self.playlist = [] # needed on startup in usb_connected()
-        self.last_ins_pos = 0 # position of last insert (for append mode)
 
         # end __init__() #
 
@@ -433,54 +432,37 @@ class PlayListManager:
         """
 
         list_id = 0
+        append_list = []
 
-        state = self.get_playlist_state(list_id) + 1
-        added = 0
-        self.last_ins_pos = self.get_playlist_position(list_id)
-        if add_mode == 0:
-            # insert at end
-            self.last_ins_pos = self.get_playlist_last_position(list_id)
+        self.parent.led.set_led_yellow(1)
 
+        # append_file() wastes database pointer, so we need to
+        # create a list first (read-only) and then append
+        # items to playlist
         for line in add_instructions:
             instruction = line.split(' ')
             if instruction[0] == 'DIR':
                 stor_id = int(instruction[1])
                 dir_id = int(instruction[2])
-                # append_file() wastes database pointer, so we need to
-                # create a list first (read-only) and then append
-                # items to playlist
-                append_list = []
-                self.append_dir(list_id, append_list, stor_id, dir_id,
-                                add_mode, state)
-                for item in append_list:
-                    added += self.append_file(list_id, item[0], item[1],
-                                              item[2], add_mode, state)
+                self.scan_dir(append_list, list_id, stor_id, dir_id)
             elif instruction[0] == 'FILE':
                 stor_id = int(instruction[1])
                 dir_id = int(instruction[2])
                 file_id = int(instruction[3])
-                added += self.append_file(list_id, stor_id, dir_id, file_id,
-                                          add_mode, state)
+                append_list.append([stor_id, dir_id, file_id])
             else:
                 self.parent.log.write(log.ERROR,
                     "[PLAYLISTMNGR]: Unknown add command %s in " \
                     "append_multiple()" % (instructions[0]))
 
-
-        self.set_playlist_state(list_id, state)
-        self.parent.dbhandle.con.commit()
-
+        added = self.multi_append(list_id, append_list, add_mode)
         self.parent.led.set_led_yellow(0)
-
-        self.parent.log.write(log.ERROR,
-            "[PLAYLISTMNGR]: Added %d items for playlist %d with state %d" %
-            (added, list_id, state))
 
         return added
 
         # end append_multiple() #
 
-    def append_dir(self, app_list, list_id, stor_id, dir_id, add_mode, state):
+    def scan_dir(self, app_list, list_id, stor_id, dir_id):
         """
         """
         # need to copy subdirs to list, because recursion will break DB cursor
@@ -492,65 +474,65 @@ class PlayListManager:
 
         # dive into sub dirs
         for item in sub_dirs:
-            self.append_dir(list_id, app_list, stor_id, item, add_mode, state)
-
-        # add files for this dir
-        self.parent.log.write(log.DEBUG1,
-            "DEBUG adding recursively dir %d %d" % (stor_id, dir_id))
+            self.scan_dir(app_list, list_id, stor_id, item)
 
         for row in self.parent.dbhandle.cur.execute(
                 "SELECT id FROM Fileentries WHERE usbid=? AND dirid=? "\
                 "ORDER BY id", (stor_id, dir_id)):
-            print("--- FILE %s %s %s" % ( stor_id, dir_id, row[0]))
-            app_list += [[stor_id, dir_id, row[0]]]
+            app_list.append([stor_id, dir_id, row[0]])
 
 
-    def append_file(self, list_id, stor_id, dir_id, file_id, add_mode, state):
+    def multi_append(self, list_id, id_list, add_mode):
         """
         """
+        if len(id_list) == 0:
+            return
 
-        self.parent.dbhandle.cur.execute(
-            "SELECT path, disptitle FROM Fileentries "\
-            "WHERE usbid=? AND dirid=? AND id=?",
-            (stor_id, dir_id, file_id,))
-        res = self.parent.dbhandle.cur.fetchall()
-        if len(res) == 0:
-            # TODO error file not found in DB
-            return 0
-
-        path = res[0][0]
-        title = res[0][1]
-
-        # self.last_ins_pos is correctly set for both append modes
-        # in append_multiple()
-        insert_pos = self.last_ins_pos + 1
+        insert_pos = 0
+        self.parent.led.set_led_yellow(1)
+        state = self.get_playlist_state(list_id) + 1
 
         if add_mode == 1:
-            # insert into playlist -> raise position for items past insert pos
+            # insert after current, raise position numbers for
+            # items with index above insertion point
+            insert_pos = self.get_playlist_position(list_id) + 1
+            insert_count = len(id_list)
             self.parent.dbhandle.cur.execute(
-                "UPDATE Playlistentries set position=position+1 WHERE "\
-                "playlistid=? AND position>=?", (list_id, insert_pos))
+                "UPDATE Playlistentries set position=position+? WHERE "\
+                "playlistid=? AND position>=?",
+                (insert_count, list_id, insert_pos))
+        else:
+            insert_pos = self.get_playlist_last_position(list_id) + 1
 
-        self.parent.dbhandle.cur.execute(
-            "INSERT INTO Playlistentries VALUES (?,?,?,?,?,?,?,?,?,?)",
-            (list_id, insert_pos, stor_id, self.parent.usb.revision(stor_id),
-             dir_id, file_id, 0, title, path, state))
+        for item in id_list:
+            self.parent.dbhandle.cur.execute(
+                "SELECT path, disptitle FROM Fileentries "\
+                "WHERE usbid=? AND dirid=? AND id=?",
+                (item[0], item[1], item[2],))
+            res = self.parent.dbhandle.cur.fetchall()
+            if len(res) == 0:
+                # TODO error file not found in DB
+                continue
+            path = res[0][0]
+            title = res[0][1]
 
-        # need to commit while adding because position ids change
-        # while adding. If too slow, need to change....
+            self.parent.dbhandle.cur.execute(
+                "INSERT INTO Playlistentries VALUES (?,?,?,?,?,?,?,?,?,?)",
+                (list_id, insert_pos, item[0],
+                 self.parent.usb.revision(item[0]),
+                 item[1], item[2], 0, title, path, state))
+            insert_pos += 1
+
+        self.set_playlist_state(list_id, state)
+
         self.parent.dbhandle.con.commit()
-        self.last_ins_pos = insert_pos
+        self.parent.led.set_led_yellow(0)
 
-        self.parent.led.toggle_led_yellow()
+        self.parent.log.write(log.ERROR,
+            "[PLAYLISTMNGR]: Added %d items for playlist %d with state %d" %
+            (len(id_list), list_id, state))
 
-        return 1
+        return len(id_list)
 
-
-
-
-
-
-
-
-
+        # end multi_append() #
 

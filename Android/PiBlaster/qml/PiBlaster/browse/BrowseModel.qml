@@ -6,6 +6,7 @@ ListModel {
 
     property var parentDir: new Array()
 
+
     function clearAll() {
         clear();
     }
