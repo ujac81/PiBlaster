@@ -317,58 +317,44 @@ class PlayListManager:
 
         # end usb_connected() #
 
-    def insert_item(self, ids, position=-1,
-                    random_insert=False, after_current=False):
-        """Push back item from database to playlist.
-
-        Keywords:
-            ids             -- [usbstorid, dirid, fileid] from database]
-            position        -- insert position in playlist if not random
-                               and not after_current
-            random_insert   -- put somewhere in playlist
-            after_current   -- insert after current track
-
-        Returns: True if insert ok.
-        """
-
-        #self.save_active()
-        return True
-
     def list_playlist(self,
-                      playlist=0,
-                      printformat="||$artist$||$title$||$length$||",
-                      max_items=1000, start_at=0):
+                      list_id=0,
+                      start_at=0,
+                      max_items=1000,
+                      printformat=0):
         """Show current playlist
 
         Keywords:
-            playlist    -- print playlist #id (0 = current playlist)
-            printformat -- see PlayListItem.print_item() for format info
-            max_items   -- do not show more than N items
+            list_id     -- print playlist #id (0 = current playlist)
             start_at    -- start displaying at position N
+            max_items   -- do not show more than N items
+            printformat -- unused now
 
-        Returns string list: [Position, item count, item0, item1, ... itemN-1]
+        Returns string list: [||...||...||]
         """
 
-        #res = [0, 0]
+        connected_usbs = self.parent.usb.connected_usbids()
+        if not connected_usbs:
+            return []
 
-        #if playlist == 0:
-            #res = [self.playlist_pos, 0]
+        use_cols = "position, played, disptitle"
+        # TODO if print format differs, change cols
 
-            #for i in range(start_at,
-                           #min(len(self.playlist), start_at+max_items)):
-                #if self.playlist[i].is_connected:
-                    #res.append(self.playlist[i].print_self(printformat))
+        usb_list = ",".join(map(str, connected_usbs))
 
-        #else:
-            #for row in self.parent.dbhandle.cur.execute(
-                    #"SELECT disptitle FROM Playlistentries WHERE playlistid=?"\
-                     #" ORDER BY entryin LIMIT ? OFFSET ?",
-                    #(playlist, max_items, start_at,) ):
-                #res.append(row[0])
+        # I know this is not nice, but works
+        statement = "SELECT %s FROM Playlistentries WHERE "\
+            "playlistid=%d AND usbid IN (%s) AND position>=%d LIMIT %d" % \
+            (use_cols, list_id, usb_list, start_at, max_items)
 
-        #res[1] = len(res) - 2
+        res = []
+        for row in self.parent.dbhandle.cur.execute( statement ):
+            #"SELECT ? FROM Playlistentries WHERE playlistid=? AND "\
+            #"usbid IN (?) AND position>=? LIMIT ?",
+            #(use_cols, list_id, usb_list, start_at, max_items, )):
+            res.append(u"||%d||%s||%s||" % (row[0], row[1], row[2]))
 
-        #return res
+        return res
 
         # end list_playlist() #
 
@@ -520,7 +506,7 @@ class PlayListManager:
                 "INSERT INTO Playlistentries VALUES (?,?,?,?,?,?,?,?,?,?)",
                 (list_id, insert_pos, item[0],
                  self.parent.usb.revision(item[0]),
-                 item[1], item[2], 0, title, path, state))
+                 item[1], item[2], title, 0, path, state))
             insert_pos += 1
 
         self.set_playlist_state(list_id, state)

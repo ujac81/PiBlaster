@@ -334,7 +334,7 @@ class DBHandle:
     def add_or_update_usb_stor(self, usbdevid, UUID, md5):
         """ Check if we have usbdev for UUID.
 
-        Ff then update md5, insert into db otherwise.
+        If found update md5, otherwise insert into db.
         """
 
         for row in self.cur.execute("SELECT UUID, md5, scanok FROM Usbdevs"):

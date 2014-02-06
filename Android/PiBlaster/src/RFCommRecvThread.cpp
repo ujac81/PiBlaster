@@ -39,8 +39,6 @@ void RFCommRecvThread::messageDone( int id, RFCommMessageObject* msg )
     assert( _recvBuffer.find( id ) != _recvBuffer.end() );
     assert( msg->payloadComplete() );
 
-    msg->preparePayloadElements();
-
     emit gotMessage( *msg );
     delete msg;
     _recvBuffer.erase( id );

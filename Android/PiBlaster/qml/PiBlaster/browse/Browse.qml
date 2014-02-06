@@ -14,6 +14,8 @@ Rectangle {
     color: "transparent"
     focus: true
 
+    property alias pathText: pathText.text
+
 
     //////////////////////////// OVERLAYS ////////////////////////////
 
@@ -184,7 +186,7 @@ Rectangle {
             else
             {
                 opacity = 0;
-                browseList.model.request_load("root");
+                browseList.model.request_load("root", "root");
             }
         }
     }
@@ -215,7 +217,7 @@ Rectangle {
                 height: parent.height
                 MouseArea {
                     anchors.fill: parent
-                    onClicked: browseList.model.request_load("root")
+                    onClicked: browseList.model.request_load("root", "root")
                 }
             }
             Image {
@@ -254,11 +256,36 @@ Rectangle {
         }
     }
 
+    ////////////// path field //////////////
+
+    Rectangle {
+        id: pathBox
+        anchors.top: browseToolBar.bottom
+        width: parent.width
+        color: "#22222222"
+        height: 2 * root.baseFontSize
+
+        Text {
+            id: pathText
+            text: "PATH HERE"
+            font.pixelSize: root.baseFontSize
+            verticalAlignment: Text.AlignVCenter
+            elide: Text.ElideLeft
+
+            function changePath(path) {
+                text = path;
+            }
+
+            Component.onCompleted: browseList.model.onPathChanged.connect(changePath);
+        }
+    }
+
+
     ////////////// central list view //////////////
 
     Rectangle {
         id: browseBox
-        anchors.top: browseToolBar.bottom
+        anchors.top: pathBox.bottom
         anchors.bottom: parent.bottom
         width: parent.width
         color: "transparent"

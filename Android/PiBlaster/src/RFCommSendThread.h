@@ -17,13 +17,12 @@ Q_OBJECT
 public:
     RFCommSendThread( RFCommMaster* parent, int id, const QString& msg, const QList<QString>& payload );
 
-
     void run() Q_DECL_OVERRIDE;
-
 
 signals:
     void commandSent( QString );
     void commBroken( int );
+    void gotMessage( RFCommMessageObject );
 
 private:
 
@@ -31,9 +30,6 @@ private:
     int _id;
     QString _cmd;
     const QList<QString>& _payload;
-
-
-
 
 };
 

@@ -81,16 +81,14 @@ class EvalCmd:
 
         # end read_fifo() #
 
-    def write_log_file(self, cmd, status, msg, res_list):
+    def write_log_file(self, cmd, status, code, msg, res_list):
         """ Write result of evalcmd() to log file if exists"""
 
         if self.cmdout is None:
             return
 
         self.cmdout.write(">>> %s\n" % cmd)
-        self.cmdout.write("%d\n" % status)
-        self.cmdout.write("%s\n" % msg)
-        self.cmdout.write("%d\n" % len(res_list))
+        self.cmdout.write("%d %d %d %s\n" % (status, code, len(res_list), msg))
         for line in res_list:
             self.cmdout.write(u'%s\n' % line)
 
@@ -333,15 +331,18 @@ class EvalCmd:
 
         elif cmd == "plshow":
             if len(line) != 5 or int_args[1] is None or \
-                    int_args[2] is None or int_args[3] is None:
+                    int_args[2] is None or int_args[3] is None or \
+                    int_args[4] is None:
                 ret_stat = ERRORARGS
                 ret_msg  = "plshow needs 4 args"
             else:
                 ret_list = self.parent.listmngr.list_playlist(
-                    playlist=int_args[1],
+                    list_id=int_args[1],
                     start_at=int_args[2],
                     max_items=int_args[3],
                     printformat=line[4])
+                ret_msg = "OK"
+                ret_code = PL_SHOW
 
         # # # # plshow # # # #
 
@@ -403,7 +404,7 @@ class EvalCmd:
             ret_stat = ERRORUNKNOWN
             ret_msg  = "unknown command"
 
-        self.write_log_file(cmd, ret_stat, ret_msg, ret_list)
+        self.write_log_file(cmd, ret_stat, ret_code, ret_msg, ret_list)
 
         self.parent.log.write(log.MESSAGE, ">>> %s" % ret_msg)
         return [ret_stat, ret_code, ret_msg, ret_list]

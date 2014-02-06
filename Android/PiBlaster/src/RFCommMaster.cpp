@@ -65,8 +65,11 @@ int RFCommMaster::connectBluetooth()
 #endif
 }
 
-void RFCommMaster::gotMessage(RFCommMessageObject msg)
+void RFCommMaster::gotMessage( RFCommMessageObject msg )
 {
+    // PRO: payload is split here to save memory
+    // CON: This thread may block the main APP while splitting.
+    msg.preparePayloadElements();
     emit receivedMessage( &msg );
 }
 
@@ -79,6 +82,9 @@ void RFCommMaster::execCommand( const QString& command )
     connect( send, &RFCommSendThread::commandSent, this, &RFCommMaster::commandSent );
     connect( send, &RFCommSendThread::commBroken, this, &RFCommMaster::commBroken );
     connect( send, &RFCommSendThread::finished, send, &QObject::deleteLater );
+#ifdef DUMMY_MODE
+    connect( send, &RFCommSendThread::gotMessage, this, &RFCommMaster::gotMessage );
+#endif
     send->start();
 }
 
@@ -92,6 +98,9 @@ void RFCommMaster::execCommandWithPayload( const QString& command )
     connect( send, &RFCommSendThread::commandSent, this, &RFCommMaster::commandSent );
     connect( send, &RFCommSendThread::commBroken, this, &RFCommMaster::commBroken );
     connect( send, &RFCommSendThread::finished, send, &QObject::deleteLater );
+#ifdef DUMMY_MODE
+    connect( send, &RFCommSendThread::gotMessage, this, &RFCommMaster::gotMessage );
+#endif
     send->start();
 }
 

@@ -1,7 +1,7 @@
 
 QT += quick
 
-DUMMY_MODE = 0
+DUMMY_MODE = 1
 
 contains(DUMMY_MODE, 1) {
     message("Running in dummy mode")
@@ -26,6 +26,10 @@ HEADERS += \
     src/RFCommMessageObject.h \
     src/RFCommRecvThread.h \
     src/RFCommMaster.h
+
+contains(DUMMY_MODE, 1) {
+    SOURCES += src/DummyMessages.cpp
+}
 
 RESOURCES += images.qrc
 RESOURCES += qml.qrc

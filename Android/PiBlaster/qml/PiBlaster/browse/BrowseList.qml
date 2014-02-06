@@ -100,11 +100,11 @@ ListView {
                 }
             }
             onDoubleClicked: {
-                if ( browseList.model.get(index).type == 0 ) {
-                    browseList.model.request_load(browseList.model.get(index).storid+" 0");
-                } else if ( browseList.model.get(index).type == 1 ) {
-                    browseList.model.request_load(browseList.model.get(index).storid+" "+
-                                          browseList.model.get(index).dirid);
+                var elem = browseList.model.get(index);
+                if ( elem.type == 0 ) {
+                    browseList.model.request_load(elem.storid+" 0", elem.name);
+                } else if ( elem.type == 1 ) {
+                    browseList.model.request_load(elem.storid+" "+elem.dirid, elem.name);
                 }
             }
 //            onPressAndHold: {

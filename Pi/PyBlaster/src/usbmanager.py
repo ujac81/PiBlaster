@@ -25,7 +25,6 @@ class UsbManager:
         self.alldevs        = {}    # list of all attaches storage ids
                                     # (storid: usbdevice)
 
-
     def check_new_usb(self):
         """ Poll function, will check for new usb devices
 
@@ -133,7 +132,6 @@ class UsbManager:
 
         # end get_dev_by_strid() #
 
-
     def rescan_usb_stor(self, storid):
         """Drop USB device, drop all DB entries for this device and rescan it
 
@@ -160,8 +158,6 @@ class UsbManager:
 
         return storid in self.alldevs;
 
-
-
     def revision(self, storid):
         """Get revision number of file tree for device storid
 
@@ -175,6 +171,10 @@ class UsbManager:
             res = row[0]
 
         return res
+
+    def connected_usbids(self):
+        """Get list of connected storage ids"""
+        return self.alldevs.keys()
 
 
 

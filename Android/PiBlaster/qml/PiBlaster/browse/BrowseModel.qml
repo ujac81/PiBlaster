@@ -5,6 +5,9 @@ ListModel {
     id: browseModel
 
     property var parentDir: new Array()
+    property var parentPath: new Array()
+
+    signal pathChanged(string path)
 
 
     function clearAll() {
@@ -14,7 +17,8 @@ ListModel {
     function dir_up() {
         if (parentDir.length > 1) {
             parentDir.pop();
-            request_load(parentDir[parentDir.length-1]);
+            parentPath.pop();
+            request_load(parentDir[parentDir.length-1], "");
         }
     }
 
@@ -31,19 +35,28 @@ ListModel {
      * as QT signal.
      *
      */
-    function request_load(dir_id) {
+    function request_load(dir_id, dir_name) {
 
         clearAll(); // delete already upon request to prevent mutiple request while user should wait.
 
         // prevent doublets in parent dir list
-        if ( dir_id != parentDir[parentDir.length-1] )
-            parentDir.push(dir_id)
+        if ( dir_id != parentDir[parentDir.length-1] ) {
+            parentDir.push(dir_id);
+            if ( dir_name != "" ) parentPath.push(dir_name);
+        }
 
         if (dir_id == "root") {
             parentDir = ["root"];
+            parentPath = [];
             var status = rfcomm.execCommand("showdevices");
         } else {
             rfcomm.execCommand("lsfulldir "+dir_id);
+        }
+
+        if ( parentPath.length == 0 ) {
+            browseModel.pathChanged("root");
+        } else {
+            browseModel.pathChanged(parentPath.join("/"));
         }
 
     }

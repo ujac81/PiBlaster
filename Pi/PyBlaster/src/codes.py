@@ -17,3 +17,4 @@ LS_DIRS         = 103       # return on lsdirs command
 LS_FILES        = 104       # return on lsfiles command
 
 PL_ADD_OK       = 201       # answer on plappendmultiple
+PL_SHOW         = 202

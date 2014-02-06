@@ -7,6 +7,9 @@
 
 #ifndef DUMMY_MODE
     #include <QtAndroidExtras/QAndroidJniObject>
+#else
+    #include "RFCommMessageObject.h"
+    RFCommMessageObject* CreateDummyResponse( int id, const QString& cmd, const QList<QString>& payload );
 #endif
 
 
@@ -49,8 +52,13 @@ void RFCommSendThread::run()
         emit commandSent( _cmd );
     else
         emit commBroken( sendOk );
+#else
 
+    emit commandSent( _cmd );
 
+    RFCommMessageObject* msg = CreateDummyResponse( _id, _cmd, _payload );
+    emit gotMessage( *msg );
+    delete msg;
 
 #endif
 

@@ -62,6 +62,7 @@ public:
 
     /**
      * @brief Split each payload line by || and store results in payloadElements(i)
+     * Called in RFCommMaster before sendig to QML app
      */
     void preparePayloadElements()
     {
