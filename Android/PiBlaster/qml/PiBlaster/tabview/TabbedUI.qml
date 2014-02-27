@@ -8,7 +8,7 @@ Rectangle {
     color: "transparent"
     anchors.fill: parent
 
-    property int tabIndex : 3 // connect button should be selected on start
+    property int tabIndex : 0 // connect button should be selected on start
 
     property VisualItemModel tabsModel
 
@@ -82,9 +82,9 @@ Rectangle {
             width: parent.width
             id: topTabs
 
-            Tab { width: parent.width / 3; height: parent.height; index: 0; text: "Playlist" }
-            Tab { width: parent.width / 3; height: parent.height; index: 1; text: "Browse" }
-            Tab { width: parent.width / 3; height: parent.height; index: 2; text: "Search" }
+            Tab { width: parent.width / 3; height: parent.height; index: 0; text: "Play" }
+            Tab { width: parent.width / 3; height: parent.height; index: 1; text: "Playlist" }
+            Tab { width: parent.width / 3; height: parent.height; index: 2; text: "Browse" }
         }
     }
 
@@ -103,7 +103,7 @@ Rectangle {
             width: parent.width
             id: bottomTabs
 
-            Tab { width: parent.width / 3; height: parent.height; index: 3; text: "Connect" }
+            Tab { width: parent.width / 3; height: parent.height; index: 3; text: "Search" }
             Tab { width: parent.width / 3; height: parent.height; index: 4; text: "Log" }
             Tab { width: parent.width / 3; height: parent.height; index: 5; text: "Settings" }
         }

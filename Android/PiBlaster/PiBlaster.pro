@@ -1,7 +1,7 @@
 
 QT += quick
 
-DUMMY_MODE = 1
+DUMMY_MODE = 0
 
 contains(DUMMY_MODE, 1) {
     message("Running in dummy mode")
@@ -11,11 +11,6 @@ contains(DUMMY_MODE, 1) {
     QT += androidextras
     ANDROID_PACKAGE_SOURCE_DIR = $$PWD/android-sources
 }
-
-
-# Additional import path used to resolve QML modules in Creator's code model
-QML_IMPORT_PATH =
-
 
 SOURCES += src/main.cpp \
     src/RFCommSendThread.cpp \
@@ -61,4 +56,7 @@ OTHER_FILES += \
     qml/PiBlaster/connect/Connect.qml \
     qml/PiBlaster/browse/BrowseModel.qml \
     qml/PiBlaster/browse/BrowseList.qml \
-    qml/PiBlaster/browse/Browse.qml
+    qml/PiBlaster/browse/Browse.qml \
+    qml/PiBlaster/play/Play.qml \
+    qml/PiBlaster/playlist/PlayListModel.qml \
+    qml/PiBlaster/playlist/PlayListList.qml

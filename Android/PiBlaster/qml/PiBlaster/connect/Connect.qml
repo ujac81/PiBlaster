@@ -6,90 +6,76 @@ import "../items"
  * Connect view -- display (dis)connect buttons
  *
  */
-Rectangle {
-    id: connect
+Item {
+    id: connectOverlay
+    z: 111
+
+    // do not define parent to fill complete window
     anchors.fill: parent
-    color: "transparent"
+    visible: connectOverlay.opacity !== 0
+    // show() will raise opacity
+    opacity: 0
 
-    property bool connected: false
+    // Fill complete area with MouseArea to catch touch events
+    Rectangle {
+        anchors.fill: parent
+        id: overlay
+        color: "#000000"
+        opacity: 0.6
+        MouseArea { anchors.fill: parent }
+    }
 
+
+    Button {
+        id: conButton
+        text: "Connect"
+        onPressed: connectToPi()
+        anchors.centerIn: parent
+    }
 
     //////////////////////////// OVERLAYS ////////////////////////////
 
-    // Question dialog if dirs should be added.
-
-    MessageWindow {
-        id: noBluetooth
-        boxHeight: 400
-        caption: "No Bluetooth"
-        text: "PiBlaster Remote App was unable to detect bluetooth device or to connect to PyBlaster. Please check and retry connect."
+    WaitOverlay {
+        id: noBluetoothOver
+        z: 112
+        caption: "Bluetooth"
+        text: "No bluetooth device has been detected. Please enable bluetooth at application start. Press back key to leave application."
     }
 
-    MessageWindow {
-        id: wrongPassword
-        boxHeight: 400
-        caption: "Wrong Password"
-        text: "The PyBlaster daemon did not accept your password. Please set correct password and retry connect"
+    WaitOverlay {
+        id: connectOver
+        z: 112
+        caption: "Connecting"
+        text: "Please stand by while connecting."
+    }
+
+    WaitOverlay {
+        id: wrongPWOver
+        z: 112
+        caption: "Password"
+        text: "Password has not been accepted by PiBlaster. Please set correct password in settings."
     }
 
 
 
-    //////////////////////////// CENTRAL WINDOW ////////////////////////////
 
-
-    // buttons column
-    Column {
-        id: concol
-        anchors.centerIn: parent
-        spacing: 2 * root.buttonSpacing
-
-        Button {
-            id: conButton
-            text: "Connect"
-            onPressed: connectToPi()
-        }
-
-        Button {
-            id: disconButton
-            text: "Disconnect"
-            onPressed: disconnect();
-        }
-    }
 
     //////////////////////////// EVENTS ////////////////////////////
-
 
     Component.onCompleted: {
         root.status = "Not connected.";
         console.log("Checking BT...");
         rfcomm.checkBluetoothOn();
+        show();
     }
 
     //////////////////////////// TRIGGERS ////////////////////////////
 
     /**
-     * Called upon tab select.
-     */
-    function activated() {
-        // var status = rfcommClient.connectionStatus;
-        // if ( status >= 3 ) {
-            conButton.enable();
-            disconButton.enable();
-//            connected = true;
-//        } else {
-//            conButton.enable();
-//            disconButton.disable();
-//            root.status = "Disconnected.";
-//            connected = true;
-//        }
-    }
-
-    /**
-     * Triggered via main if this view is active and we got back key.
-     * If not on top dir, go up one dir, otherwise do not handle back event.
+     * just quit if back key pressed in not connected mode
      */
     function handleBackKey() {
-        return false;
+        root.quit();
     }
 
     //////////////////////////// FUNCTIONS ////////////////////////////
@@ -102,12 +88,10 @@ Rectangle {
      */
     function connectToPi() {
         if ( rfcomm.connectBluetooth() == 2 ) {
-            waitOverlay.caption = "Connecting";
-            waitOverlay.text = "Please stand by while connecting to PI...";
-            waitOverlay.show();
+            connectOver.show();
             rfcomm.execCommand("1234"); // TODO password from settings
         } else {
-            noBluetooth.show();
+            noBluetoothOver.show();
         }
     }
 
@@ -115,22 +99,37 @@ Rectangle {
     function disconnect() {
         /// @todo check if connected
         console.log("invoking disconnect...");
-        waitOverlay.close();
         rfcomm.execCommand('disconnect');
-        conButton.enable();
+        show();
     }
 
     /// Called by main if password ok code received
     function passwordOk() {
-        waitOverlay.close();
         root.status = "Connected.";
+        close();
     }
 
     /// Called by main if password ok code received
     function passwordWrong() {
-        waitOverlay.close();
         root.status = "Wrong password!";
-        wrongPassword.show();
+        wrongPWOver.show();
+    }
+
+    // animate opacity, 250ms to raise/fall
+    Behavior on opacity {
+        NumberAnimation { duration: 250 }
+    }
+
+    // close and hide window
+    function close() {
+        connectOver.close();
+        opacity = 0;
+    }
+
+    // invoke from outside to raise message
+    function show() {
+        opacity = 1;
+        wrongPWOver.close();
     }
 
 }

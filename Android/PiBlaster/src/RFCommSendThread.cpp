@@ -22,14 +22,21 @@ RFCommSendThread::RFCommSendThread( RFCommMaster *parent, int id, const QString&
 {}
 
 
+RFCommSendThread::RFCommSendThread( RFCommMaster *parent, int id, const QString& msg ) :
+    QThread( dynamic_cast<QObject*>(parent) ),
+    _parent( parent ),
+    _id( id ),
+    _cmd( msg )
+{}
+
+
 void RFCommSendThread::run()
 {
-
-    qDebug() << "Sending " << _id << " " << _cmd;
 
 #ifndef DUMMY_MODE
 
     QString cmd = QString::number( _id ) + " " + QString::number( _payload.size() ) + " " +  _cmd + " !EOL! ";
+    qDebug() << "Sending " << cmd;
 
     QAndroidJniObject javaCommand = QAndroidJniObject::fromString( cmd );
     int sendOk = QAndroidJniObject::callStaticMethod<jint>(

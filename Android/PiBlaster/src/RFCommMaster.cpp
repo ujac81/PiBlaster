@@ -77,8 +77,7 @@ void RFCommMaster::gotMessage( RFCommMessageObject msg )
 void RFCommMaster::execCommand( const QString& command )
 {
     _msgId++;
-    QList<QString> noPayload;
-    RFCommSendThread* send = new RFCommSendThread( this, _msgId, command, noPayload );
+    RFCommSendThread* send = new RFCommSendThread( this, _msgId, command );
     connect( send, &RFCommSendThread::commandSent, this, &RFCommMaster::commandSent );
     connect( send, &RFCommSendThread::commBroken, this, &RFCommMaster::commBroken );
     connect( send, &RFCommSendThread::finished, send, &QObject::deleteLater );

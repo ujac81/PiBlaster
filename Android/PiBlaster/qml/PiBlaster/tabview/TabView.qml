@@ -3,8 +3,8 @@
 import QtQuick 2.0
 
 import "../browse"
-import "../connect"
 import "../log"
+import "../play"
 import "../playlist"
 import "../search"
 import "../settings"
@@ -24,10 +24,10 @@ Rectangle {
 
         id: tabsModel
 
+        Play {}
         Playlist {}
         Browse {}
         Search {}
-        Connect {}
         Log {}
         Settings {}
 
@@ -41,8 +41,8 @@ Rectangle {
     }
 
 
-    function connectTab() { return tabsModel.children[3]; }
-    function browseTab() { return tabsModel.children[1]; }
+    function browseTab() { return tabsModel.children[2]; }
+    function playlistTab() { return tabsModel.children[1]; }
 
     function currentTab() { return tabsModel.children[tabUI.tabIndex]; }
 

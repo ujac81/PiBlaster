@@ -1,14 +1,16 @@
 
 import QtQuick 2.0
 
-import "tabview"
+import "connect"
 import "items"
+import "tabview"
 
 /**
  * Root for full App
  *
  * -- definition of constants
  * -- creates TabView
+ * -- creates overlay dialogs
  * -- handles global key events
  */
 Rectangle {
@@ -48,11 +50,6 @@ Rectangle {
     width: mainWidth
     height: mainHeight
     focus: true
-
-    MessageWindow {
-        id: messageWindow
-        visible: false
-    }
 
 
     // background color gradient -- all rectangles should be transparent
@@ -123,11 +120,18 @@ Rectangle {
         rfcomm.receivedMessage.connect(messageRecvd);
 
         console.log("main completed.");
+
+        connectOverlay.show();
     }
 
 
 
     ////////////////// OVERLAYS //////////////////
+
+    MessageWindow {
+        id: messageWindow
+        visible: false
+    }
 
     WaitOverlay {
         id: waitOverlay
@@ -140,6 +144,11 @@ Rectangle {
         caption: "Leave Application"
         text: "Do you want to exit PiBlaster Remote App?"
         onAccepted: root.quit();
+    }
+
+    Connect {
+        id: connectOverlay
+        parent: root
     }
 
 
@@ -166,15 +175,17 @@ Rectangle {
                     ", payload_size="+msg.payloadSize()+", msg="+msg.message());
 
         if ( msg.code() == 1 ) {
-            tabview.connectTab().passwordOk();
+            connectOverlay.passwordOk();
         } else if ( msg.code() == 2 ) {
-            tabview.connectTab().passwordWrong();
+            connectOverlay.passwordWrong();
         } else if ( msg.code() == 101 ) {
             tabview.browseTab().received_showdev_data(msg);
         } else if ( msg.code() == 102 ) {
             tabview.browseTab().received_dir_data(msg);
         } else if ( msg.code() == 201) {
             tabview.browseTab().addFinished(msg.status(), msg.message());
+        } else if ( msg.code() == 202) {
+            tabview.playlistTab().received_pl_data(msg);
         }
     }
 
@@ -191,7 +202,7 @@ Rectangle {
      */
     function quit() {
         console.log("leaving...");
-        tabview.connectTab().disconnect();
+        connectOverlay.disconnect();
         Qt.quit();
     }
 

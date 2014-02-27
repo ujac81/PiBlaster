@@ -17,5 +17,8 @@
         <file>qml/PiBlaster/browse/BrowseList.qml</file>
         <file>qml/PiBlaster/browse/Browse.qml</file>
         <file>qml/PiBlaster/main.qml</file>
+        <file>qml/PiBlaster/play/Play.qml</file>
+        <file>qml/PiBlaster/playlist/PlayListList.qml</file>
+        <file>qml/PiBlaster/playlist/PlayListModel.qml</file>
     </qresource>
 </RCC>

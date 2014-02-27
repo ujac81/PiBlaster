@@ -16,6 +16,7 @@ Q_OBJECT
 
 public:
     RFCommSendThread( RFCommMaster* parent, int id, const QString& msg, const QList<QString>& payload );
+    RFCommSendThread( RFCommMaster* parent, int id, const QString& msg );
 
     void run() Q_DECL_OVERRIDE;
 

@@ -157,22 +157,22 @@ RFCommMessageObject* CreateDummyResponse( int id, const QString& cmd, const QLis
         msg = QString::number( inPayload.size() ) + " items added to playlist";
         code = 201;
     }
-    else if ( cmd == "plshow 0 0 1000 0" )
+    else if ( cmd == "plshow 0 0 10000 0" )
     {
         code = 202;
         msg = "OK";
-        payload.append("||0||0||Amon Amarth - Guardians Of Asgaard||");
-        payload.append("||1||0||Amon Amarth - Varyags Of Miklagaard||");
-        payload.append("||2||0||Amon Amarth - Death in Fire||");
-        payload.append("||3||0||Amon Amarth - Asator||");
-        payload.append("||4||0||Amorphis - Against Widows||");
-        payload.append("||5||0||Anthrax - Indians||");
-        payload.append("||6||0||Arch Enemy - We Will Rise||");
-        payload.append("||7||0||Arch Enemy - Dead Eyes See No Future||");
-        payload.append("||8||0||Arch Enemy - My Apocalypse||");
-        payload.append("||9||0||At The Gates - Blinded By Fear||");
-        payload.append("||10||0||Black Sabbath - The Wizard||");
-        payload.append("||11||0||Black Sabbath - Paranoid||");
+        payload.append("||0||1||Amon Amarth - Guardians Of Asgaard||");
+        payload.append("||1||1||Amon Amarth - Varyags Of Miklagaard||");
+        payload.append("||2||1||Amon Amarth - Death in Fire||");
+        payload.append("||3||1||Amon Amarth - Asator||");
+        payload.append("||4||1||Amorphis - Against Widows||");
+        payload.append("||5||1||Anthrax - Indians||");
+        payload.append("||6||1||Arch Enemy - We Will Rise||");
+        payload.append("||7||1||Arch Enemy - Dead Eyes See No Future||");
+        payload.append("||8||1||Arch Enemy - My Apocalypse||");
+        payload.append("||9||1||At The Gates - Blinded By Fear||");
+        payload.append("||10||1||Black Sabbath - The Wizard||");
+        payload.append("||11||2||Black Sabbath - Paranoid||");
         payload.append("||12||0||Blind Guardian - Valhalla||");
         payload.append("||13||0||Blind Guardian - Mordred's Song||");
         payload.append("||14||0||Blind Guardian - Mirror Mirror||");
