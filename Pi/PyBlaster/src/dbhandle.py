@@ -173,7 +173,7 @@ class DBHandle:
         try:
             self.con = sqlite3.connect(self.parent.settings.dbfile)
             self.cur = self.con.cursor()
-        except sqlite3.Error, e:
+        except sqlite3.Error as e:
             self.parent.log.write(log.EMERGENCY,
                                   "Failed to connect to db file %s: %s" %
                                   (self.parent.settings.dbfile, e.args[0]))
@@ -445,7 +445,7 @@ class DBHandle:
         """
         """
         res = -1
-        strres = get_settings_value(key)
+        strres = self.get_settings_value(key)
         if strres is None:
             return -1
 

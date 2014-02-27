@@ -20,24 +20,24 @@ class PlayListManager:
         """Empty ctor
 
         Need to call load_playlist after other object initialized.
+        :param parent: main PyBlaster instance
         """
+        assert isinstance(parent, object)
         random.seed()
-        self.parent   = parent
-        self.playlist = [] # needed on startup in usb_connected()
+        self.parent = parent
+        self.playlist = []  # needed on startup in usb_connected()
+        self.playlist_id = 0    # id of the source playlist in database
+                                # 0 = new playlist
 
         # end __init__() #
 
     def clear(self):
-        """Clean out active playlist (0) and set id to 0"""
-
-        self.playlist       = []
-        self.playlist_pos   = 0
-        self.playlist_id    = 0 # id of the source playlist in database
-                                # 0 = new playlist
-
+        """Clean out active playlist (0) and set id to 0
+        :rtype : None
+        """
+        self.playlist = []
+        self.playlist_id = 0
         self.parent.log.write(log.MESSAGE, "[PLAYLISTMNGR] cleared.")
-
-        # end clear() #
 
     def load_active_playlist(self):
         """Load last playlist from database"""
@@ -108,6 +108,7 @@ class PlayListManager:
 
     def new_default_playlist(self):
         """Make sure we have a playlist with id=0, create an empty one if not
+        :rtype : None
         """
 
         self.parent.dbhandle.cur.execute("SELECT * FROM Playlists WHERE id=0")
@@ -320,7 +321,7 @@ class PlayListManager:
     def list_playlist(self,
                       list_id=0,
                       start_at=0,
-                      max_items=1000,
+                      max_items=100,
                       printformat=0):
         """Show current playlist
 
@@ -337,22 +338,19 @@ class PlayListManager:
         if not connected_usbs:
             return []
 
-        use_cols = "position, played, disptitle"
-        # TODO if print format differs, change cols
-
         usb_list = ",".join(map(str, connected_usbs))
 
         # I know this is not nice, but works
-        statement = "SELECT %s FROM Playlistentries WHERE "\
-            "playlistid=%d AND usbid IN (%s) AND position>=%d LIMIT %d" % \
-            (use_cols, list_id, usb_list, start_at, max_items)
+        statement = "SELECT position, played, disptitle FROM Playlistentries WHERE "\
+            "playlistid=%d AND usbid IN (%s) AND position>=%d " \
+            "ORDER BY position LIMIT %d" % \
+            (list_id, usb_list, start_at, max_items)
 
         res = []
-        for row in self.parent.dbhandle.cur.execute( statement ):
-            #"SELECT ? FROM Playlistentries WHERE playlistid=? AND "\
-            #"usbid IN (?) AND position>=? LIMIT ?",
-            #(use_cols, list_id, usb_list, start_at, max_items, )):
-            res.append(u"||%d||%s||%s||" % (row[0], row[1], row[2]))
+        current_pos = self.get_playlist_position(list_id)
+        for row in self.parent.dbhandle.cur.execute(statement):
+            pos = row[1] if row[0] == current_pos else 2
+            res.append(u"||%d||%s||%s||" % (row[0], pos, row[2]))
 
         return res
 
@@ -376,27 +374,84 @@ class PlayListManager:
 
         # end list_playlists() #
 
-    def get_playlist_state(self, listid):
+    def get_playlist_id(self, list_id=-1):
+        if list_id == -1:
+            return self.playlist_id
+        return list_id
+
+    def get_playlist_state(self, listid=-1):
         """Latest state for playlist to have undo actions in playlist
         """
+        listid = self.get_playlist_id(listid)
         self.parent.dbhandle.cur.execute(
             "SELECT state FROM Playlists WHERE id=?", (listid,))
         # there should be a row, so no check
         res = self.parent.dbhandle.cur.fetchall()
+        if len(res) == 0:
+            return -1
         return int(res[0][0])
 
-    def get_playlist_position(self, listid):
-        """Latest state for playlist to have undo actions in playlist
+    def get_playlist_position(self, listid=-1):
+        """Position pointer in playlist
+
+
+        :param listid: id of playlist, default = -1 -> use active playlist
+        :returns: Position pointer for playlist (-1 if no such playlist, -1 if pointer not set for playlist)
+        :rtype: int
         """
+        listid = self.get_playlist_id(listid)
         self.parent.dbhandle.cur.execute(
             "SELECT position FROM Playlists WHERE id=?", (listid,))
         # there should be a row, so no check
         res = self.parent.dbhandle.cur.fetchall()
+        if len(res) == 0:
+            return -1
         return int(res[0][0])
 
-    def get_playlist_last_position(self, listid):
+    def get_next_two_playlist_positions(self, listid=-1):
+        """Get current position from playlist and position number of next song
+
+        :param listid: id of playlist, default = -1 -> use active playlist
+        :returns: [] if no playlist, [pos1] if last item or only 1 item in list or [pos1,pos2]
+        :rtype: [int]
+        """
+        listid = self.get_playlist_id(listid)
+        position = self.get_playlist_position(listid)
+
+        # TODO if repeat all, add first position if only 1 row
+        # TODO select only from attached USB devs
+        ret = []
+        for row in self.parent.dbhandle.cur.execute(
+                "SELECT position FROM Playlistentries WHERE playlistid=? AND position >=? LIMIT 2", (listid, position)):
+            ret.append(row[0])
+        return ret
+
+    def get_filename_from_playlist(self, list_id, position):
+        """Get filename for item in playlist with position
+
+            Select next item in playlist with position >= position.
+
+            :param list_id: playlist id
+            :param position: position pointer in playlist
+            :returns: path of item in playlist or None if wrong args
+            :rtype: None or str
+            """
+        self.parent.dbhandle.cur.execute(
+            "SELECT usbid, path FROM Playlistentries WHERE playlistid=? AND position=?",
+            (list_id, position))
+        res = self.parent.dbhandle.cur.fetchall()
+        if len(res) == 0:
+            return None
+        usbdev = self.parent.usb.get_dev_by_storid(res[0][0])
+        if usbdev is None:
+            return None
+        return usbdev.mnt_pnt + "/" + res[0][1]
+
+    def get_playlist_last_position(self, listid=-1):
         """Latest state for playlist to have undo actions in playlist
         """
+        if listid == -1:
+            listid = self.playlist_id
         self.parent.dbhandle.cur.execute(
             "SELECT MAX(position) FROM Playlistentries WHERE playlistid=?",
             (listid,))
@@ -439,7 +494,7 @@ class PlayListManager:
             else:
                 self.parent.log.write(log.ERROR,
                     "[PLAYLISTMNGR]: Unknown add command %s in " \
-                    "append_multiple()" % (instructions[0]))
+                    "append_multiple()" % (instruction[0]))
 
         added = self.multi_append(list_id, append_list, add_mode)
         self.parent.led.set_led_yellow(0)
@@ -521,4 +576,18 @@ class PlayListManager:
         return len(id_list)
 
         # end multi_append() #
+
+    def set_position_pointer(self, list_id=-1, position=-1):
+        """Set current playlist position in database
+
+        :param list_id: playlist to set position pointer for (default=current)
+        :param position: new playlist position (current song)
+        """
+        if list_id == -1:
+            list_id = self.playlist_id
+
+        self.parent.dbhandle.cur.execute(
+            "UPDATE Playlists SET position=? WHERE id=?", (position, list_id))
+        self.parent.dbhandle.con.commit()
+
 

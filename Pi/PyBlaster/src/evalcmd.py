@@ -45,7 +45,7 @@ class EvalCmd:
         if self.parent.settings.fifoin is not None:
             # Generate/open input fifo.
             if not os.path.exists(self.parent.settings.fifoin):
-                os.mkfifo(self.parent.settings.fifoin, 0666)
+                os.mkfifo(self.parent.settings.fifoin, 0o666)
 
             self.parent.log.write(log.MESSAGE, "Opening cmd fifo %s..." %
                                   self.parent.settings.fifoin)
@@ -155,6 +155,9 @@ class EvalCmd:
                 '',
                 'plappendmultiple <mode>',
                 '    receive append instructions (BLUETOOTH only)'
+                '',
+                'play',
+                '    start playing now',
                 '',
                 'plclear',
                 '    clear current playlist and start up new one',
@@ -271,6 +274,15 @@ class EvalCmd:
             ret_msg = "OK"
 
         # # # # plappendmultiple # # # #
+
+        elif cmd == "play":
+            # load current playlist item
+
+            # TODO manage bad status
+
+            ret = self.parent.play.load()
+
+            ret_msg = "OK"
 
         elif cmd == "plappendmultiple":
             if len(line) != 2 or int_args[1] is None:

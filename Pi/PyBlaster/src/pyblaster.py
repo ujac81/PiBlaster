@@ -5,7 +5,6 @@
 """
 import os
 import signal
-import sys
 import time
 
 import log
@@ -13,6 +12,7 @@ from dbhandle import DBHandle
 from evalcmd import EvalCmd
 from led import LED
 from log import Log
+from play import Play
 from playlistmanager import PlayListManager
 from rfcommserver import RFCommServer
 from settings import Settings
@@ -22,7 +22,8 @@ class PyBlaster:
     """Daemon for PiBlaster project"""
 
     def __init__(self):
-        """Whole project is run from this constructor"""
+        """Whole project is run from this constructor
+        """
 
         # +++++++++++++++ Init +++++++++++++++ #
 
@@ -36,6 +37,7 @@ class PyBlaster:
         self.rfcomm     = RFCommServer(self)
         self.cmd        = EvalCmd(self)
         self.listmngr   = PlayListManager(self)
+        self.play       = Play(self)
 
         self.led.reset_leds()
 
@@ -75,7 +77,6 @@ class PyBlaster:
         self.led.cleanup()
         self.delete_pidfile()
 
-
     def run(self):
         """Daemon loop"""
 
@@ -100,6 +101,9 @@ class PyBlaster:
 
             # Check bluetooth channel for new messages/connections.
             self.rfcomm.read_socket()
+
+            # Check if song has ended
+            self.play.check_pygame_events()
 
             # read bluetooth has internal BT timeout of 1sec,
             # but if connection got lost, fast polling will occur.
