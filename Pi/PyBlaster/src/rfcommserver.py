@@ -28,7 +28,8 @@ class RFCommServer:
         self.mode = NOTCONNECTED
         self.client_sock = None
         self.client_info = None
-        self.timeout = 0.1  # socket timeouts for non blocking con.
+        self.timeout = 0.05  # socket timeouts for non blocking con.
+        self.comm_timeout = 2  # increase timeout on send/recv
         self.timeoutpolls = 500  # disconnect after N inactivity timeouts
         self.nowpolls = 0  # reset after each receive,
         # incremented while waiting for data
@@ -56,7 +57,6 @@ class RFCommServer:
                                      bluetooth.SERIAL_PORT_CLASS],
                                     profiles=[bluetooth.SERIAL_PORT_PROFILE],
                                     )
-
         self.server_sock.settimeout(self.timeout)
         self.parent.log.write(log.MESSAGE,
                               "RFCOMM service opened as PyBlaster")
@@ -137,7 +137,9 @@ class RFCommServer:
         :param message_list: matrix of payload lines
         """
 
-        # TODO timeout mechanism
+        self.client_sock.settimeout(self.comm_timeout)
+        self.parent.led.set_led_green(1)
+
         self.parent.log.write(log.DEBUG1,
                               "DEBUG send: %d || %d || %d || %d || %s" %
                               (msg_id, status, code, len(message_list), msg))
@@ -150,21 +152,22 @@ class RFCommServer:
         # self.parent.log.write(log.DEBUG3, "--->>> SEND: "+send_msg)
         self.client_sock.send(send_msg)
 
-        if not self.recv_ok_byte():
-            return
+        if self.recv_ok_byte():
+            for line in message_list:
+                # TODO handle exception if comm breaks on send
+                # construct line by prefixing each field with its length
+                send_line = u'{0:04d}{1:02d}'.format(msg_id, len(line))
+                for item in line:
+                    send_line += u'{0:03d}'.format(len(item))+item
+                send_msg = u'{0:04d}'.format(len(send_line)) + send_line
+                self.client_sock.send(send_msg.encode('utf-8'))
+                if not self.recv_ok_byte():
+                    break
 
-        for line in message_list:
-            # TODO handle exception if comm breaks on send
-            # construct line by prefixing each field with its length
-            send_line = u'{0:04d}{1:02d}'.format(msg_id, len(line))
-            for item in line:
-                send_line += u'{0:03d}'.format(len(item))+item
-            send_msg = u'{0:04d}'.format(len(send_line)) + send_line
-            self.client_sock.send(send_msg.encode('utf-8'))
-            if not self.recv_ok_byte():
-                return
+        self.client_sock.settimeout(self.timeout)
+        self.parent.led.set_led_green(0)
 
-            # end send_client() #
+        # end send_client() #
 
     def read_command(self, cmd):
         """Evaluate command received from client socket if AUTHORIZED."""
@@ -274,6 +277,9 @@ class RFCommServer:
             recv_size = self.next_buffer_size
             if recv_size == -1:
                 recv_size = 4
+                self.client_sock.settimeout(self.timeout)
+            else:
+                self.client_sock.settimeout(self.comm_timeout)
             if recv_size > 0:
                 try:
                     data = self.client_sock.recv(recv_size)
@@ -295,12 +301,15 @@ class RFCommServer:
                     # self.parent.log.write(log.DEBUG3, "---<<< RECV: "+data)
                     self.next_buffer_size = -1
 
+        self.client_sock.settimeout(self.timeout)
+
         # end receive_into_buffer() #
 
     def recv_ok_byte(self):
         """
 
         """
+        self.client_sock.settimeout(self.comm_timeout)
         try:
             self.client_sock.recv(1)
         except bluetooth.btcommon.BluetoothError:
