@@ -41,6 +41,7 @@ Rectangle {
     }
 
 
+    function playTab() { return tabsModel.children[0]; }
     function browseTab() { return tabsModel.children[2]; }
     function playlistTab() { return tabsModel.children[1]; }
 

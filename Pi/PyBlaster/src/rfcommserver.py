@@ -28,7 +28,7 @@ class RFCommServer:
         self.mode = NOTCONNECTED
         self.client_sock = None
         self.client_info = None
-        self.timeout = 1  # socket timeouts for non blocking con.
+        self.timeout = 0.1  # socket timeouts for non blocking con.
         self.timeoutpolls = 500  # disconnect after N inactivity timeouts
         self.nowpolls = 0  # reset after each receive,
         # incremented while waiting for data

@@ -623,3 +623,30 @@ class PlayListManager:
             "UPDATE Playlists SET position=? WHERE id=?", (position, list_id))
         self.parent.dbhandle.con.commit()
 
+    def get_prev_position_in_playlist(self, listid=-1):
+        """
+        """
+        listid = self.get_playlist_id(listid)
+        self.parent.dbhandle.cur.execute(
+            "SELECT Playlistentries.position FROM Playlistentries, Playlists "
+            "WHERE Playlistentries.position < Playlists.position AND "
+            "Playlists.id=?  ORDER BY Playlistentries.position DESC LIMIT 1",
+            (listid,))
+        res = self.parent.dbhandle.cur.fetchall()
+        if len(res) == 0:
+            return -1
+        return int(res[0][0])
+
+    def get_next_position_in_playlist(self, listid=-1):
+        """
+        """
+        listid = self.get_playlist_id(listid)
+        self.parent.dbhandle.cur.execute(
+            "SELECT Playlistentries.position FROM Playlistentries, Playlists "
+            "WHERE Playlistentries.position > Playlists.position AND "
+            "Playlists.id=?  ORDER BY Playlistentries.position LIMIT 1",
+            (listid,))
+        res = self.parent.dbhandle.cur.fetchall()
+        if len(res) == 0:
+            return -1
+        return int(res[0][0])

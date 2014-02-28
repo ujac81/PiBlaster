@@ -186,6 +186,8 @@ Rectangle {
             tabview.browseTab().addFinished(msg.status(), msg.message());
         } else if ( msg.code() == 202) {
             tabview.playlistTab().received_pl_data(msg);
+        } else if ( msg.code() == 304) {
+            tabview.playTab().gotPlayStatus(msg);
         }
     }
 

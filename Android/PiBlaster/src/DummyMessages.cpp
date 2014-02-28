@@ -262,6 +262,13 @@ RFCommMessageObject* CreateDummyResponse( int id, const QString& cmd, const QLis
         payload.append("004503002980010031Powerwolf - We Drink Your Blood");
         payload.append("004503002990010031Powerwolf - Die, Die, Crucified");
     }
+    else if ( cmd == "playstatus" )
+    {
+        status = 0;
+        code = 304;
+        msg = "OK";
+        payload.append("01211100110061331900010002260033400011015Everytime I Die017Follow The Reaper017Children Of Bodom019Melodic Death Metal0042000");
+    }
 
 
 

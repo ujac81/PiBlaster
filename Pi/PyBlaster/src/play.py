@@ -5,7 +5,9 @@
 
 import pygame
 
+import codes
 import log
+import rfcommserver
 
 SONG_END = pygame.USEREVENT + 1
 
@@ -41,7 +43,6 @@ class Play:
         """
 
         """
-
         if pygame.mixer.music.get_busy():
             if self.pause:
                 pygame.mixer.music.unpause()
@@ -53,6 +54,20 @@ class Play:
                 return 10
         else:
             return self.load()  # -1, 1 or 2
+
+    def play_next(self):
+        """
+        """
+        pos = self.parent.listmngr.get_next_position_in_playlist()
+        if pos != -1:
+            self.load(-1, pos)
+
+    def play_prev(self):
+        """
+        """
+        pos = self.parent.listmngr.get_prev_position_in_playlist()
+        if pos != -1:
+            self.load(-1, pos)
 
     def load(self, list_id=-1, pl_pos=-1):
         """Load and play song from playlist and queue next song
@@ -135,6 +150,7 @@ class Play:
             if event.type == SONG_END:
                 self.parent.log.write(log.MESSAGE, "[PLAY]: Song ended.")
                 self.advance_in_playlist()
+                self.send_track_info()
 
     def advance_in_playlist(self):
         """
@@ -174,6 +190,9 @@ class Play:
     def get_play_status(self):
         """
 
+        [0:busy, pos, pause, id, dirid, storid,
+         6:title, album, artist, genre, year]
+
         """
         info = self.parent.listmngr.get_current_tune_info()
         if info is None:
@@ -183,3 +202,21 @@ class Play:
         if busy:
             pos = pygame.mixer.music.get_pos()
         return ["%d" % busy, "%d" % pos, "%d" % self.pause] + info
+
+    def send_track_info(self):
+        """
+
+        """
+        if self.parent.rfcomm.mode != rfcommserver.AUTHORIZED:
+            return
+
+        info = self.get_play_status()
+        ret_status = 0
+        ret_code = codes.PLAY_INFO
+        ret_msg = "OK"
+        if info is None:
+            ret_status = -1
+            info = []
+            ret_msg = "Nothing to play: playlist empty or broken file"
+        self.parent.rfcomm.send_client(-1, ret_status, ret_code,
+                                       ret_msg, [info])

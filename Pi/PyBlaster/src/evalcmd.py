@@ -281,29 +281,6 @@ class EvalCmd:
             # in RFCommServer.read_command()
             ret_msg = "OK"
 
-        # # # # playstatus # # # #
-
-        elif cmd == "playpause":
-            # pause / unpause or start playing at current playlist pos
-
-            ret_stat = self.parent.play.play_pause()
-            ret_msg = "OK"
-            if ret_stat < 0:
-                ret_msg = "Nothing to play: playlist empty or broken file"
-            ret_code = PLAY_PAUSE
-
-        # # # # playstatus # # # #
-
-        elif cmd == "playstatus":
-            # load current playlist item
-
-            info = self.parent.play.get_play_status()
-            if info is None:
-                ret_stat = -1
-            else:
-                ret_list = [info]
-            ret_code = PLAY_INFO
-
         # # # # plappendmultiple # # # #
 
         elif cmd == "plappendmultiple":
@@ -318,6 +295,43 @@ class EvalCmd:
                                                              int_args[1])
                 ret_msg = "%d items appended to playlist" % added
                 ret_code = PL_ADD_OK
+
+        # # # # playnext # # # #
+
+        elif cmd == "playnext":
+
+            self.parent.play.play_next()
+            self.parent.play.send_track_info()
+            ret_code = PLAY_NEXT
+
+        # # # # playpause # # # #
+
+        elif cmd == "playpause":
+            # pause / unpause or start playing at current playlist pos
+
+            self.parent.play.play_pause()
+            self.parent.play.send_track_info()
+            ret_code = PLAY_PAUSE
+
+        # # # # playprev # # # #
+
+        elif cmd == "playprev":
+
+            self.parent.play.play_prev()
+            self.parent.play.send_track_info()
+            ret_code = PLAY_PREV
+
+        # # # # playstatus # # # #
+
+        elif cmd == "playstatus":
+            # show current playlist item
+
+            info = self.parent.play.get_play_status()
+            if info is None:
+                ret_stat = -1
+            else:
+                ret_list = [info]
+            ret_code = PLAY_INFO
 
         # # # # plclear # # # #
 
