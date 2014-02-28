@@ -18,7 +18,7 @@ ListModel {
 
         clearAll();
 
-        rfcomm.execCommand("plshow 0 0 10000 0");
+        rfcomm.execCommand("plshow 0 0 100 0");
 
     }
 
@@ -31,10 +31,10 @@ ListModel {
         if ( msg.status() == 0 ) {
             for ( var i = 0; i < msg.payloadSize(); i++ ) {
                 var arr = msg.payloadElements(i);
-                append({"position": arr[1],
-                        "state": arr[2],
-                        "title": arr[3],
-                        "active": ( arr[2] == "2" )
+                append({"position": arr[0],
+                        "state": arr[1],
+                        "title": arr[2],
+                        "active": ( arr[1] == "2" )
                        });
             }
         } else {

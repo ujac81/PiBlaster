@@ -15,8 +15,7 @@ class RFCommSendThread : public QThread
 Q_OBJECT
 
 public:
-    RFCommSendThread( RFCommMaster* parent, int id, const QString& msg, const QList<QString>& payload );
-    RFCommSendThread( RFCommMaster* parent, int id, const QString& msg );
+    RFCommSendThread( RFCommMaster* parent, int id, const QString& msg, const QList<QString>& payload = QList<QString>() );
 
     void run() Q_DECL_OVERRIDE;
 
@@ -30,7 +29,7 @@ private:
     RFCommMaster* _parent;
     int _id;
     QString _cmd;
-    const QList<QString>& _payload;
+    QList<QString> _payload;    // payload has to be coppied, because master thread might delete it!
 
 };
 

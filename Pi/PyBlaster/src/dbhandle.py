@@ -424,7 +424,7 @@ class DBHandle:
             new_id = row[0]
         new_id += 1
 
-        self.cur.execute('INSERT INTO Settings (id, key, value)'\
+        self.cur.execute('INSERT INTO Settings (id, key, value)'
                          ' VALUES (?, ?, ?)', (new_id, key, value))
         self.con.commit()
 

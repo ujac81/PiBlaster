@@ -6,5 +6,9 @@
         <file>images/home.png</file>
         <file>images/add.png</file>
         <file>images/x-nopad.png</file>
+        <file>images/prev.png</file>
+        <file>images/play.png</file>
+        <file>images/pause.png</file>
+        <file>images/next.png</file>
     </qresource>
 </RCC>

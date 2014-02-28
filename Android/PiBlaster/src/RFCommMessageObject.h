@@ -61,7 +61,7 @@ public:
     }
 
     /**
-     * @brief Split each payload line by || and store results in payloadElements(i)
+     * @brief Split each payload line and store results in payloadElements(i)
      * Called in RFCommMaster before sendig to QML app
      */
     void preparePayloadElements()
@@ -69,7 +69,18 @@ public:
         _payloadElements.clear();
         for ( int i = 0; i < _payload.size(); ++i )
         {
-            _payloadElements.append( _payload.at( i ).split( "||" ) );
+            QString line = _payload[i];
+            int toks = line.left(2).toInt();
+            int pos = 2;
+            QList<QString> plLine;
+            for ( int j = 0; j < toks; ++j )
+            {
+                int plSubSize = line.mid(pos, 3).toInt();
+                pos += 3;
+                plLine.append( line.mid(pos, plSubSize) );
+                pos += plSubSize;
+            }
+            _payloadElements.append( plLine );
         }
     }
 

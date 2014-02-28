@@ -91,44 +91,36 @@ void RFCommRecvThread::run()
         }
 
 
-        // While receiving multiple lines may be joined if '\n' does not work as seperator.
-        // So each line is finished by !EOL! string to separate lines.
-        // Each line starts with command id, followed by command type, payload size and message if
-        // new command or payload line if payload message
-        QStringList lines = string.toString().split( " !EOL! ", QString::SkipEmptyParts );
-        for ( int i = 0; i < lines.size(); ++i )
+        QString line = string.toString();
+
+        if ( line.length() < 4 ) continue;
+
+        // 1st 4 bytes carry id
+        int id = line.left(4).toInt();
+
+        std::map<int, RFCommMessageObject*>::iterator iter = _recvBuffer.find( id );
+        if ( iter == _recvBuffer.end() )
         {
-            QStringList elements = lines[i].split( ' ' );
-            if ( elements.isEmpty() ) continue;
-            int id = elements.takeFirst().toInt();
+            // new message received.
+            // 1st line should be [id status code payload_length message]
+            int status  = line.mid(4, 4).toInt();
+            int code    = line.mid(8, 4).toInt();
+            int plSize  = line.mid(12, 6).toInt();
+            QString msg = line.right(line.length()-18);
 
-            std::map<int, RFCommMessageObject*>::iterator iter = _recvBuffer.find( id );
-            if ( iter == _recvBuffer.end() )
-            {
-                // new message received.
-                // 1st line should be [id status code payload_length message]
-                int status = elements.takeFirst().toInt();
-                int code = elements.takeFirst().toInt();
-                int plSize = elements.takeFirst().toInt();
-                QString msg = elements.join( " " );
+            RFCommMessageObject* msgObj = newMessageObject( id, status, code, plSize, msg );
 
-                RFCommMessageObject* msgObj = newMessageObject( id, status, code, plSize, msg );
-
-                if ( msgObj->payloadComplete() )
-                    messageDone( id, msgObj );
-            }
-            else
-            {
-                QString msg = elements.join( " " );
-                iter->second->addPayload( msg );
-                if ( iter->second->payloadComplete() )
-                    messageDone( id, iter->second );
-            }
+            if ( msgObj->payloadComplete() )
+                messageDone( id, msgObj );
+        }
+        else
+        {
+            iter->second->addPayload( line.right(line.length()-4) );
+            if ( iter->second->payloadComplete() )
+                messageDone( id, iter->second );
         }
 #endif
-
     } // while run
-
 
     qDebug() << "RFCommRecvThread(): loop exit";
 }

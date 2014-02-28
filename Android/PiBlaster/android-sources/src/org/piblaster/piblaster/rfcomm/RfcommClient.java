@@ -311,13 +311,29 @@ public class RfcommClient extends org.qtproject.qt5.android.bindings.QtActivity
         // really large directories
 
         char[] buffer = new char[64*1024];
+        StringBuilder lenout = new StringBuilder();
         StringBuilder out = new StringBuilder();
         try {
-            int bytes = in.read(buffer, 0, 64*1024);
-            if (bytes > 0) {
-                out.append(buffer, 0, bytes);
-                line = out.toString();
+            int lenbytes = in.read(buffer, 0, 4);
+            if (lenbytes > 0) {
+                lenout.append(buffer, 0, lenbytes);
+                String lenline = lenout.toString();
+                int lenIn = 0;
+                try {
+                     lenIn = Integer.parseInt(lenline);
+                } catch (NumberFormatException e) {
+                    Log.d(TAG, "Fatal Error: Could not convert head: "+lenline);
+                    return line;
+                }
+                int bytes = in.read(buffer, 0, lenIn);
+                if ( bytes > 0 )
+                {
+                    out.append(buffer, 0, bytes);
+                    line = out.toString();
+                }
             }
+            // send 1 byte to let PiBlaster send next line
+            m_outStream.write('1');
         } catch (IOException e) {
             Log.d(TAG, "Fatal Error: read stream" + e.getMessage() + ".");
             m_bluetoothmessages.add("BT stream closed.");

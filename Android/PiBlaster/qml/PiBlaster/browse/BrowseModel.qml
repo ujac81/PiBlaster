@@ -71,12 +71,12 @@ ListModel {
             for ( var i = 0; i < msg.payloadSize(); i++ ) {
                 var arr = msg.payloadElements(i);
                 append({"type": 0,
-                        "storid": arr[1],
-                        "name": arr[3],
-                        "files": arr[6],
-                        "dirs": arr[5],
-                        "free": arr[7],
-                        "used": arr[8],
+                        "storid": arr[0],
+                        "name": arr[2],
+                        "files": arr[5],
+                        "dirs": arr[4],
+                        "free": arr[6],
+                        "used": arr[7],
                         "dirid": "",    // dummy values for all possible fields required
                         "fileid": "",
                         "time": "",
@@ -100,14 +100,14 @@ ListModel {
         if ( msg.status() == 0 ) {
             for ( var i = 0; i < msg.payloadSize(); i++ ) {
                 var arr = msg.payloadElements(i);
-                if ( arr[1] == "1") {
+                if ( arr[0] == "1") {
                     append({"type": 1,
-                            "storid": arr[2],
-                            "dirid": arr[3],
-                            "parentid": arr[4],
-                            "dirs": arr[5],
-                            "files": arr[6],
-                            "name": arr[7],
+                            "storid": arr[1],
+                            "dirid": arr[2],
+                            "parentid": arr[3],
+                            "dirs": arr[4],
+                            "files": arr[5],
+                            "name": arr[6],
                             "fileid": "", // dummy values for all possible fields required
                             "time": "",
                             "artist": "",
@@ -115,15 +115,15 @@ ListModel {
                             "title": "",
                             "selected": false,
                            });
-                } else if ( arr[1] == "2" ) {
+                } else if ( arr[0] == "2" ) {
                     append({"type": 2,
-                            "storid": arr[2],
-                            "dirid": arr[3],
-                            "fileid": arr[4],
-                            "time": arr[5],
-                            "artist": arr[6],
-                            "album": arr[7],
-                            "title": arr[8],
+                            "storid": arr[1],
+                            "dirid": arr[2],
+                            "fileid": arr[3],
+                            "time": arr[4],
+                            "artist": arr[5],
+                            "album": arr[6],
+                            "title": arr[7],
                             "selected": false,
                             });
                 }

@@ -4,26 +4,22 @@
 """
 
 import codecs
-import fcntl
 import os
-import re
-import sys
 
 from codes import *
 import log
 from helpers import humansize
 
 
-STATUSOK            = 0     # evaluation successful
-ERRORPARSE          = 1     # failed to read command
-ERRORUNKNOWN        = 2     # unknown command
-ERRORARGS           = 3     # wrong number or wrong type of args
-ERROREVAL           = 4     # evaluation did not succeed,
-                            # because called function failed
+STATUSOK = 0            # evaluation successful
+ERRORPARSE = 1          # failed to read command
+ERRORUNKNOWN = 2        # unknown command
+ERRORARGS = 3           # wrong number or wrong type of args
+ERROREVAL = 4           # evaluation did not succeed,
+                        # because called function failed
 
-STATUSEXIT          = 100   # tell calling instance to close comm/pipe/whatever
-STATUSDISCONNECT    = 101   # tell calling instance to close comm/pipe/whatever
-
+STATUSEXIT = 100        # tell calling instance to close comm/pipe/whatever
+STATUSDISCONNECT = 101  # tell calling instance to close comm/pipe/whatever
 
 
 class EvalCmd:
@@ -73,7 +69,7 @@ class EvalCmd:
         cmd = None
         try:
             cmd = os.read(self.fifoin, 1024)
-        except:
+        except OSError:
             pass
 
         if cmd:
@@ -90,18 +86,21 @@ class EvalCmd:
         self.cmdout.write(">>> %s\n" % cmd)
         self.cmdout.write("%d %d %d %s\n" % (status, code, len(res_list), msg))
         for line in res_list:
-            self.cmdout.write(u'%s\n' % line)
-
+            send_line = u'{0:02d}'.format(len(line))
+            for item in line:
+                send_line += u'{0:03d}'.format(len(item))+item
+            send_msg = u'{0:04d}'.format(len(send_line)) + send_line
+            self.cmdout.write(send_msg+'\n')
         self.cmdout.flush()
 
         # end write_log_file() #
 
-    def evalcmd(self, cmdline, src='Unknonw', payload=[]):
+    def evalcmd(self, cmdline, src='Unknown', payload=None):
         """Evaluate command and perform action
 
         Called by read_fifo() and RFCommServer.
 
-        return [status, code, status_msg, result_list]
+        :returns [status, code, status_msg, result_list]
         """
         cmdline = cmdline.strip()
         line = cmdline.split()
@@ -121,12 +120,16 @@ class EvalCmd:
                 int_args.append(None)
 
         ret_stat = STATUSOK
-        ret_msg  = "OK"
+        ret_msg = "OK"
         ret_code = -1
         ret_list = []
 
-        self.parent.log.write(log.MESSAGE, "Eval cmd [%s]: %s; "\
-            "payload size: %d" % (src, " || ".join(line), len(payload)))
+        if payload is None:
+            payload = []
+
+        self.parent.log.write(log.MESSAGE,
+                              "Eval cmd [%s]: %s; payload size: %d" %
+                              (src, " || ".join(line), len(payload)))
 
         # Command evaluation, starting with 'help', then in alphabetical order.
 
@@ -135,61 +138,67 @@ class EvalCmd:
         if cmd == "help":
 
             ret_list = [
-                'disconnect',
-                '    close bluetooth socket',
-                '',
-                'hasdevice <storid>',
-                '    1 if device is attached',
-                '',
-                'lsalldirs <storid>',
-                '    list of all directories on device',
-                '',
-                'lsdirs <storid> <dirid>',
-                '    list all subdirs in dir',
-                '',
-                'lsfiles <storid> <dirid>'
-                '    list all files in dir',
-                '',
-                'keepalive',
-                '    reset disconnect poll count (noop)',
-                '',
-                'plappendmultiple <mode>',
-                '    receive append instructions (BLUETOOTH only)'
-                '',
-                'play',
-                '    start playing now',
-                '',
-                'plclear',
-                '    clear current playlist and start up new one',
-                '',
-                'plsave',
-                '    save to selected playlist',
-                '',
-                'plsaveas <name> <creator>',
-                '    save as new playlist',
-                '',
-                'plsaveasexisting <id>',
-                '    overwrite existsing playlist',
-                '',
-                'plshow <id> <start> <max> <format>',
-                '    show playlist with id #id from position <start>, '\
-                        'max <max> items with format <format>',
-                '',
-                'quit',
-                '    exit program',
-                '',
-                'plshowlists',
-                '    show all playlists',
-                '',
-                'rescan <storid>',
-                '    force rescan of usb device',
-                '',
-                'setalias <storid> <alias>',
-                '    set alias name for usb device',
-                '',
-                'showdevices',
-                '    list of connected devices'
-                ]
+                ['disconnect',
+                 '    close bluetooth socket'],
+                [''],
+                ['getplaystatus',
+                 '    show current play status'],
+                [''],
+                ['hasdevice <storid>',
+                 '    1 if device is attached'],
+                [''],
+                ['lsalldirs <storid>',
+                 '    list of all directories on device'],
+                [''],
+                ['lsdirs <storid> <dirid>',
+                 '    list all subdirs in dir'],
+                [''],
+                ['lsfiles <storid> <dirid>'
+                 '    list all files in dir'],
+                [''],
+                ['keepalive',
+                 '    reset disconnect poll count (noop)'],
+                [''],
+                ['plappendmultiple <mode>',
+                 '    receive append instructions (BLUETOOTH only)'],
+                [''],
+                ['playpause',
+                 '    start playing now'],
+                [''],
+                ['playstatus',
+                 '    get status of player'],
+                [''],
+                ['plclear',
+                 '    clear current playlist and start up new one'],
+                [''],
+                ['plsave',
+                 '    save to selected playlist'],
+                [''],
+                ['plsaveas <name> <creator>',
+                 '    save as new playlist'],
+                [''],
+                ['plsaveasexisting <id>',
+                 '    overwrite existsing playlist'],
+                [''],
+                ['plshow <id> <start> <max> <format>',
+                 '    show playlist with id #id from position <start>, '
+                 'max <max> items with format <format>'],
+                [''],
+                ['quit',
+                 '    exit program'],
+                [''],
+                ['plshowlists',
+                 '    show all playlists'],
+                [''],
+                ['rescan <storid>',
+                 '    force rescan of usb device'],
+                [''],
+                ['setalias <storid> <alias>',
+                 '    set alias name for usb device'],
+                [''],
+                ['showdevices',
+                 '    list of connected devices']
+            ]
 
         # # # # disconnect # # # #
 
@@ -201,37 +210,36 @@ class EvalCmd:
         elif cmd == "hasdevice":
             if len(line) != 2 or int_args[1] is None:
                 ret_stat = ERRORARGS
-                ret_msg    = "hasdevice needs 1 arg"
+                ret_msg = "hasdevice needs 1 arg"
             else:
-                ret_list.append("%d" %
-                                self.parent.usb.is_connected(int_args[1]))
+                ret_list.append(["%d" %
+                                 self.parent.usb.is_connected(int_args[1])])
 
         # # # # lsalldirs <storid> # # # #
 
         elif cmd == "lsalldirs":
             if len(line) != 2 or int_args[1] is None:
                 ret_stat = ERRORARGS
-                ret_msg  = "lsalldirs needs 1 arg"
+                ret_msg = "lsalldirs needs 1 arg"
             else:
                 stor = self.parent.usb.get_dev_by_storid(int_args[1])
                 if stor is None:
                     ret_stat = ERRORARGS
-                    ret_msg  = "illegal storage id"
+                    ret_msg = "illegal storage id"
                 else:
-                    ret_list = stor.list_all_dirs()
-
+                    ret_list = stor.list_all_dirs
 
         # # # # lsdirs <storid> <dirid> # # # #
 
         elif cmd == "lsdirs":
             if len(line) != 3:
                 ret_stat = ERRORARGS
-                ret_msg  = "lsalldirs needs 2 args"
+                ret_msg = "lsalldirs needs 2 args"
             else:
                 stor = self.parent.usb.get_dev_by_storid(int_args[1])
                 if stor is None:
                     ret_stat = ERRORARGS
-                    ret_msg  = "illegal storage id"
+                    ret_msg = "illegal storage id"
                 else:
                     ret_list = stor.list_dirs(int_args[2])
                     ret_code = LS_DIRS
@@ -241,12 +249,12 @@ class EvalCmd:
         elif cmd == "lsfiles":
             if len(line) != 3:
                 ret_stat = ERRORARGS
-                ret_msg  = "lsfiles needs 2 args"
+                ret_msg = "lsfiles needs 2 args"
             else:
                 stor = self.parent.usb.get_dev_by_storid(int_args[1])
                 if stor is None:
                     ret_stat = ERRORARGS
-                    ret_msg  = "illegal storage id"
+                    ret_msg = "illegal storage id"
                 else:
                     ret_list = stor.list_files(int_args[2])
                     ret_code = LS_FILES
@@ -256,12 +264,12 @@ class EvalCmd:
         elif cmd == "lsfulldir":
             if len(line) != 3:
                 ret_stat = ERRORARGS
-                ret_msg    = "lsfulldir needs 2 args"
+                ret_msg = "lsfulldir needs 2 args"
             else:
                 stor = self.parent.usb.get_dev_by_storid(int_args[1])
                 if stor is None:
                     ret_stat = ERRORARGS
-                    ret_msg    = "illegal storage id"
+                    ret_msg = "illegal storage id"
                 else:
                     ret_list = stor.list_full_dir(int_args[2])
                     ret_code = LS_FULL_DIR
@@ -273,24 +281,38 @@ class EvalCmd:
             # in RFCommServer.read_command()
             ret_msg = "OK"
 
-        # # # # plappendmultiple # # # #
+        # # # # playstatus # # # #
 
-        elif cmd == "play":
+        elif cmd == "playpause":
+            # pause / unpause or start playing at current playlist pos
+
+            ret_stat = self.parent.play.play_pause()
+            ret_msg = "OK"
+            if ret_stat < 0:
+                ret_msg = "Nothing to play: playlist empty or broken file"
+            ret_code = PLAY_PAUSE
+
+        # # # # playstatus # # # #
+
+        elif cmd == "playstatus":
             # load current playlist item
 
-            # TODO manage bad status
+            info = self.parent.play.get_play_status()
+            if info is None:
+                ret_stat = -1
+            else:
+                ret_list = [info]
+            ret_code = PLAY_INFO
 
-            ret = self.parent.play.load()
-
-            ret_msg = "OK"
+        # # # # plappendmultiple # # # #
 
         elif cmd == "plappendmultiple":
             if len(line) != 2 or int_args[1] is None:
                 ret_stat = ERRORARGS
-                ret_msg  = "plappendmultiple needs 2 args"
+                ret_msg = "plappendmultiple needs 2 args"
             elif src != 'rfcomm':
                 ret_stat = ERROREVAL
-                ret_msg  = "plappendmultiple need to be called via BT"
+                ret_msg = "plappendmultiple need to be called via BT"
             else:
                 added = self.parent.listmngr.append_multiple(payload,
                                                              int_args[1])
@@ -308,36 +330,36 @@ class EvalCmd:
         elif cmd == "plsave":
             if not self.parent.listmngr.save():
                 ret_stat = ERROREVAL
-                ret_msg  = "Save failed -- name exists or playlist empty!"
+                ret_msg = "Save failed -- name exists or playlist empty!"
             else:
-                ret_msg  = "Playlist saved."
+                ret_msg = "Playlist saved."
 
         # # # # plsaveas # # # #
 
         elif cmd == "plsaveas":
             if len(line) != 3:
                 ret_stat = ERRORARGS
-                ret_msg  = "plsaveas needs 2 args!"
+                ret_msg = "plsaveas needs 2 args!"
             else:
                 if not self.parent.listmngr.save_as(line[1], line[2]):
                     ret_stat = ERROREVAL
-                    ret_msg  = "Save failed -- name exists or playlist empty!"
+                    ret_msg = "Save failed -- name exists or playlist empty!"
                 else:
-                    ret_msg  = "Playlist saved as %s." % line[1]
+                    ret_msg = "Playlist saved as %s." % line[1]
 
         # # # # plsaveasexisting # # # #
 
         elif cmd == "plsaveasexisting":
             if len(line) != 2 or int_args[1] is None:
                 ret_stat = ERRORARGS
-                ret_msg  = "plsaveasexisting needs 1 arg!"
+                ret_msg = "plsaveasexisting needs 1 arg!"
             else:
                 if not self.parent.listmngr.save_overwrite(int_args[1]):
                     ret_stat = ERROREVAL
-                    ret_msg  = \
+                    ret_msg = \
                         "Save failed -- no such playlist or playlist empty!"
                 else:
-                    ret_msg  = "Playlist %d overwitten." % int_args[1]
+                    ret_msg = "Playlist %d overwitten." % int_args[1]
 
         # # # # plshow # # # #
 
@@ -346,7 +368,7 @@ class EvalCmd:
                     int_args[2] is None or int_args[3] is None or \
                     int_args[4] is None:
                 ret_stat = ERRORARGS
-                ret_msg  = "plshow needs 4 args"
+                ret_msg = "plshow needs 4 args"
             else:
                 ret_list = self.parent.listmngr.list_playlist(
                     list_id=int_args[1],
@@ -372,31 +394,31 @@ class EvalCmd:
         elif cmd == "rescan":
             if len(line) != 2:
                 ret_stat = ERRORARGS
-                ret_msg  = "rescan needs 1 arg"
+                ret_msg = "rescan needs 1 arg"
             else:
                 if not self.parent.usb.rescan_usb_stor(int_args[1]):
                     ret_stat = ERROREVAL
-                    ret_msg  = "device not rescaned (no such device?)"
+                    ret_msg = "device not rescaned (no such device?)"
                 else:
-                    ret_msg  = "device %d rescaned." % int_args[1]
+                    ret_msg = "device %d rescaned." % int_args[1]
 
         # # # # setalias # # # #
 
         elif cmd == "setalias":
             if len(line) != 3:
                 ret_stat = ERRORARGS
-                ret_msg  = "rescan needs 2 args"
+                ret_msg = "rescan needs 2 args"
             else:
                 stor = self.parent.usb.get_dev_by_storid(int_args[1])
                 if stor is None:
                     ret_stat = ERRORARGS
-                    ret_msg  = "illegal storage id"
+                    ret_msg = "illegal storage id"
                 else:
                     if not stor.update_alias(line[2]):
                         ret_stat = ERROREVAL
-                        ret_msg  = "alias exists in database"
+                        ret_msg = "alias exists in database"
                     else:
-                        ret_msg  = "Alias set to %s for device %d" % \
+                        ret_msg = "Alias set to %s for device %d" % \
                             (line[2], int_args[1])
 
         # # # # showdevices # # # #
@@ -404,17 +426,22 @@ class EvalCmd:
         elif cmd == "showdevices":
             for dev in self.parent.usb.usbdevs:
                 # TODO: bytes used, bytes free
-                ret_list.append("||%d||%s||%s||%d||%d||%d||%s||%s||" %
-                                (dev.storid, dev.uuid, dev.alias, dev.revision,
-                                dev.totsubdirs, dev.totfiles,
-                                humansize(dev.bytes_free),
-                                humansize(dev.cur_tot_bytes)))
-            if not ret_list: ret_list = ["-1 NONE"]
+                ret_list.append(['%d' % dev.storid,
+                                 '%s' % dev.uuid,
+                                 u'%s' % dev.alias,
+                                 '%d' % dev.revision,
+                                 '%d' % dev.totsubdirs,
+                                 '%d' % dev.totfiles,
+                                 humansize(dev.bytes_free),
+                                 humansize(dev.cur_tot_bytes)
+                                 ])
+            if not ret_list:
+                ret_list = [["-1 NONE"]]
             ret_code = SHOW_DEVICES
 
         else:
             ret_stat = ERRORUNKNOWN
-            ret_msg  = "unknown command"
+            ret_msg = "unknown command"
 
         self.write_log_file(cmd, ret_stat, ret_code, ret_msg, ret_list)
 

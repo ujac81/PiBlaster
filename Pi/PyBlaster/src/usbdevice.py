@@ -274,41 +274,46 @@ class UsbDevice:
             return True
         return False
 
-
     def list_all_dirs(self):
         """Called by 'lsalldirs <storid>' command
 
-        Returns "||device-id||dir-id||num subdirs||num files|| \
-                    full dir path incl mount point||"
+        :returns [[device-id,dir-id,num subdirs,num files,
+                    full dir path incl mount point]]
         """
 
         ret = []
         for row in self.main.dbhandle.cur.execute(
-                "SELECT id, numdirs, numfiles, dirname" \
+                "SELECT id, numdirs, numfiles, dirname"
                 " from Dirs WHERE usbid=? ORDER BY id;",
-                    (self.storid,)):
-            ret.append(u"||%d||%d||%d||%d||%s||" %
-                       (self.storid , row[0], row[1], row[2], row[3]))
-
+                (self.storid,)):
+            ret.append(['%d' % self.storid,
+                        '%d' % row[0],
+                        '%d' % row[1],
+                        '%d' % row[2],
+                        u'%s', row[3]])
         return ret
 
     def list_dirs(self, dirid):
         """Called by 'lsdirs <storid> <dirid>' command
 
-        Returns "||device-id||dir-id||parent-id||num subdirs||num files|| \
-                    full dir path incl mount point||"
+        :returns [[device-id,dir-id,parent-id,num subdirs,num files,
+                    full dir path incl mount point]]
         """
         if dirid is None:
             return []
 
         ret = []
         for row in self.main.dbhandle.cur.execute(
-                "SELECT id, parentid, numdirs, numfiles, dirname, path" \
+                "SELECT id, parentid, numdirs, numfiles, dirname, path"
                 " from Dirs WHERE usbid=? AND parentid=? ORDER BY id;",
-                    (self.storid,dirid,)):
-            ret.append(u"||%d||%d||%d||%d||%d||%s||%s||" %
-                       (self.storid,row[0],row[1],row[2],row[3],row[4],row[5]))
-
+                (self.storid,dirid,)):
+            ret.append(['%d' % self.storid,
+                        '%d' % row[0],
+                        '%d' % row[1],
+                        '%d' % row[2],
+                        '%d' % row[3],
+                        u'%s' % row[4],
+                        u'%s' % row[5]])
         return ret
 
     # end list_dirs() #
@@ -321,13 +326,16 @@ class UsbDevice:
 
         ret = []
         for row in self.main.dbhandle.cur.execute(
-                "SELECT id, time, artist, album, title" \
+                "SELECT id, time, artist, album, title"
                 " from Fileentries WHERE usbid=? AND dirid=? ORDER BY id;",
-                    (self.storid,dirid,)):
-            ret.append(u"||%d||%d||%d||%s||%s||%s||%s||" %
-                       (self.storid , dirid, row[0],
-                        seconds_to_minutes(row[1]), row[2], row[3], row[4]))
-
+                (self.storid,dirid,)):
+            ret.append(['%d' % self.storid,
+                        '%d' % dirid,
+                        '%d' % row[0],
+                        '%s' % seconds_to_minutes(row[1]),
+                        row[2],
+                        row[3],
+                        row[4]])
         return ret
 
     # end list_dirs() #
@@ -341,14 +349,13 @@ class UsbDevice:
         ret = []
         dirs = self.list_dirs(dirid)
         for item in dirs:
-            ret.append("||1"+item)
+            ret.append(["1"]+item)
         files = self.list_files(dirid)
         for item in files:
-            ret.append("||2"+item)
+            ret.append(["2"]+item)
         return ret
 
     # end list_full_dir() #
-
 
     def get_fileentry_by_path(self, path):
         """

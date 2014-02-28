@@ -22,38 +22,32 @@ RFCommSendThread::RFCommSendThread( RFCommMaster *parent, int id, const QString&
 {}
 
 
-RFCommSendThread::RFCommSendThread( RFCommMaster *parent, int id, const QString& msg ) :
-    QThread( dynamic_cast<QObject*>(parent) ),
-    _parent( parent ),
-    _id( id ),
-    _cmd( msg )
-{}
-
-
 void RFCommSendThread::run()
 {
 
 #ifndef DUMMY_MODE
 
-    QString cmd = QString::number( _id ) + " " + QString::number( _payload.size() ) + " " +  _cmd + " !EOL! ";
+    QString cmd = QString::number( _id ) + " " + QString::number( _payload.size() ) + " " +  _cmd;
     qDebug() << "Sending " << cmd;
 
-    QAndroidJniObject javaCommand = QAndroidJniObject::fromString( cmd );
+    QString head = QString("%1").arg(QString::number(cmd.length()), 4, '0');
+
+    QAndroidJniObject javaCommand = QAndroidJniObject::fromString( head + cmd );
     int sendOk = QAndroidJniObject::callStaticMethod<jint>(
                 "org/piblaster/piblaster/rfcomm/RfcommClient",
                 "sendLine", "(Ljava/lang/String;)I", javaCommand.object<jstring>() );
 
     for ( int i = 0; i < _payload.size(); ++i )
     {
-        QString line = _payload[i] + " !EOL! ";
-        QAndroidJniObject javaCommand = QAndroidJniObject::fromString( line );
+        QString line = _payload[i];
+        QString head = QString("%1").arg(QString::number(line.length()), 4, '0');
+        QAndroidJniObject javaCommand = QAndroidJniObject::fromString( head + line );
         sendOk = QAndroidJniObject::callStaticMethod<jint>(
                         "org/piblaster/piblaster/rfcomm/RfcommClient",
                         "sendLine", "(Ljava/lang/String;)I", javaCommand.object<jstring>() );
 
         if ( sendOk != 0 ) break;
     }
-
 
     if ( sendOk == 0 )
         emit commandSent( _cmd );

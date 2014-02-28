@@ -226,6 +226,9 @@ Rectangle {
     {
         console.log("handleBackPressed caught back button");
 
+        if ( connectOverlay.visible )
+            handleBackKey();
+
         // ask wait overlay 1st to catch back key
         if ( ! waitOverlay.handleBackKey() )
             // if active tab returns true, it used the back event
