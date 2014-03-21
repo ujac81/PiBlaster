@@ -3,11 +3,11 @@
 @Author Ulrich Jansen <ulrich.jansen@rwth-aachen.de>
 """
 
-import log
-from log import Log
-
 import argparse
 import os.path
+
+import log
+
 
 class Settings:
     """Command and config file parser
@@ -23,25 +23,29 @@ class Settings:
         # Config defaults, add all values here.
         # Add new key/value pairs to new_config() and read_config().
 
-        self.daemonize          = False
-        self.exitafterinit      = False
-        self.rebuilddb          = False
-        self.loglevel           = log.DEBUG3
-        self.pidifile           = "/var/run/pyblaster.pid"
-        self.fifoin             = None
-        self.cmdout             = None
-        self.configfile         = "/etc/pyblaster.conf"
-        self.logfile            = "/var/log/pyblaster.log"
-        self.polltime           = 30    # daemon poll time in ms
-        self.flash_count        = 2     # flash activity LED n poll
-        self.keep_alive_count   = 20    # let activity LED flash every n polls
-        self.usb_count          = 1     # check usb drives every n polls
-        self.pin1_default       = "1234"
-        self.pin2_default       = "4567"
-        self.puk                = "1234567890"
-        self.pin1               = None  # loaded from db
-        self.pin2               = None  # loaded from db
-        self.dbfile             = "/var/lib/pyblaster/pyblaster.sqlite"
+        self.daemonize = False
+        self.is_daemonized = False
+        self.exitafterinit = False
+        self.rebuilddb = False
+        self.loglevel = log.DEBUG3
+        self.pidifile = "/var/run/pyblaster.pid"
+        self.fifoin = None
+        self.cmdout = None
+        self.configfile = "/etc/pyblaster.conf"
+        self.logfile = "/var/log/pyblaster.log"
+        self.polltime = 30          # daemon poll time in ms
+        self.flash_count = 2        # flash activity LED n poll
+        self.keep_alive_count = 20  # let activity LED flash every n polls
+        self.usb_count = 1          # check usb drives every n polls
+        self.pin1_default = "1234"
+        self.pin2_default = "4567"
+        self.puk = "1234567890"
+        self.pin1 = None  # loaded from db
+        self.pin2 = None  # loaded from db
+        self.dbfile = "/var/lib/pyblaster/pyblaster.sqlite"
+        self.use_lirc = False
+        self.loglevel_from_cmd = False
+        self.pidfile = "/var/run/pyblaster.pid"
 
         # end __init__() #
 
@@ -89,9 +93,9 @@ class Settings:
         # Changed to true by PyBlaster.daemonize() if daemonized.
         self.is_daemonized = False
 
-        self.daemonize      = True if args.daemonize        else False
-        self.exitafterinit  = True if args.exit             else False
-        self.rebuilddb      = True if args.rebuilddb        else False
+        self.daemonize = True if args.daemonize else False
+        self.exitafterinit = True if args.exit else False
+        self.rebuilddb = True if args.rebuilddb else False
 
         if args.verbosity:
             self.loglevel = args.verbosity
@@ -114,7 +118,6 @@ class Settings:
             self.parent.delete_pidfile()
 
         # end parse() #
-
 
     def new_config(self):
         """Create new config file at --config location
@@ -157,6 +160,12 @@ cmdout    /var/lib/pyblaster/pyblastercmd.log
 
 dbfile /var/lib/pyblaster/pyblaster.sqlite
 
+####################################
+# Control
+####################################
+
+use_lirc 1
+
 
 ####################################
 # Passwords
@@ -186,13 +195,12 @@ puk 1234567890
             f = open(self.configfile, "w")
         except IOError:
             self.parent.log.write(log.EMERGENCY,
-                "Settings.new_config(): Failed to write config file %s" %
-                self.configfile)
+                                  "Settings.new_config(): Failed to write "
+                                  "config file %s" % self.configfile)
             raise
         f.write(msg)
 
         # end new_config() #
-
 
     def read_config(self):
         """Parse file in --config (defaults to ~/.pyblaster.conf)
@@ -200,7 +208,8 @@ puk 1234567890
         If not found, new_config() will be invoked.
         """
 
-        if not os.path.exists(self.configfile): self.new_config()
+        if not os.path.exists(self.configfile):
+            self.new_config()
 
         try:
             f = open(self.configfile, "r")
@@ -220,7 +229,8 @@ puk 1234567890
             val = line.split(None, 1)[1].strip()
 
             self.parent.log.write(log.DEBUG3,
-                "[CONFIG READ]: key: %s -- value: %s" % ( key, val ))
+                                  "[CONFIG READ]: key: %s -- value: %s" %
+                                  (key, val))
 
             try:
                 if key == "loglevel" and not self.loglevel_from_cmd:
@@ -247,10 +257,14 @@ puk 1234567890
                     self.pin2_default = val
                 if key == "puk":
                     self.puk = val
+                if key == "use_lirc":
+                    if val == "1":
+                        self.use_lirc = True
 
             except ValueError:
-                self.parent.log.write(log.EMERGENCY,
-                    "Failed to convert %s for key %s in config" % ( val, key ) )
+                self.parent.log.write(log.EMERGENCY, "Failed to convert %s "
+                                                     "for key %s in config" %
+                                                     (val, key))
                 raise
 
             # for line

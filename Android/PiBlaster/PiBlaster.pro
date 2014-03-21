@@ -1,7 +1,7 @@
 
 QT += quick
 
-DUMMY_MODE = 0
+DUMMY_MODE = 1
 
 contains(DUMMY_MODE, 1) {
     message("Running in dummy mode")
@@ -35,7 +35,7 @@ RESOURCES += qml.qrc
         android-sources/AndroidManifest.xml
 }
 
-# Please do not modify the following two lines. Required for deployment.
+# Required for deployment
 include(src/QtQuick2ApplicationViewer.pri)
 qtcAddDeployment()
 

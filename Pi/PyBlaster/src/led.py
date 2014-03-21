@@ -7,7 +7,7 @@ import RPi.GPIO as GPIO
 import time
 
 # port number on GPIO in BOARD mode
-LED_GREEN = 12
+LED_GREEN = 8
 LED_YELLOW = 16
 LED_RED = 18
 LED_BLUE = 22

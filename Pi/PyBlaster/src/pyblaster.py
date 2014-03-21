@@ -11,12 +11,14 @@ import log
 from dbhandle import DBHandle
 from evalcmd import EvalCmd
 from led import LED
+from lircthread import LircThread
 from log import Log
 from play import Play
 from playlistmanager import PlayListManager
 from rfcommserver import RFCommServer
 from settings import Settings
 from usbmanager import UsbManager
+
 
 class PyBlaster:
     """Daemon for PiBlaster project"""
@@ -27,17 +29,19 @@ class PyBlaster:
 
         # +++++++++++++++ Init +++++++++++++++ #
 
-        self.keep_run   = 0 # used in run for daemon loop, reset by SIGTERM
+        self.keep_run = 0  # used in run for daemon loop, reset by SIGTERM
 
-        self.log        = Log(self)
-        self.settings   = Settings(self)
-        self.led        = LED(self)
-        self.dbhandle   = DBHandle(self)
-        self.usb        = UsbManager(self)
-        self.rfcomm     = RFCommServer(self)
-        self.cmd        = EvalCmd(self)
-        self.listmngr   = PlayListManager(self)
-        self.play       = Play(self)
+        self.log = Log(self)
+        self.settings = Settings(self)
+        self.led = LED(self)
+        self.dbhandle = DBHandle(self)
+        self.usb = UsbManager(self)
+        self.rfcomm = RFCommServer(self)
+        self.cmd = EvalCmd(self)
+        self.listmngr = PlayListManager(self)
+        self.play = Play(self)
+        self.lirc = LircThread(self)
+        self.keep_run = 1
 
         self.led.reset_leds()
 
@@ -58,6 +62,9 @@ class PyBlaster:
 
         # fire up bluetooth service
         self.rfcomm.start_server()
+
+        # start lirc thread
+        self.lirc.start()
 
         # +++++++++++++++ Daemoninze +++++++++++++++ #
 
@@ -102,6 +109,12 @@ class PyBlaster:
             # Check bluetooth channel for new messages/connections.
             self.rfcomm.read_socket()
 
+            # Check if lirc thread has command in queue
+            if self.lirc.queue_not_empty():
+                ircmd = self.lirc.read_command()
+                if ircmd is not None:
+                    self.cmd.evalcmd(ircmd, "lirc")
+
             # Check if song has ended
             self.play.check_pygame_events()
 
@@ -125,6 +138,9 @@ class PyBlaster:
             # end daemon loop #
 
         # # # # # # DAEMON LOOP EXIT # # # # # #
+
+        # join remaining threads
+        self.lirc.join()
 
         self.log.write(log.MESSAGE, "---- closed regularly ----")
 
