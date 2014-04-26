@@ -6,11 +6,19 @@
 import RPi.GPIO as GPIO
 import time
 
-# port number on GPIO in BOARD mode
-LED_GREEN = 8
-LED_YELLOW = 16
-LED_RED = 18
-LED_BLUE = 22
+# port number on GPIO in BCM mode
+LED_GREEN = 2
+LED_YELLOW = 3
+LED_RED = 4
+LED_BLUE = 17
+LED_WHITE = 27
+
+BUTTON_GREEN = 14
+BUTTON_YELLOW = 15
+BUTTON_RED = 18
+BUTTON_BLUE = 23
+BUTTON_WHITE = 24
+
 
 class LED:
     """LED GPIO handler for PyBlaster"""
@@ -21,7 +29,7 @@ class LED:
         self.parent = parent
         self.state = [0]*4
 
-        GPIO.setmode(GPIO.BOARD)
+        GPIO.setmode(GPIO.BCM)
         GPIO.setwarnings(False)
 
     def reset_leds(self):
@@ -45,10 +53,14 @@ class LED:
     def set_led(self, num, state):
         """Set specific LED to state"""
 
-        if num == 0: self.set_led_green(state)
-        if num == 1: self.set_led_yellow(state)
-        if num == 2: self.set_led_red(state)
-        if num == 3: self.set_led_blue(state)
+        if num == 0:
+            self.set_led_green(state)
+        if num == 1:
+            self.set_led_yellow(state)
+        if num == 2:
+            self.set_led_red(state)
+        if num == 3:
+            self.set_led_blue(state)
 
     def set_leds(self, state):
         """Set all LEDs to state"""
@@ -83,4 +95,3 @@ class LED:
 
         self.set_leds(0)
         GPIO.cleanup()
-

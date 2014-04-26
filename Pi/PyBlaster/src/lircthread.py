@@ -39,7 +39,6 @@ class LircThread(threading.Thread):
         while self.main.keep_run:
             read = lirc.nextcode()
             if len(read):
-                print(read[0])
                 self.queue_lock.acquire()
                 self.queue.put(read[0])
                 self.queue_lock.release()
@@ -59,18 +58,13 @@ class LircThread(threading.Thread):
         """
         result = None
 
-        print("read")
-
         while not self.queue.empty():
             self.queue_lock.acquire()
             try:
                 result = self.queue.get_nowait()
-                print("got:"+result)
             except Queue.Empty:
                 self.queue_lock.release()
-                print("empty")
                 return None
             self.queue_lock.release()
 
-        print("return "+result)
         return result

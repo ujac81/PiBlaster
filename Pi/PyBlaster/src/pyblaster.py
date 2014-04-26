@@ -120,8 +120,9 @@ class PyBlaster:
 
             # read bluetooth has internal BT timeout of 1sec,
             # but if connection got lost, fast polling will occur.
-            time.sleep(self.settings.polltime / 1000.) # 30ms default in config
-            self.led.set_led_green((poll_count/10)%2)
+            time.sleep(self.settings.polltime / 1000.)  # 30ms default in
+                                                        # config
+            self.led.set_led_green((poll_count/10) % 2)
 
             # Check for new USB drives.
             if poll_count % self.settings.usb_count == 0:
