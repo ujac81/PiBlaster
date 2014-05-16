@@ -26,6 +26,11 @@ class LED:
     def __init__(self):
         GPIO.setmode(GPIO.BCM)
         GPIO.setwarnings(False)
+        self.state_green = False
+        self.state_yellow = False
+        self.state_red = False
+        self.state_blue = False
+        self.state_white = False
 
     def reset_leds(self):
         """Assign GPIO ports and turn of LEDs"""
@@ -55,20 +60,50 @@ class LED:
         for led in range(5):
             self.set_led(led, state)
 
-    def set_led_green(self, state):
-        GPIO.output(LED_GREEN, state)
+    def set_led_green(self, state=-1):
+        do_state = not self.state_green
+        if state == 1:
+            do_state = True
+        elif state == 0:
+            do_state = False
+        self.state_green = do_state
+        GPIO.output(LED_GREEN, do_state)
 
-    def set_led_yellow(self, state):
-        GPIO.output(LED_YELLOW, state)
+    def set_led_yellow(self, state=-1):
+        do_state = not self.state_yellow
+        if state == 1:
+            do_state = True
+        elif state == 0:
+            do_state = False
+        self.state_yellow = do_state
+        GPIO.output(LED_YELLOW, do_state)
 
-    def set_led_red(self, state):
-        GPIO.output(LED_RED, state)
+    def set_led_red(self, state=-1):
+        do_state = not self.state_red
+        if state == 1:
+            do_state = True
+        elif state == 0:
+            do_state = False
+        self.state_red = do_state
+        GPIO.output(LED_RED, do_state)
 
-    def set_led_blue(self, state):
-        GPIO.output(LED_BLUE, state)
+    def set_led_blue(self, state=-1):
+        do_state = not self.state_blue
+        if state == 1:
+            do_state = True
+        elif state == 0:
+            do_state = False
+        self.state_blue = do_state
+        GPIO.output(LED_BLUE, do_state)
 
-    def set_led_white(self, state):
-        GPIO.output(LED_WHITE, state)
+    def set_led_white(self, state=-1):
+        do_state = not self.state_white
+        if state == 1:
+            do_state = True
+        elif state == 0:
+            do_state = False
+        self.state_white = do_state
+        GPIO.output(LED_WHITE, do_state)
 
     def cleanup(self):
         self.set_leds(0)
@@ -80,18 +115,16 @@ class ButtonThread(threading.Thread):
 
     """
 
-    def __init__(self, main, pin, name, queue, queue_lock):
-        """"
-
-        """"
+    def __init__(self, root, pin, name, queue, queue_lock):
+        """
+        """
 
         threading.Thread.__init__(self)
-        self.main = main
+        self.root = root  # TODO: need main
         self.pin = pin
         self.name = name
         self.queue = queue
         self.queue_lock = queue_lock
-        self.main = None  # TODO: need main
         self.keep_run = 1  # TODO: via main
 
     def run(self):
@@ -114,28 +147,38 @@ class ButtonThread(threading.Thread):
 
     # end run()
 
+    def queue_not_empty(self):
+        if not self.queue.empty():
+            return True
+        return False
+
+    def read_queue(self):
+
+        result = None
+
+
 
 class Buttons:
 
-    def __init__(self, main):
+    def __init__(self, root):
         """
 
         """
 
-        self.main = main
+        self.root = root
         self.queue = Queue.Queue()
         self.queue_lock = threading.Lock()
 
         self.btn_threads = []
-        self.btn_threads.append(ButtonThread(main, BUTTON_GREEN, "green",
+        self.btn_threads.append(ButtonThread(root, BUTTON_GREEN, "green",
                                              self.queue, self.queue_lock))
-        self.btn_threads.append(ButtonThread(main, BUTTON_YELLOW, "yellow",
+        self.btn_threads.append(ButtonThread(root, BUTTON_YELLOW, "yellow",
                                              self.queue, self.queue_lock))
-        self.btn_threads.append(ButtonThread(main, BUTTON_RED, "red",
+        self.btn_threads.append(ButtonThread(root, BUTTON_RED, "red",
                                              self.queue, self.queue_lock))
-        self.btn_threads.append(ButtonThread(main, BUTTON_BLUE, "blue",
+        self.btn_threads.append(ButtonThread(root, BUTTON_BLUE, "blue",
                                              self.queue, self.queue_lock))
-        self.btn_threads.append(ButtonThread(main, BUTTON_WHITE, "white",
+        self.btn_threads.append(ButtonThread(root, BUTTON_WHITE, "white",
                                              self.queue, self.queue_lock))
 
     def start_threads(self):
@@ -145,6 +188,11 @@ class Buttons:
 
         for t in self.btn_threads:
             t.start()
+
+    def get_last_button_pushed(self):
+        """
+
+        """
 
 
 
@@ -158,26 +206,56 @@ def main():
     led = LED()
     led.reset_leds()
 
-    button = Button()
+    buttons = Buttons(root=None)
+    buttons.start_threads()
 
-    poll = 0
-
-    prev_in = 0
+    # poll = 0
 
     while 1:
-        led.set_leds(poll % 2)
-        time.sleep(500./1000.)  # 500ms
+        prev_in_green = 0
+        prev_in_yellow = 0
+        prev_in_red = 0
+        prev_in_blue = 0
+        prev_in_white = 0
+
+        # led.set_leds(poll % 2)
+
+        time.sleep(50./1000.)  # 50ms
+
+        inpt = GPIO.input(BUTTON_GREEN)
+        if (not prev_in_green) and inpt:
+            print("Green button pressed")
+            led.set_led_green()
+            prev_in_green = inpt
+
+        inpt = GPIO.input(BUTTON_YELLOW)
+        if (not prev_in_yellow) and inpt:
+            print("Yellow button pressed")
+            led.set_led_yellow()
+            prev_in_yellow = inpt
 
         inpt = GPIO.input(BUTTON_RED)
-        if (not prev_in) and inpt:
-            print("Button pressed")
+        if (not prev_in_red) and inpt:
+            print("Red button pressed")
+            led.set_led_red()
+            prev_in_red = inpt
 
-        prev_in = inpt
-        poll += 1
+        inpt = GPIO.input(BUTTON_BLUE)
+        if (not prev_in_blue) and inpt:
+            print("Blue button pressed")
+            led.set_led_blue()
+            prev_in_blue = inpt
 
+        inpt = GPIO.input(BUTTON_WHITE)
+        if (not prev_in_white) and inpt:
+            print("White button pressed")
+            led.set_led_white()
+            prev_in_white = inpt
 
+        # poll += 1
 
     led.cleanup()
+
 
 if __name__ == '__main__':
     main()

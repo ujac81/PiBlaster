@@ -8,6 +8,7 @@ import signal
 import time
 
 import log
+from buttons import Buttons
 from dbhandle import DBHandle
 from evalcmd import EvalCmd
 from led import LED
@@ -41,6 +42,7 @@ class PyBlaster:
         self.listmngr = PlayListManager(self)
         self.play = Play(self)
         self.lirc = LircThread(self)
+        self.buttons = Buttons(self)
         self.keep_run = 1
 
         self.led.reset_leds()
@@ -65,6 +67,9 @@ class PyBlaster:
 
         # start lirc thread
         self.lirc.start()
+
+        # fire up one thread per each button
+        self.buttons.start_threads()
 
         # +++++++++++++++ Daemoninze +++++++++++++++ #
 
@@ -105,6 +110,9 @@ class PyBlaster:
 
             # Check cmd fifo for new commands.
             self.cmd.read_fifo()
+
+            # Check button events
+            self.buttons.read_buttons()
 
             # Check bluetooth channel for new messages/connections.
             self.rfcomm.read_socket()

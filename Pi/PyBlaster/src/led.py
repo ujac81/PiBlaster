@@ -13,13 +13,6 @@ LED_RED = 4
 LED_BLUE = 17
 LED_WHITE = 27
 
-BUTTON_GREEN = 14
-BUTTON_YELLOW = 15
-BUTTON_RED = 18
-BUTTON_BLUE = 23
-BUTTON_WHITE = 24
-
-
 class LED:
     """LED GPIO handler for PyBlaster"""
 
