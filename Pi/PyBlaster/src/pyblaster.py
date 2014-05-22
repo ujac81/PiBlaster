@@ -44,6 +44,7 @@ class PyBlaster:
         self.lirc = LircThread(self)
         self.buttons = Buttons(self)
         self.keep_run = 1
+        self.ret_code = 0  # return code to command line (10 = shutdown)
 
         self.led.reset_leds()
 

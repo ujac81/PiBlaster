@@ -14,6 +14,7 @@ def main():
 
     #try:
     blaster = PyBlaster()
+    sys.exit(blaster.ret_code)
     #except:
         #blaster.led.set_led_red(1)
         #e = sys.exc_info()[0]

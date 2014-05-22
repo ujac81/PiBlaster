@@ -22,22 +22,22 @@ class Play:
         Need to call load_playlist after other object initialized.
         :param parent: main PyBlaster instance
         """
-        assert isinstance(parent, object)
         self.parent = parent
 
-        self.init_mixer()
         self.pause = False
+        self.volume = 0.5  # TODO: store last volume in database
+        self.init_mixer()
 
         # end __init__() #
 
-    @staticmethod
-    def init_mixer():
+    def init_mixer(self):
         """
 
         """
         pygame.init()
         pygame.mixer.init()
         pygame.mixer.music.set_endevent(SONG_END)
+        pygame.mixer.music.set_volume(self.volume)
 
     def play_pause(self):
         """
@@ -107,6 +107,7 @@ class Play:
         failed = False
         try:
             pygame.mixer.music.load(file)
+            pygame.mixer.music.set_volume(self.volume)
             pygame.mixer.music.play()
         except pygame.error as e:
             self.parent.log.write(log.ERROR,
@@ -220,3 +221,28 @@ class Play:
             ret_msg = "Nothing to play: playlist empty or broken file"
         self.parent.rfcomm.send_client(-1, ret_status, ret_code,
                                        ret_msg, [info])
+
+    def vol_inc(self, rate=5):
+        """Increase volume by 5 (0 to 100)
+        """
+        vol = pygame.mixer.music.get_volume()
+        self.vol_set(vol*100. + rate)
+
+    def vol_dec(self, rate=5):
+        """Decrease volume by 5 (0 to 100)
+        """
+        self.vol_inc(-rate)
+
+    def vol_set(self, vol):
+        """Set volume directly (0 to 100, range checked)
+
+        """
+        self.volume = vol / 100.
+        if self.volume < 0:
+            self.volume = 0
+        if self.volume > 1:
+            self.volume = 1
+
+        pygame.mixer.music.set_volume(self.volume)
+        self.parent.log.write(log.MESSAGE,
+                              "[PLAY]: Vol set %f" % self.volume)

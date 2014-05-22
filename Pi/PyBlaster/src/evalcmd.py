@@ -190,6 +190,9 @@ class EvalCmd:
                 ['plshowlists',
                  '    show all playlists'],
                 [''],
+                ['poweroff',
+                 '    exit application and tell init script to shutdown '
+                 'Pi'],
                 ['rescan <storid>',
                  '    force rescan of usb device'],
                 [''],
@@ -397,6 +400,13 @@ class EvalCmd:
         elif cmd == "plshowlists":
             ret_list = self.parent.listmngr.list_playlists()
 
+        # # # # poweroff # # # #
+
+        elif cmd == "poweroff":
+            ret_stat = STATUSEXIT
+            self.parent.keep_run = 0
+            self.parent.ret_code = 10  # tell init script to invoke poweroff
+
         # # # # quit # # # #
 
         elif cmd == "quit":
@@ -452,6 +462,45 @@ class EvalCmd:
             if not ret_list:
                 ret_list = [["-1 NONE"]]
             ret_code = SHOW_DEVICES
+
+        # # # # vol_dec # # # #
+
+        elif cmd == "voldec":
+            if len(line) != 2:
+                ret_stat = ERRORARGS
+                ret_msg = "vol_dec needs 1 arg"
+            else:
+                if int_args[1] is None:
+                    ret_stat = ERRORARGS
+                    ret_msg = "vol_dec needs int arg"
+                else:
+                    self.parent.play.vol_dec(int_args[1])
+
+        # # # # vol_inc # # # #
+
+        elif cmd == "volinc":
+            if len(line) != 2:
+                ret_stat = ERRORARGS
+                ret_msg = "vol_inc needs 1 arg"
+            else:
+                if int_args[1] is None:
+                    ret_stat = ERRORARGS
+                    ret_msg = "vol_inc needs int arg"
+                else:
+                    self.parent.play.vol_inc(int_args[1])
+
+        # # # # vol_set # # # #
+
+        elif cmd == "volset":
+            if len(line) != 2:
+                ret_stat = ERRORARGS
+                ret_msg = "vol_set needs 1 arg"
+            else:
+                if int_args[1] is None:
+                    ret_stat = ERRORARGS
+                    ret_msg = "vol_set needs int arg"
+                else:
+                    self.parent.play.vol_set(int_args[1])
 
         else:
             ret_stat = ERRORUNKNOWN

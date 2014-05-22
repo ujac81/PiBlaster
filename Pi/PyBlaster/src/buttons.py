@@ -40,6 +40,7 @@ class ButtonThread(threading.Thread):
         self.name = name
         self.queue = queue
         self.queue_lock = queue_lock
+        self.prev_in = 0
 
     def run(self):
         """Read button while keep_run in root object is true
@@ -47,16 +48,20 @@ class ButtonThread(threading.Thread):
 
         GPIO.setup(self.pin, GPIO.IN)
 
-        prev_in = 0
         while self.root.keep_run:
             time.sleep(0.01)  # TODO: to config
             inpt = GPIO.input(self.pin)
-            if (not prev_in) and inpt:
+            if (not self.prev_in) and inpt:
                 self.queue_lock.acquire()
                 self.queue.put([self.pin, self.name])
                 self.queue_lock.release()
 
-            prev_in = inpt
+            self.prev_in = inpt
+
+            # Blue and white buttons are vol up and down.
+            # These should have hold function.
+            if self.name == "blue" or self.name == "white":
+                self.prev_in = 0
 
     # end run()
 
@@ -139,5 +144,11 @@ class Buttons:
             self.root.cmd.evalcmd("playpause", "button")
         if button_color == "yellow":
             self.root.cmd.evalcmd("playnext", "button")
+        if button_color == "red":
+            self.root.cmd.evalcmd("poweroff", "button")
+        if button_color == "blue":
+            self.root.cmd.evalcmd("volinc 2", "button")
+        if button_color == "white":
+            self.root.cmd.evalcmd("voldec 2", "button")
 
 
