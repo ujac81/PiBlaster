@@ -59,7 +59,7 @@ class ButtonThread(threading.Thread):
             self.prev_in = inpt
 
             # Blue and white buttons are vol up and down.
-            # These should have hold function.
+            # These should have hold functionality.
             if self.name == "blue" or self.name == "white":
                 self.prev_in = 0
 
