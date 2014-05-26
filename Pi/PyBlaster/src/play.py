@@ -6,6 +6,7 @@
 import pygame
 
 import codes
+import led
 import log
 import rfcommserver
 
@@ -23,10 +24,8 @@ class Play:
         :param parent: main PyBlaster instance
         """
         self.parent = parent
-
         self.pause = False
-        self.volume = 0.5  # TODO: store last volume in database
-        self.init_mixer()
+        self.volume = 0.5
 
         # end __init__() #
 
@@ -37,7 +36,8 @@ class Play:
         pygame.init()
         pygame.mixer.init()
         pygame.mixer.music.set_endevent(SONG_END)
-        pygame.mixer.music.set_volume(self.volume)
+        self.vol_set(self.parent.dbhandle.
+                     get_settings_value_as_int('volume', 50))
 
     def play_pause(self):
         """
@@ -223,18 +223,18 @@ class Play:
                                        ret_msg, [info])
 
     def vol_inc(self, rate=5):
-        """Increase volume by 5 (0 to 100)
+        """Increase volume by rate (0 to 100)
         """
         vol = pygame.mixer.music.get_volume()
         self.vol_set(vol*100. + rate)
 
     def vol_dec(self, rate=5):
-        """Decrease volume by 5 (0 to 100)
+        """Decrease volume by rate (0 to 100)
         """
         self.vol_inc(-rate)
 
     def vol_set(self, vol):
-        """Set volume directly (0 to 100, range checked)
+        """Set volume directly (0 to 100, range checked here)
 
         """
         self.volume = vol / 100.
@@ -243,6 +243,18 @@ class Play:
         if self.volume > 1:
             self.volume = 1
 
+        self.parent.dbhandle.set_settings_value('volume',
+                                                self.get_volume())
         pygame.mixer.music.set_volume(self.volume)
         self.parent.log.write(log.MESSAGE,
                               "[PLAY]: Vol set %f" % self.volume)
+
+        if self.volume == 0:
+            self.parent.led.flash_led(led.LED_WHITE, 1.0)
+        if self.volume == 1:
+            self.parent.led.flash_led(led.LED_BLUE, 1.0)
+
+    def get_volume(self):
+        """Get volume as integer in [0,100]
+        """
+        return int(self.volume * 100.)

@@ -30,7 +30,7 @@ class EvalCmd:
 
         self.parent = parent
 
-        self.fifoin = None
+        self.fifoin = -1
         self.cmdout = None
 
         # end __init__() #
@@ -63,7 +63,7 @@ class EvalCmd:
         Called by main daemon loop at each poll.
         """
 
-        if self.fifoin is None:
+        if self.fifoin == -1:
             return
 
         cmd = None
@@ -463,31 +463,18 @@ class EvalCmd:
                 ret_list = [["-1 NONE"]]
             ret_code = SHOW_DEVICES
 
-        # # # # vol_dec # # # #
+        # # # # vol_dec / vol_inc # # # #
 
-        elif cmd == "voldec":
-            if len(line) != 2:
-                ret_stat = ERRORARGS
-                ret_msg = "vol_dec needs 1 arg"
+        elif cmd == "voldec" or cmd == "volinc":
+            vol_change = self.parent.settings.default_vol_change
+
+            if len(line) == 2 and int_args[1] is not None:
+                vol_change = int_args[1]
+
+            if cmd == "voldec":
+                self.parent.play.vol_dec(vol_change)
             else:
-                if int_args[1] is None:
-                    ret_stat = ERRORARGS
-                    ret_msg = "vol_dec needs int arg"
-                else:
-                    self.parent.play.vol_dec(int_args[1])
-
-        # # # # vol_inc # # # #
-
-        elif cmd == "volinc":
-            if len(line) != 2:
-                ret_stat = ERRORARGS
-                ret_msg = "vol_inc needs 1 arg"
-            else:
-                if int_args[1] is None:
-                    ret_stat = ERRORARGS
-                    ret_msg = "vol_inc needs int arg"
-                else:
-                    self.parent.play.vol_inc(int_args[1])
+                self.parent.play.vol_inc(vol_change)
 
         # # # # vol_set # # # #
 

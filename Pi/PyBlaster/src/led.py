@@ -4,6 +4,7 @@
 """
 
 import RPi.GPIO as GPIO
+import threading
 import time
 
 # port number on GPIO in BCM mode
@@ -13,6 +14,7 @@ LED_RED = 4
 LED_BLUE = 17
 LED_WHITE = 27
 
+
 class LED:
     """LED GPIO handler for PyBlaster"""
 
@@ -20,7 +22,7 @@ class LED:
         """Initialize GPIO to BOARD mode and disable warnings"""
 
         self.parent = parent
-        self.state = [0]*4
+        self.state = [0]*5
 
         GPIO.setmode(GPIO.BCM)
         GPIO.setwarnings(False)
@@ -32,13 +34,14 @@ class LED:
         GPIO.setup(LED_YELLOW, GPIO.OUT)
         GPIO.setup(LED_RED, GPIO.OUT)
         GPIO.setup(LED_BLUE, GPIO.OUT)
+        GPIO.setup(LED_WHITE, GPIO.OUT)
         self.set_leds(0)
 
     def show_init_done(self):
         """Let LEDs flash to indicate that PyBlaster initialization is done"""
 
         for i in range(1):
-            for led in range(4):
+            for led in range(5):
                 self.set_led(led, 1)
                 time.sleep(0.1)
                 self.set_led(led, 0)
@@ -54,6 +57,8 @@ class LED:
             self.set_led_red(state)
         if num == 3:
             self.set_led_blue(state)
+        if num == 4:
+            self.set_led_white(state)
 
     def set_leds(self, state):
         """Set all LEDs to state"""
@@ -77,6 +82,10 @@ class LED:
         GPIO.output(LED_BLUE, state)
         self.state[3] = state
 
+    def set_led_white(self, state):
+        GPIO.output(LED_WHITE, state)
+        self.state[4] = state
+
     def toggle_led_yellow(self):
         if self.state[1]:
             self.set_led(1, 0)
@@ -88,3 +97,12 @@ class LED:
 
         self.set_leds(0)
         GPIO.cleanup()
+
+    @staticmethod
+    def flash_led(led_code, flash_time):
+        """
+
+        """
+        GPIO.output(led_code, 1)
+        timer = threading.Timer(flash_time, GPIO.output, [led_code, 0])
+        timer.start()

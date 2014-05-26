@@ -5,8 +5,6 @@
 @Author Ulrich Jansen <ulrich.jansen@rwth-aachen.de>
 """
 
-
-
 PASS_OK = 1         # correct password sent
 PASS_ERROR = 2      # wrong password
 

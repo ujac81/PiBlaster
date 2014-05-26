@@ -4,20 +4,19 @@
 """
 
 from dbhandle import DBFileEntries as FE
-from dbhandle import DBPlayListEntries as PE
+
 
 class PlayListItem:
 
     def __init__(self, db_row, is_connected, revision):
         """
         """
-        self.db_row       = db_row
+        self.db_row = db_row
         self.is_connected = is_connected
-        self.revision     = revision
-        self.played       = 0
+        self.revision = revision
+        self.played = 0
 
         # end __init__() #
-
 
     def print_self(self, printformat="||$disptitle$||$length$||"):
         """
@@ -46,7 +45,6 @@ class PlayListItem:
                         self.played, self.db_row[FE.PATH], state
                         ])
 
-
     def set_connected_by_storid(self, storid, is_connected):
         """
         """
@@ -54,7 +52,6 @@ class PlayListItem:
             self.is_connected = is_connected
             return 1
         return 0
-
 
     def check_revision_matches(self, revision, usbdev):
         """Called on USB-connect to check if file ids may have changed
@@ -75,8 +72,3 @@ class PlayListItem:
         self.db_row = newrow
 
         return True
-
-
-
-
-

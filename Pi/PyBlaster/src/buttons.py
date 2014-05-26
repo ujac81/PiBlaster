@@ -100,6 +100,12 @@ class Buttons:
         for t in self.btn_threads:
             t.start()
 
+    def join_all_threads(self):
+        """Join all button threads after keep_run in root is False.
+        """
+        for t in self.btn_threads:
+            t.join()
+
     def has_button_events(self):
         """True if button events in queue
         """
@@ -147,8 +153,6 @@ class Buttons:
         if button_color == "red":
             self.root.cmd.evalcmd("poweroff", "button")
         if button_color == "blue":
-            self.root.cmd.evalcmd("volinc 2", "button")
+            self.root.cmd.evalcmd("volinc", "button")
         if button_color == "white":
-            self.root.cmd.evalcmd("voldec 2", "button")
-
-
+            self.root.cmd.evalcmd("voldec", "button")

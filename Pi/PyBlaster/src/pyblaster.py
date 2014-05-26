@@ -3,6 +3,7 @@
 
 @Author Ulrich Jansen <ulrich.jansen@rwth-aachen.de>
 """
+
 import os
 import signal
 import time
@@ -57,6 +58,9 @@ class PyBlaster:
         # load connected usb before bluetooth
         self.usb.check_new_usb()
 
+        # initialize sound mixer
+        self.play.init_mixer()
+
         # load latest playlist from database
         self.listmngr.load_active_playlist()
 
@@ -100,8 +104,8 @@ class PyBlaster:
         # -e flag is set, run only init and exit directly.
         self.keep_run = 0 if self.settings.exitafterinit else 1
 
-        reset_poll_count = self.settings.keep_alive_count * \
-                           self.settings.usb_count
+        reset_poll_count = self.settings.keep_alive_count * self.\
+            settings.usb_count
 
         # # # # # # DAEMON LOOP ENTRY # # # # # #
 
@@ -151,6 +155,7 @@ class PyBlaster:
 
         # join remaining threads
         self.lirc.join()
+        self.buttons.join_all_threads()
 
         self.log.write(log.MESSAGE, "---- closed regularly ----")
 
@@ -174,7 +179,7 @@ class PyBlaster:
             self.log.write(log.EMERGENCY, "Failed to fork daemon")
             raise
 
-        if ( pid == 0 ):
+        if pid == 0:
             os.setsid()
             try:
                 pid = os.fork()
@@ -182,7 +187,7 @@ class PyBlaster:
                 self.log.write(log.EMERGENCY, "Failed to fork daemon")
                 raise
 
-            if ( pid == 0 ):
+            if pid == 0:
                 os.chdir("/tmp")
                 os.umask(0)
             else:
@@ -204,7 +209,7 @@ class PyBlaster:
         """Check if daemon already running, throw if pid file found"""
 
         if os.path.exists(self.settings.pidfile):
-            self.log.write(log.EMERGENCY, "Found pid file for pyblaster, "\
+            self.log.write(log.EMERGENCY, "Found pid file for pyblaster, "
                            "another process running?")
             raise Exception("pid file found")
 
@@ -234,7 +239,8 @@ class PyBlaster:
     def kill_other_pyblaster(self):
         """Check if pid found in pid file and try to kill this (old) process"""
 
-        if not os.path.exists(self.settings.pidfile): return
+        if not os.path.exists(self.settings.pidfile):
+            return
 
         try:
             f = open(self.settings.pidfile, "r")
@@ -261,4 +267,3 @@ class PyBlaster:
 
 if __name__ == '__main__':
     blaster = PyBlaster()
-

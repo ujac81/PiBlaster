@@ -13,6 +13,7 @@ from mutagen.easyid3 import EasyID3
 import log
 from helpers import seconds_to_minutes
 
+
 class UsbDevice:
     """Contains data for one single usb storage device
 
@@ -26,18 +27,18 @@ class UsbDevice:
         insert data into database.
         """
 
-        self.parent         = parent
-        self.main           = parent.parent
-        self.mnt_pnt        = mnt_pnt
-        self.label          = None
-        self.alias          = None
-        self.dev            = None
-        self.revision       = 0
-        self.valid          = True
-        self.totsubdirs     = 0
-        self.totfiles       = 0
-        self.cur_tot_bytes  = 0
-        self.bytes_free     = 0
+        self.parent = parent
+        self.main = parent.parent
+        self.mnt_pnt = mnt_pnt
+        self.label = None
+        self.alias = None
+        self.dev = None
+        self.revision = 0
+        self.valid = True
+        self.totsubdirs = 0
+        self.totfiles = 0
+        self.cur_tot_bytes = 0
+        self.bytes_free = 0
 
         # Get dev entry for mnt_pnt.
         f = open("/proc/mounts", "r")
@@ -65,7 +66,7 @@ class UsbDevice:
                     toks = item.split('=')
                     if toks[0] == "LABEL":
                         self.label = toks[1].strip('"')
-                    if toks[0] == "UUID" :
+                    if toks[0] == "UUID":
                         self.uuid = toks[1].strip('"')
 
         # Get storid and alias from database, if no alias found, use label
@@ -77,10 +78,13 @@ class UsbDevice:
             self.alias = self.label
 
         # Found new usb device --> scan for MP3s.
-        self.main.log.write(log.MESSAGE,
-            "Found new USB device %s with label %s mounted at %s as id %d "\
-            "using alias %s" %
-            (self.dev, self.label, self.mnt_pnt, self.storid, self.alias))
+        self.main.log.write(log.MESSAGE, "Found new USB device %s with label "
+                                         "%s mounted at %s as id %d using "
+                                         "alias %s" % (self.dev,
+                                                       self.label,
+                                                       self.mnt_pnt,
+                                                       self.storid,
+                                                       self.alias))
 
         # Flash load led.
         self.main.led.set_led_yellow(1)
@@ -93,9 +97,9 @@ class UsbDevice:
             m.update("%s%s" % (''.join(dirs), ''.join(files)))
         digest = m.hexdigest()
 
-        self.main.log.write(log.MESSAGE,
-            "Got md5 %s for dir structure on USB stick with UUID %s" %
-            (digest, self.uuid))
+        self.main.log.write(log.MESSAGE, "Got md5 %s for dir structure on "
+                                         "USB stick with UUID %s" %
+                                         (digest, self.uuid))
 
         # Check if we know this stick, if yes load from db, otherwise scan it.
 
@@ -119,10 +123,11 @@ class UsbDevice:
             self.bytes_free = row[0]
             self.cur_tot_bytes = row[1]
 
-            self.main.log.write(log.MESSAGE,
-                "done reloading from db in %s, total " \
-                "%d dirs found, including %d files in revision %d." %
-                (self.dev, self.totsubdirs, self.totfiles, self.revision))
+            self.main.log.write(log.MESSAGE, "done reloading from db in %s, "
+                                             "total %d dirs found, including "
+                                             "%d files in revision %d." %
+                                             (self.dev, self.totsubdirs,
+                                              self.totfiles, self.revision))
 
         else:
             start = time.clock()
@@ -136,21 +141,22 @@ class UsbDevice:
 
             self.main.dbhandle.con.commit()
 
-            self.main.dbhandle.cur.execute(
-                "SELECT COUNT(id) FROM Dirs WHERE usbid=?;", (self.storid,))
+            self.main.dbhandle.cur.\
+                execute("SELECT COUNT(id) FROM Dirs WHERE usbid=?;",
+                        (self.storid,))
             self.totsubdirs = self.main.dbhandle.cur.fetchone()[0]
 
-            self.main.dbhandle.cur.execute(
-                "SELECT COUNT(id) FROM Fileentries WHERE usbid=?;",
-                (self.storid,))
+            self.main.dbhandle.cur.\
+                execute("SELECT COUNT(id) FROM Fileentries WHERE usbid=?;",
+                        (self.storid,))
             self.totfiles = self.main.dbhandle.cur.fetchone()[0]
 
-
             elapsed = time.clock() - start
-            self.main.log.write(log.MESSAGE,
-                "done scanning in %s, total %d dirs found, "\
-                "including %d files. Took %fs" %
-                (self.dev, self.totsubdirs, self.totfiles, elapsed))
+            self.main.log.write(log.MESSAGE, "done scanning in %s, total %d "
+                                             "dirs found, including %d files."
+                                             " Took %fs" %
+                                             (self.dev, self.totsubdirs,
+                                              self.totfiles, elapsed))
 
             # Tell db that scan is ok now.
             self.revision += 1
@@ -176,14 +182,12 @@ class UsbDevice:
         self.main.log.write(log.MESSAGE, "Lost USB device %s" % self.mnt_pnt)
         self.main.listmngr.usb_removed(self.storid)
 
-
     def recursive_rescan_into_db(self, path, dirname, parentid):
         """
         """
 
         dirs = sorted([f for f in os.listdir(path)
                        if os.path.isdir(os.path.join(path, f))])
-
 
         files = sorted([f for f in os.listdir(path)
                         if os.path.isfile(os.path.join(path, f))
@@ -205,18 +209,18 @@ class UsbDevice:
 
         file_id = 1
         for f in files:
-            mp3path     = os.path.join(path, f)
-            filename    = os.path.basename(mp3path)
-            extension   = os.path.splitext(filename)[1].replace('.', '')
-            filename    = filename[:-len(extension)-1]
-            relpath     = os.path.relpath(mp3path, self.mnt_pnt)
-            playtimes   = 0
-            GENRE       = u'Unknown Genre'
-            YEAR        = 0
-            TITLE       = filename
-            ALBUM       = u'Unknown Album'
-            ARTIST      = u'Unknown Artist'
-            length      = 0
+            mp3path = os.path.join(path, f)
+            filename = os.path.basename(mp3path)
+            extension = os.path.splitext(filename)[1].replace('.', '')
+            filename = filename[:-len(extension)-1]
+            relpath = os.path.relpath(mp3path, self.mnt_pnt)
+            playtimes = 0
+            GENRE = u'Unknown Genre'
+            YEAR = 0
+            TITLE = filename
+            ALBUM = u'Unknown Album'
+            ARTIST = u'Unknown Artist'
+            length = 0
 
             tag = EasyID3(mp3path)
 
@@ -225,19 +229,23 @@ class UsbDevice:
             except os.error:
                 pass
 
-            if 'album'  in tag: ALBUM   = tag['album'][0]
-            if 'artist' in tag: ARTIST  = tag['artist'][0]
-            if 'title'  in tag: TITLE   = tag['title'][0]
-            if 'genre'  in tag: GENRE   = tag['genre'][0]
-            if 'date'   in tag:
+            if 'album' in tag:
+                ALBUM = tag['album'][0]
+            if 'artist' in tag:
+                ARTIST = tag['artist'][0]
+            if 'title' in tag:
+                TITLE = tag['title'][0]
+            if 'genre' in tag:
+                GENRE = tag['genre'][0]
+            if 'date' in tag:
                 try:
                     YEAR = int(tag['date'][0])
-                except exceptions.ValueError:
+                except ValueError:
                     YEAR = 0
             if 'length' in tag:
                 try:
                     length = int(tag['length'][0]) / 1000
-                except exceptions.ValueError:
+                except ValueError:
                     length = 0
 
             disptitle = u'%s - %s' % (ARTIST, TITLE)
@@ -253,10 +261,9 @@ class UsbDevice:
 
             # for f in files #
 
-        self.main.dbhandle.cur.executemany(
-            'INSERT INTO Fileentries VALUES ' \
-            '(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            dbfiles)
+        self.main.dbhandle.cur.\
+            executemany('INSERT INTO Fileentries VALUES (?, ?, ?, ?, ?, ?, '
+                        '?, ?, ?, ?, ?, ?, ?)', dbfiles)
 
         # turn off led after this dir scaned
         self.main.led.set_led_yellow(0)
@@ -264,7 +271,6 @@ class UsbDevice:
         for d in dirs:
             subdir = os.path.join(path, d)
             self.recursive_rescan_into_db(subdir, d, dirid)
-
 
     def update_alias(self, alias):
         """Change alias for this USB dev via database"""
@@ -282,10 +288,9 @@ class UsbDevice:
         """
 
         ret = []
-        for row in self.main.dbhandle.cur.execute(
-                "SELECT id, numdirs, numfiles, dirname"
-                " from Dirs WHERE usbid=? ORDER BY id;",
-                (self.storid,)):
+        for row in self.main.dbhandle.cur.\
+                execute("SELECT id, numdirs, numfiles, dirname from Dirs "
+                        "WHERE usbid=? ORDER BY id;", (self.storid,)):
             ret.append(['%d' % self.storid,
                         '%d' % row[0],
                         '%d' % row[1],
@@ -303,10 +308,10 @@ class UsbDevice:
             return []
 
         ret = []
-        for row in self.main.dbhandle.cur.execute(
-                "SELECT id, parentid, numdirs, numfiles, dirname, path"
-                " from Dirs WHERE usbid=? AND parentid=? ORDER BY id;",
-                (self.storid,dirid,)):
+        for row in self.main.dbhandle.cur.\
+                execute("SELECT id, parentid, numdirs, numfiles, dirname, "
+                        "path from Dirs WHERE usbid=? AND parentid=? ORDER "
+                        "BY id;", (self.storid, dirid,)):
             ret.append(['%d' % self.storid,
                         '%d' % row[0],
                         '%d' % row[1],
@@ -325,10 +330,10 @@ class UsbDevice:
             return []
 
         ret = []
-        for row in self.main.dbhandle.cur.execute(
-                "SELECT id, time, artist, album, title"
-                " from Fileentries WHERE usbid=? AND dirid=? ORDER BY id;",
-                (self.storid,dirid,)):
+        for row in self.main.dbhandle.cur.\
+                execute("SELECT id, time, artist, album, title from "
+                        "Fileentries WHERE usbid=? AND dirid=? ORDER BY id;",
+                        (self.storid, dirid,)):
             ret.append(['%d' % self.storid,
                         '%d' % dirid,
                         '%d' % row[0],
@@ -339,7 +344,6 @@ class UsbDevice:
         return ret
 
     # end list_dirs() #
-
 
     def list_full_dir(self, dirid):
         """Combined dir and file list for dirid.
@@ -360,11 +364,9 @@ class UsbDevice:
     def get_fileentry_by_path(self, path):
         """
         """
-        for row in self.main.dbhandle.cur.execute(
-                "SELECT * FROM Fileentries WHERE usbid=? AND "\
-                "path=?", (self.storid, path,)):
+        for row in self.main.dbhandle.cur.\
+                execute("SELECT * FROM Fileentries WHERE usbid=? AND path=?",
+                        (self.storid, path,)):
             return row
 
         return None
-
-

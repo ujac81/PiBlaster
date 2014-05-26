@@ -5,15 +5,16 @@
 
 import datetime
 
-OFF         = 0
-SHOW        = 1
-EMERGENCY   = 2
-ERROR       = 3
-WARNING     = 4
-MESSAGE     = 5
-DEBUG1      = 6
-DEBUG2      = 7
-DEBUG3      = 8
+OFF = 0
+SHOW = 1
+EMERGENCY = 2
+ERROR = 3
+WARNING = 4
+MESSAGE = 5
+DEBUG1 = 6
+DEBUG2 = 7
+DEBUG3 = 8
+
 
 class Log:
     """Handler to conditionally print/write log messages to stdout/logfile"""
@@ -22,7 +23,7 @@ class Log:
         """Use init_log() after Settings has been set up"""
 
         self.parent = parent
-        self.flog  = None # log file handler
+        self.flog = None  # log file handler
 
     def init_log(self):
         """Create log file using logfile location from settings
@@ -60,8 +61,8 @@ class Log:
             print(msg)
 
         if self.flog:
-            msg = "["+datetime.datetime.now().strftime('%Y%m%d %H:%M:%S')+"] "\
-                  +msg
+            msg = "["+datetime.datetime.now().strftime('%Y%m%d %H:%M:%S') \
+                  + "] " + msg
             self.flog.write(msg+"\n")
             self.flog.flush()
 

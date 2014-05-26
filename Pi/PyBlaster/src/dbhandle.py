@@ -33,8 +33,8 @@ class DBDirEntries:
 
     ID, PARENTID, USBID, NUMDIRS, NUMFILES, DIRNAME, PATH = range(7)
 
-    DropSyntax      = """DROP TABLE IF EXISTS Dirs;"""
-    CreateSyntax    = """CREATE TABLE Dirs(
+    DropSyntax = """DROP TABLE IF EXISTS Dirs;"""
+    CreateSyntax = """CREATE TABLE Dirs(
         id INT, parentid INT, usbid INT, numdirs INT,
         numfiles INT, dirname TEXT, path TEXT);"""
 
@@ -64,11 +64,11 @@ class DBFileEntries:
     time        -- time data in seconds from mutagen
     disptitle   -- "artist - title" if found or filename
     """
-    ID, DIRID, STORID, PATH, FILENAME, EXT, GENRE, YEAR, TITLE, \
-    ALBUM, ARTIST, TIME, DISPTITLE = range(13)
+    ID, DIRID, STORID, PATH, FILENAME, EXT, GENRE, YEAR, TITLE, ALBUM, \
+    ARTIST, TIME, DISPTITLE = range(13)
 
-    DropSyntax      = """DROP TABLE IF EXISTS Fileentries;"""
-    CreateSyntax    = """CREATE TABLE Fileentries(
+    DropSyntax = """DROP TABLE IF EXISTS Fileentries;"""
+    CreateSyntax = """CREATE TABLE Fileentries(
         id INT, dirid INT, usbid INT, path TEXT,
         filename TEXT, extension TEXT, genre TEXT,
         year INT, title TEXT, album TEXT,
@@ -89,8 +89,7 @@ class DBPlayLists:
     # state      -- state index, increased with every playlist change
     #               required for undo actions
 
-
-    DropSyntax   = """DROP TABLE IF EXISTS Playlists;"""
+    DropSyntax = """DROP TABLE IF EXISTS Playlists;"""
     CreateSyntax = """CREATE TABLE Playlists(
         id INT, name TEXT, created INT, creator TEXT,
         position INT, state INT);"""
@@ -100,8 +99,8 @@ class DBPlayLists:
 
 class DBPlayListEntries:
     """Enum and create syntax for Usbdevs database table"""
-    ID, INDEX, STORID, REVISION, DIRID, FILEID, \
-    TITLE, PLAYED, PATH, STATE = range(10)
+    ID, INDEX, STORID, REVISION, DIRID, FILEID, TITLE, PLAYED, PATH, \
+    STATE = range(10)
 
     # playlistid -- refers to id in Playlists
     # position   -- position in playlist
@@ -114,7 +113,7 @@ class DBPlayListEntries:
     # path       -- path on device (if revision change, but path stil valid)
     # state      -- state index of add action (for undo add)
 
-    DropSyntax   = """DROP TABLE IF EXISTS Playlistentries;"""
+    DropSyntax = """DROP TABLE IF EXISTS Playlistentries;"""
     CreateSyntax = """CREATE TABLE Playlistentries(
         playlistid INT, position INT,
         usbid INT, usbrev INT, dirid INT,
@@ -122,25 +121,28 @@ class DBPlayListEntries:
 
     # end class DBPlayListEntries #
 
+
 class DBUsbDevs:
     """Enum and create syntax for Usbdevs database table"""
     ID, UUID, MD5, SCANOK, ALIAS, REVISION = range(6)
 
-    DropSyntax   = """DROP TABLE IF EXISTS Usbdevs;"""
+    DropSyntax = """DROP TABLE IF EXISTS Usbdevs;"""
     CreateSyntax = """CREATE TABLE Usbdevs(
         id INT, UUID TEXT, md5 TEXT, scanok INT,
         alias TEXT, revision INT, bytesfree INT, bytesused INT);"""
 
     # end class DBUsbDevs #
 
+
 class DBSettings:
     """Enum and create syntax for Usbdevs database table"""
     ID, KEY, VALUE = range(3)
 
-    DropSyntax   = """DROP TABLE IF EXISTS Settings;"""
+    DropSyntax = """DROP TABLE IF EXISTS Settings;"""
     CreateSyntax = """CREATE TABLE Settings(id INT, key TEXT, value TEXT);"""
 
     # end class DBUsbDevs #
+
 
 class DBHandle:
     """ Manage sqlite db file which contains playlist and known usb devices
@@ -181,13 +183,14 @@ class DBHandle:
 
         self.parent.log.write(log.MESSAGE, "Connected to db file %s" %
                               self.parent.settings.dbfile)
-        if self.parent.settings.rebuilddb: self.db_gentables()
+        if self.parent.settings.rebuilddb:
+            self.db_gentables()
 
         # Check if we got Settings table and if version matches DBVERSION
         # -- rebuild otherwise.
 
-        self.cur.execute("SELECT COUNT(name) FROM sqlite_master "\
-            "WHERE type='table' AND name='Settings';")
+        self.cur.execute("SELECT COUNT(name) FROM sqlite_master WHERE "
+                         "type='table' AND name='Settings';")
 
         if self.cur.fetchone()[0] == 1:
             self.cur.execute("SELECT value FROM Settings WHERE key='version';")
@@ -217,18 +220,18 @@ class DBHandle:
         Called if version has changed or -r command line flag found by Settings
         """
 
-        self.cur.executescript(DBDirEntries.DropSyntax+
-                               DBFileEntries.DropSyntax+
-                               DBPlayLists.DropSyntax+
-                               DBPlayListEntries.DropSyntax+
-                               DBUsbDevs.DropSyntax+
+        self.cur.executescript(DBDirEntries.DropSyntax +
+                               DBFileEntries.DropSyntax +
+                               DBPlayLists.DropSyntax +
+                               DBPlayListEntries.DropSyntax +
+                               DBUsbDevs.DropSyntax +
                                DBSettings.DropSyntax)
         self.con.commit()
-        self.cur.executescript(DBDirEntries.CreateSyntax+
-                               DBFileEntries.CreateSyntax+
-                               DBPlayLists.CreateSyntax+
-                               DBPlayListEntries.CreateSyntax+
-                               DBUsbDevs.CreateSyntax+
+        self.cur.executescript(DBDirEntries.CreateSyntax +
+                               DBFileEntries.CreateSyntax +
+                               DBPlayLists.CreateSyntax +
+                               DBPlayListEntries.CreateSyntax +
+                               DBUsbDevs.CreateSyntax +
                                DBSettings.CreateSyntax)
         self.con.commit()
 
@@ -249,9 +252,9 @@ class DBHandle:
 
         # Drop all entries for failed scans.
         for storid in remove_stors:
-            self.parent.log.write(log.MESSAGE,
-                "Removing broken entries for storage %d from database..." %
-                storid)
+            self.parent.log.write(log.MESSAGE, "Removing broken entries for "
+                                               "storage %d from database..."
+                                               % storid)
             self.cur.execute('DELETE FROM Fileentries WHERE usbid=?',
                              (storid, ))
             self.cur.execute('DELETE FROM Dirs WHERE usbid=?', (storid, ))
@@ -267,9 +270,9 @@ class DBHandle:
             self.cur.execute('DELETE FROM Fileentries')
             self.cur.execute('DELETE FROM Dirs')
             self.con.commit()
-        else:
+        # else:
             # drop all entries that have no valid storage id
-            valid_list = ','.join(valid_stors)
+            # valid_list = ','.join(valid_stors)
 
             # TODO    this somehow does not work --
             # should remove entries without valid storage id,
@@ -283,7 +286,7 @@ class DBHandle:
 
         # end cleandb() #
 
-    def get_usbid(self, UUID):
+    def get_usbid(self, uuid):
         """Get usb id for usb mananger while creating new UsbDevive entries
 
         If unkown, largest id + 1 is returned.    We know that all usb entries
@@ -292,9 +295,9 @@ class DBHandle:
         return [storid, alias, revision]
         """
         lastid = -1
-        for row in self.cur.execute(
-                "SELECT id, UUID, alias, revision FROM Usbdevs ORDER BY id;"):
-            if row[1] == UUID:
+        for row in self.cur.execute("SELECT id, UUID, alias, revision FROM "
+                                    "Usbdevs ORDER BY id;"):
+            if row[1] == uuid:
                 return [row[0], row[2], row[3]]
             lastid = row[0]
 
@@ -302,12 +305,11 @@ class DBHandle:
 
         # end get_usbid() #
 
-
-    def check_usb_md5(self, UUID, md5):
+    def check_usb_md5(self, uuid, md5):
         """Check if md5 for matches md5 for stick with UUID in database."""
 
         for row in self.cur.execute("SELECT UUID, md5 FROM Usbdevs;"):
-            if row[0] == UUID and row[1] == md5:
+            if row[0] == uuid and row[1] == md5:
                 return True
 
         return False
@@ -320,9 +322,9 @@ class DBHandle:
         Called by usbdevice if md5 changed and by cleandb if scanok=0.
         """
 
-        self.parent.log.write(log.MESSAGE, "Dropping outdated or " \
-                              "incomplete dir/file data for usb device #%d" %
-                              usbdevid)
+        self.parent.log.write(log.MESSAGE, "Dropping outdated or incomplete "
+                                           "dir/file data for usb device "
+                                           "#%d" % usbdevid)
 
         self.cur.execute('DELETE FROM Fileentries WHERE usbid=?', (usbdevid, ))
         self.cur.execute('DELETE FROM Dirs WHERE usbid=?', (usbdevid, ))
@@ -330,49 +332,49 @@ class DBHandle:
 
         # end drop_changed_usbdev() #
 
-
-    def add_or_update_usb_stor(self, usbdevid, UUID, md5):
+    def add_or_update_usb_stor(self, usbdevid, uuid, md5):
         """ Check if we have usbdev for UUID.
 
         If found update md5, otherwise insert into db.
         """
 
         for row in self.cur.execute("SELECT UUID, md5, scanok FROM Usbdevs"):
-            if row[0] == UUID:
+            if row[0] == uuid:
                 if row[1] == md5 and row[2] == 1:
                     # we found valid db entries, nothing to do
-                    return True # ==> no rescan rebuild dirs/files from db
+                    return True  # ==> no rescan rebuild dirs/files from db
                 else:
                     # md5 became invalid (content changed)
                     # ==> drop dir/file entries,
                     #     register new md5 and set scanok to 0
-                    self.parent.log.write(log.MESSAGE,
-                        "Updating usb device %s with id %d to new md5 %s" %
-                        (UUID, usbdevid, md5))
+                    self.parent.log.write(log.MESSAGE, "Updating usb device "
+                                                       "%s with id %d to new "
+                                                       "md5 %s" % (uuid,
+                                                                   usbdevid,
+                                                                   md5))
                     self.drop_changed_usbdev(usbdevid)
-                    self.cur.execute(
-                        "UPDATE Usbdevs SET md5=?, scanok=0 WHERE id=?",
-                        (md5, usbdevid))
+                    self.cur.execute("UPDATE Usbdevs SET md5=?, scanok=0 "
+                                     "WHERE id=?", (md5, usbdevid))
                     self.con.commit()
-                    return False # ==> rescan
+                    return False  # ==> rescan
 
         # No return so far -> new entry
-        self.parent.log.write(log.MESSAGE,
-            "Registering usb device %s with id %d and known md5 %s" %
-            (UUID, usbdevid, md5))
-        self.cur.execute(
-            'INSERT INTO Usbdevs (id, UUID, md5, scanok, alias, revision, ' \
-            'bytesfree, bytesused ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-            (usbdevid, UUID, md5, 0, UUID, 0, 0, 0 ))
+        self.parent.log.write(log.MESSAGE, "Registering usb device %s with "
+                                           "id %d and known md5 %s" %
+                                           (uuid, usbdevid, md5))
+        self.cur.execute('INSERT INTO Usbdevs (id, UUID, md5, scanok, alias, '
+                         'revision, bytesfree, bytesused ) VALUES (?, ?, ?, '
+                         '?, ?, ?, ?, ?)', (usbdevid, uuid, md5, 0, uuid, 0,
+                                            0, 0))
         self.con.commit()
-        return False # ==> scan device
+        return False  # ==> scan device
 
         # end add_or_update_usb_stor() #
 
     def set_scan_ok(self, usbdevid, revision, free, used):
         """Set scanok flag to 1 after scan has finished"""
 
-        self.cur.execute("UPDATE Usbdevs SET scanok=1, revision=?, " \
+        self.cur.execute("UPDATE Usbdevs SET scanok=1, revision=?, "
                          "bytesfree=?, bytesused=? WHERE id=?",
                          (revision, free, used, usbdevid))
         self.con.commit()
@@ -440,26 +442,22 @@ class DBHandle:
             res = row[0]
         return res
 
-
-    def get_settings_value_as_int(self, key):
+    def get_settings_value_as_int(self, key, fallback=-1):
         """
         """
-        res = -1
         strres = self.get_settings_value(key)
         if strres is None:
-            return -1
+            return fallback
 
         try:
             res = int(strres)
         except TypeError:
-            res = -1
+            res = fallback
         except ValueError:
-            res = -1
+            res = fallback
 
         return res
 
         # end get_settings_value_as_int #
 
     # end class DBHandle #
-
-

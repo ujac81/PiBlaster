@@ -10,8 +10,6 @@ import log
 from dbhandle import DBFileEntries as FE
 
 
-
-
 class PlayListManager:
     """
     """
@@ -22,18 +20,16 @@ class PlayListManager:
         Need to call load_playlist after other object initialized.
         :param parent: main PyBlaster instance
         """
-        assert isinstance(parent, object)
         random.seed()
         self.parent = parent
         self.playlist = []  # needed on startup in usb_connected()
-        self.playlist_id = 0    # id of the source playlist in database
-                                # 0 = new playlist
+        self.playlist_id = 0  # id of the source playlist in database
+                              # 0 = new playlist
 
         # end __init__() #
 
     def clear(self):
         """Clean out active playlist (0) and set id to 0
-        :rtype : None
         """
         self.playlist = []
         self.playlist_id = 0
@@ -108,19 +104,20 @@ class PlayListManager:
 
     def new_default_playlist(self):
         """Make sure we have a playlist with id=0, create an empty one if not
-        :rtype : None
         """
 
         self.parent.dbhandle.cur.execute("SELECT * FROM Playlists WHERE id=0")
         res = self.parent.dbhandle.cur.fetchall()
 
         if len(res) == 0:
-            self.parent.log.write(log.MESSAGE,
-                "[PLAYLISTMNGR] Generating new empty default playlist...")
+            self.parent.log.write(log.MESSAGE, "[PLAYLISTMNGR] Generating "
+                                               "new empty default playlist...")
 
-            self.parent.dbhandle.cur.execute(
-                'INSERT INTO Playlists VALUES (?, ?, ?, ?, ?, ?)',
-                (0, "Default Playlist", int(time.time()), "Anonymous", -1, 0))
+            self.parent.dbhandle.cur.execute('INSERT INTO Playlists VALUES ('
+                                             '?, ?, ?, ?, ?, ?)',
+                                             (0, "Default Playlist",
+                                              int(time.time()), "Anonymous",
+                                              -1, 0))
 
             self.parent.dbhandle.con.commit()
 
@@ -188,7 +185,8 @@ class PlayListManager:
 
         #pl_items = []
         #for i in range(len(self.playlist)):
-            #self.playlist[i].append_to_db_list(pl_items, self.playlist_id, i,0)
+            #self.playlist[i].append_to_db_list(pl_items, self.playlist_id,
+            # i,0)
 
         #self.parent.dbhandle.cur.executemany(
             #'INSERT INTO Playlistentries VALUES (?,?,?,?,?,?,?,?,?,?)',
@@ -356,7 +354,7 @@ class PlayListManager:
         # end list_playlist() #
 
     def list_playlists(self):
-        '''Cretate list of saved playlists'''
+        """Cretate list of saved playlists"""
 
         #res = []
 
@@ -526,9 +524,10 @@ class PlayListManager:
                 file_id = int(instruction[3])
                 append_list.append([stor_id, dir_id, file_id])
             else:
-                self.parent.log.write(log.ERROR,
-                    "[PLAYLISTMNGR]: Unknown add command %s in " \
-                    "append_multiple()" % (instruction[0]))
+                self.parent.log.write(log.ERROR, "[PLAYLISTMNGR]: Unknown "
+                                                 "add command %s in "
+                                                 "append_multiple()" %
+                                                 (instruction[0]))
 
         added = self.multi_append(list_id, append_list, add_mode)
         self.parent.led.set_led_yellow(0)
@@ -551,9 +550,9 @@ class PlayListManager:
         for item in sub_dirs:
             self.scan_dir(app_list, list_id, stor_id, item)
 
-        for row in self.parent.dbhandle.cur.execute(
-                "SELECT id FROM Fileentries WHERE usbid=? AND dirid=? "\
-                "ORDER BY id", (stor_id, dir_id)):
+        for row in self.parent.dbhandle.cur.\
+                execute("SELECT id FROM ""Fileentries WHERE usbid=? AND "
+                        "dirid=? ORDER BY id", (stor_id, dir_id)):
             app_list.append([stor_id, dir_id, row[0]])
 
     def multi_append(self, list_id, id_list, add_mode):
@@ -562,7 +561,6 @@ class PlayListManager:
         if len(id_list) == 0:
             return
 
-        insert_pos = 0
         self.parent.led.set_led_yellow(1)
         state = self.get_playlist_state(list_id) + 1
 
@@ -571,18 +569,18 @@ class PlayListManager:
             # items with index above insertion point
             insert_pos = self.get_playlist_position(list_id) + 1
             insert_count = len(id_list)
-            self.parent.dbhandle.cur.execute(
-                "UPDATE Playlistentries set position=position+? WHERE "\
-                "playlistid=? AND position>=?",
-                (insert_count, list_id, insert_pos))
+            self.parent.dbhandle.cur.\
+                execute("UPDATE Playlistentries set position=position+? "
+                        "WHERE playlistid=? AND position>=?",
+                        (insert_count, list_id, insert_pos))
         else:
             insert_pos = self.get_playlist_last_position(list_id) + 1
 
         for item in id_list:
-            self.parent.dbhandle.cur.execute(
-                "SELECT path, disptitle FROM Fileentries "\
-                "WHERE usbid=? AND dirid=? AND id=?",
-                (item[0], item[1], item[2],))
+            self.parent.dbhandle.cur.\
+                execute("SELECT path, disptitle FROM Fileentries WHERE "
+                        "usbid=? AND dirid=? AND id=?", (item[0], item[1],
+                                                         item[2],))
             res = self.parent.dbhandle.cur.fetchall()
             if len(res) == 0:
                 # TODO error file not found in DB
@@ -602,9 +600,9 @@ class PlayListManager:
         self.parent.dbhandle.con.commit()
         self.parent.led.set_led_yellow(0)
 
-        self.parent.log.write(log.ERROR,
-            "[PLAYLISTMNGR]: Added %d items for playlist %d with state %d" %
-            (len(id_list), list_id, state))
+        self.parent.log.write(log.ERROR, "[PLAYLISTMNGR]: Added %d items for "
+                                         "playlist %d with state %d" %
+                                         (len(id_list), list_id, state))
 
         return len(id_list)
 

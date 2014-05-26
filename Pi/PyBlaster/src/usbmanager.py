@@ -3,8 +3,6 @@
 @Author Ulrich Jansen <ulrich.jansen@rwth-aachen.de>
 """
 
-import time
-
 import log
 from usbdevice import UsbDevice
 
@@ -18,12 +16,12 @@ class UsbManager:
     def __init__(self, parent):
         """Set up empty device lists"""
 
-        self.parent         = parent
-        self.usbdevs        = []    # list of active USB devices
-        self.invaliddevs    = []    # list of [dev,mnt_pnt] combinations that
-                                    # have been found as invalid
-        self.alldevs        = {}    # list of all attaches storage ids
-                                    # (storid: usbdevice)
+        self.parent = parent
+        self.usbdevs = []  # list of active USB devices
+        self.invaliddevs = []  # list of [dev,mnt_pnt] combinations that
+                               # have been found as invalid
+        self.alldevs = {}  # list of all attaches storage ids
+                           # (storid: usbdevice)
 
     def check_new_usb(self):
         """ Poll function, will check for new usb devices
@@ -82,9 +80,10 @@ class UsbManager:
         newstor = UsbDevice(self, mnt_pnt)
 
         if not newstor.valid:
-            self.parent.log.write(log.MESSAGE,
-                "Skipping new USB device at %s because of double insertion " \
-                "or missing device node" % mnt_pnt)
+            self.parent.log.write(log.MESSAGE, "Skipping new USB device at "
+                                               "%s because of double "
+                                               "insertion or missing device "
+                                               "node" % mnt_pnt)
             self.invaliddevs.append([newstor.dev, newstor.mnt_pnt])
             return
 
@@ -94,13 +93,17 @@ class UsbManager:
         # end new_usb_stor() #
 
     def remove_usb_stor(self, mnt_pnt):
-        """Remove usb storage, all file entries will die with usbdevice instance"""
+        """Remove usb storage.
+
+        All file entries will die with usbdevice instance
+        """
 
         for i in range(len(self.usbdevs)):
             if self.usbdevs[i].mnt_pnt == mnt_pnt:
-                self.parent.log.write(log.DEBUG1,
-                    "[USBMANAGER] delete usbdev id %d for %s " %
-                    (self.usbdevs[i].storid, mnt_pnt))
+                self.parent.log.write(log.DEBUG1, "[USBMANAGER] delete "
+                                                  "usbdev id %d for %s " %
+                                                  (self.usbdevs[i].storid,
+                                                   mnt_pnt))
                 self.usbdevs[i].release()
 
                 # remove from lists
@@ -109,9 +112,9 @@ class UsbManager:
 
                 return
 
-        self.parent.log.write(log.EMERGENCY,
-            "FileManager.remove_usb_stor() Tried to remove %s " \
-            "but no such device found!" % mnt_pnt)
+        self.parent.log.write(log.EMERGENCY, "FileManager.remove_usb_stor() "
+                                             "Tried to remove %s but no such "
+                                             "device found!" % mnt_pnt)
         raise Exception("no such device %s to remove" % mnt_pnt)
 
         # end remove_usb_stor() #
@@ -156,7 +159,7 @@ class UsbManager:
     def is_connected(self, storid):
         """Returns True if usb device with id storid is attached"""
 
-        return storid in self.alldevs;
+        return storid in self.alldevs
 
     def revision(self, storid):
         """Get revision number of file tree for device storid
@@ -175,6 +178,3 @@ class UsbManager:
     def connected_usbids(self):
         """Get list of connected storage ids"""
         return self.alldevs.keys()
-
-
-

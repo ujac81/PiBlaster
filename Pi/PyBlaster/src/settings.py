@@ -46,6 +46,7 @@ class Settings:
         self.use_lirc = False
         self.loglevel_from_cmd = False
         self.pidfile = "/var/run/pyblaster.pid"
+        self.default_vol_change = 4
 
         # end __init__() #
 
