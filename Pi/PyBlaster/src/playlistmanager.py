@@ -22,24 +22,35 @@ class PlayListManager:
         """
         random.seed()
         self.parent = parent
-        self.playlist = []  # needed on startup in usb_connected()
         self.playlist_id = 0  # id of the source playlist in database
                               # 0 = new playlist
 
         # end __init__() #
 
-    def clear(self):
-        """Clean out active playlist (0) and set id to 0
+    def clear(self, list_id=-1):
+        """Clean out playlist
+
+        :param list_id: clean playlist #id (0 = current playlist)
         """
-        self.playlist = []
-        self.playlist_id = 0
+        listid = self.get_playlist_id(list_id)
+        self.parent.dbhandle.cur.execute(
+            "DELETE FROM Playlistentries WHERE playlistid=?", (listid,))
+        self.parent.dbhandle.cur.execute(
+            "DELETE FROM Playlists WHERE id=?", (listid,))
+        self.parent.dbhandle.con.commit()
+
+        self.parent.play.clear_queue()
+
+        # if cleaned playlist was default list, recreate
+        if listid == 0:
+            self.new_default_playlist()
+
         self.parent.log.write(log.MESSAGE, "[PLAYLISTMNGR] cleared.")
 
     def load_active_playlist(self):
         """Load last playlist from database"""
 
         self.parent.led.set_led_yellow(1)
-        self.clear()
 
         # make sure that we have a playlist with id=0
         self.new_default_playlist()
@@ -106,10 +117,10 @@ class PlayListManager:
         """Make sure we have a playlist with id=0, create an empty one if not
         """
 
-        self.parent.dbhandle.cur.execute("SELECT * FROM Playlists WHERE id=0")
+        self.parent.dbhandle.cur.execute("SELECT Count() FROM Playlists "
+                                         "WHERE id=0")
         res = self.parent.dbhandle.cur.fetchall()
-
-        if len(res) == 0:
+        if int(res[0][0]) == 0:
             self.parent.log.write(log.MESSAGE, "[PLAYLISTMNGR] Generating "
                                                "new empty default playlist...")
 
@@ -476,7 +487,8 @@ class PlayListManager:
             res[0][FE.ALBUM],
             res[0][FE.ARTIST],
             res[0][FE.GENRE],
-            "%d" % res[0][FE.YEAR]
+            "%d" % res[0][FE.YEAR],
+            "%d" % position
         ]
 
     def get_playlist_last_position(self, listid=-1):

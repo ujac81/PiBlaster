@@ -176,6 +176,7 @@ Rectangle {
 
         if ( msg.code() == 1 ) {
             connectOverlay.passwordOk();
+            tabview.playTab().refresh();
         } else if ( msg.code() == 2 ) {
             connectOverlay.passwordWrong();
         } else if ( msg.code() == 101 ) {
@@ -188,6 +189,7 @@ Rectangle {
             tabview.playlistTab().received_pl_data(msg);
         } else if ( msg.code() == 304) {
             tabview.playTab().gotPlayStatus(msg);
+            tabview.playlistTab().gotPlayStatus(msg);
         }
     }
 

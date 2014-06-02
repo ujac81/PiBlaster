@@ -188,11 +188,18 @@ class Play:
 
         # end advance_in_playlist() #
 
+    def clear_queue(self):
+        """Unqueue queued song (if playlist cleared or changed or USB lost)
+        """
+        # TODO: unqueueing does not work -- check how to unqueue
+        # pygame.mixer.music.queue('')
+
     def get_play_status(self):
         """
 
         [0:busy, pos, pause, id, dirid, storid,
-         6:title, album, artist, genre, year]
+         6:title, album, artist, genre, year,
+         11: pl_position, volume]
 
         """
         info = self.parent.listmngr.get_current_tune_info()
@@ -202,7 +209,8 @@ class Play:
         busy = pygame.mixer.music.get_busy()
         if busy:
             pos = pygame.mixer.music.get_pos()
-        return ["%d" % busy, "%d" % pos, "%d" % self.pause] + info
+        return ["%d" % busy, "%d" % pos, "%d" % self.pause] + info + \
+               ["%d" % (self.volume*100)]
 
     def send_track_info(self):
         """

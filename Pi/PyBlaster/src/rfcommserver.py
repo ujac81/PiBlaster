@@ -30,7 +30,7 @@ class RFCommServer:
         self.client_info = None
         self.timeout = 0.05  # socket timeouts for non blocking con.
         self.comm_timeout = 2  # increase timeout on send/recv
-        self.timeoutpolls = 500  # disconnect after N inactivity timeouts
+        self.timeoutpolls = 2000  # disconnect after N inactivity timeouts
         self.nowpolls = 0  # reset after each receive,
         # incremented while waiting for data
         self.cmdbuffer = []  # split incoming commands by lines
@@ -150,17 +150,25 @@ class RFCommServer:
             format(msg_id, status, code, len(message_list), msg)
         send_msg = u'{0:04d}{1:s}'.format(len(full_msg), full_msg)
         # self.parent.log.write(log.DEBUG3, "--->>> SEND: "+send_msg)
-        self.client_sock.send(send_msg)
+
+        try:
+            self.client_sock.send(send_msg)
+        except bluetooth.btcommon.BluetoothError:
+            self.client_sock.settimeout(self.timeout)
+            self.parent.led.set_led_green(0)
+            return
 
         if self.recv_ok_byte():
             for line in message_list:
-                # TODO handle exception if comm breaks on send
                 # construct line by prefixing each field with its length
                 send_line = u'{0:04d}{1:02d}'.format(msg_id, len(line))
                 for item in line:
                     send_line += u'{0:03d}'.format(len(item))+item
                 send_msg = u'{0:04d}'.format(len(send_line)) + send_line
-                self.client_sock.send(send_msg.encode('utf-8'))
+                try:
+                    self.client_sock.send(send_msg.encode('utf-8'))
+                except bluetooth.btcommon.BluetoothError:
+                    break
                 if not self.recv_ok_byte():
                     break
 

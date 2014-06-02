@@ -339,8 +339,24 @@ class EvalCmd:
         # # # # plclear # # # #
 
         elif cmd == "plclear":
-            self.parent.listmngr.clear()
+            if len(line) == 2 and int_args[1] is not None:
+                self.parent.listmngr.clear(int_args[1])
+            else:
+                self.parent.listmngr.clear()
             ret_msg = "Playlist cleared."
+
+        # # # # plgoto # # # #
+
+        elif cmd == "plgoto":
+            if len(line) == 3 and int_args[1] is not None and \
+                    int_args[2] is not None:
+                self.parent.play.load(int_args[1], int_args[2])
+                ret_code = PL_JUMP_OK
+                self.parent.play.send_track_info()
+            elif len(line) == 2 and int_args[1] is not None:
+                self.parent.play.load(-1, int_args[1])
+                ret_code = PL_JUMP_OK
+                self.parent.play.send_track_info()
 
         # # # # plsave # # # #
 
@@ -476,18 +492,23 @@ class EvalCmd:
             else:
                 self.parent.play.vol_inc(vol_change)
 
+            # let APP set correct volume slider position
+            self.parent.play.send_track_info()
+
         # # # # vol_set # # # #
 
         elif cmd == "volset":
             if len(line) != 2:
                 ret_stat = ERRORARGS
-                ret_msg = "vol_set needs 1 arg"
+                ret_msg = "volset needs 1 arg"
             else:
                 if int_args[1] is None:
                     ret_stat = ERRORARGS
-                    ret_msg = "vol_set needs int arg"
+                    ret_msg = "volsset needs int arg"
                 else:
                     self.parent.play.vol_set(int_args[1])
+                    # let APP set correct volume slider position
+                    self.parent.play.send_track_info()
 
         else:
             ret_stat = ERRORUNKNOWN

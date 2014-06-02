@@ -15,27 +15,22 @@ Rectangle {
 
         Text {
             id: playTitleText
-
             text: "Title"
         }
         Text {
             id: playArtistText
-
             text: "Artist"
         }
         Text {
             id: playAlbumText
-
             text: "Album"
         }
         Text {
             id: playYearText
-
             text: "Year"
         }
         Text {
             id: playGenreText
-
             text: "Genre"
         }
 
@@ -86,10 +81,83 @@ Rectangle {
                         onClicked: next()
                     }
                 }
-            }
-        }
+            } // buttons row
+        } // buttons rect
 
-    }
+        // Volume slider width vol=0 and vol=100 endcaps
+        Row {
+            width: parent.width
+            height: 48
+            spacing: 0
+
+            Rectangle {
+                height: parent.height
+                width: 40
+                color: "transparent"
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: {
+                        rfcomm.execCommand("volset 0");
+                    }
+                }
+            }
+
+            Rectangle {
+                id: playVolumeBar
+                // anchors.fill: parent
+                width: parent.width - 80
+                height: parent.height
+                color: "transparent"
+                radius: 10
+                border.width: 4
+                border.color:  root.colorButtonBoxFrame
+
+                Text {
+                    id: playVolumeText
+                    anchors.centerIn: parent
+                    text: "volume"
+                    color: "black"
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: {
+                        var vol = Math.round((mouseX-x)/width*100.);
+                        rfcomm.execCommand("volset "+vol);
+                    }
+                }
+
+                Rectangle {
+                    id: playVolumeSliderPos
+                    height: parent.height
+                    x: 0
+                    width: parent.width / 2
+                    clip: true
+                    color: "#39393908"
+                    z: parent.z - 1
+                    radius: 10
+                }
+
+                function showVol(vol) {
+                    var nw = Math.round(vol/100. * width);
+                    playVolumeText.text = vol
+                    playVolumeSliderPos.width = Math.min(width, nw);
+                }
+            } // volumeBar rect
+
+            Rectangle {
+                color: "transparent"
+                height: parent.height
+                width: 40
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: {
+                        rfcomm.execCommand("volset 100");
+                    }
+                }
+            }
+        } // vol row
+    } // play col
 
     //////////////////////////// TRIGGERS ////////////////////////////
 
@@ -131,6 +199,8 @@ Rectangle {
                 playPlayImage.showPlay(1);
             else
                 playPlayImage.showPlay(arr[2]=="1");
+
+            playVolumeBar.showVol(arr[12]);
         }
     }
 

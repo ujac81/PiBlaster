@@ -34,19 +34,36 @@ Rectangle {
 
     }
 
+    //////////////////////////// OVERLAYS ////////////////////////////
+
+    // Question dialog if playlist should be cleared
+    // Invoked clear pressed
+    // Invokes playlistlist.model.clear_playlist()
+    MessageWindow {
+        id: clearPlaylistDialog
+        boxHeight: 300
+
+        caption: "Clear Playlist"
+        text: "Playlist will be cleared out. It's not possible to restore cleared playlists!"
+
+        onAccepted: playlistlist.model.clear_playlist()
+    }
+
 
 
     ////////////////// CENTRAL LIST VIEW //////////////////
 
-
-    PlayListList {
-        id: playlistlist
+    Rectangle {
         anchors.top: plMenuBar.bottom
         anchors.bottom: parent.bottom
         width: parent.width
+
+        PlayListList {
+            id: playlistlist
+            anchors.fill: parent
+        }
+
     }
-
-
 
     ////////////////// FUNCTIONS //////////////////
 
@@ -57,8 +74,18 @@ Rectangle {
         playlistlist.model.reload_playlist();
     }
 
+    /**
+     * Next song started -- hilight next item
+     */
+    function gotPlayStatus(msg) {
+        playlistlist.model.gotPlayStatus(msg);
+    }
+
     function tabClicked(index) {
-        console.log("PL tab selected "+index)
+
+        if ( index == 2 ) {
+            clearPlaylistDialog.show();
+        }
     }
 
     function received_pl_data(msg) {

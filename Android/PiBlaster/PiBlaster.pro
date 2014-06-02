@@ -1,7 +1,7 @@
 
 QT += quick
 
-DUMMY_MODE = 1
+DUMMY_MODE = 0
 
 contains(DUMMY_MODE, 1) {
     message("Running in dummy mode")

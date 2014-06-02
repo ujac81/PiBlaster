@@ -2,10 +2,9 @@ import QtQuick 2.0
 
 ListView {
 
-    anchors.fill: parent
     clip: true
-
     model: PlayListModel{}
+
     delegate: Rectangle {
         id: browseDelegate
         width: parent.width
@@ -14,14 +13,11 @@ ListView {
 
         color: active ? root.colorSelected : (index % 2 == 0 ? root.colorUnselected : root.colorUnselected2 )
 
-
         Text {
             id: plitem
             anchors.fill: parent
             text: title
         }
-
-
 
         MouseArea {
             id: pl_elements_click_check
@@ -30,7 +26,10 @@ ListView {
 
             }
             onDoubleClicked: {
-
+                var elem = playlistlist.model.get(index);
+                playlistlist.model.set_all_inactive();
+                elem.active = true;
+                playlistlist.model.jump_to_tune(elem.position);
             }
             onPressAndHold: {
 
