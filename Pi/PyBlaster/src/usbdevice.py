@@ -4,6 +4,7 @@
 @Author Ulrich Jansen <ulrich.jansen@rwth-aachen.de>
 """
 
+import mad
 import md5
 import os
 import subprocess
@@ -239,7 +240,8 @@ class UsbDevice:
                 try:
                     length = int(tag['length'][0]) / 1000
                 except ValueError:
-                    length = 0
+                    mf = mad.MadFile(mp3path)
+                    length = mf.total_time() / 1000
 
             disptitle = u'%s - %s' % (ARTIST, TITLE)
             if ARTIST == u'Unknown Artist':
