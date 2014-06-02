@@ -194,14 +194,7 @@ class UsbDevice:
                         and f.endswith(".mp3")])
 
         dirpath = os.path.relpath(path, self.mnt_pnt)
-
         dirid = self.cur_dir_id
-        if parentid >= 0:
-            # TODO: dirname twice -- path should be there for id reassignment.
-            self.main.dbhandle.cur.execute(
-                'INSERT INTO Dirs VALUES (?, ?, ?, ?, ?, ?, ?)',
-                (dirid, parentid, self.storid, len(dirs),
-                 len(files), dirname, dirpath))
 
         self.cur_dir_id += 1
 
@@ -268,9 +261,23 @@ class UsbDevice:
         # turn off led after this dir scaned
         self.main.led.set_led_yellow(0)
 
+        nfiles = len(files)
+        ndirs = len(dirs)
+
         for d in dirs:
             subdir = os.path.join(path, d)
-            self.recursive_rescan_into_db(subdir, d, dirid)
+            counts = self.recursive_rescan_into_db(subdir, d, dirid)
+            ndirs += counts[0]
+            nfiles += counts[1]
+
+        if parentid >= 0:
+            # TODO: dirname twice -- path should be there for id reassignment.
+            self.main.dbhandle.cur.execute(
+                'INSERT INTO Dirs VALUES (?, ?, ?, ?, ?, ?, ?)',
+                (dirid, parentid, self.storid, ndirs,
+                 nfiles, dirname, dirpath))
+
+        return [ndirs, nfiles]
 
     def update_alias(self, alias):
         """Change alias for this USB dev via database"""

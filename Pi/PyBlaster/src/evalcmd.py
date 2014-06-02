@@ -7,6 +7,7 @@ import codecs
 import os
 
 from codes import *
+import led
 import log
 from helpers import humansize
 
@@ -517,6 +518,13 @@ class EvalCmd:
         self.write_log_file(cmd, ret_stat, ret_code, ret_msg, ret_list)
 
         self.parent.log.write(log.MESSAGE, ">>> %s" % ret_msg)
+
+        if src != 'button':
+            if ret_stat == STATUSOK:
+                self.parent.led.flash_led(led.LED_WHITE, 1.0)
+            else:
+                self.parent.led.flash_led(led.LED_RED, 1.0)
+
         return [ret_stat, ret_code, ret_msg, ret_list]
 
         # end evalcmd() #

@@ -23,7 +23,7 @@ class LED:
 
         self.parent = parent
         self.state = [0]*5
-
+        self.init_done = False
         GPIO.setmode(GPIO.BCM)
         GPIO.setwarnings(False)
 
@@ -35,6 +35,7 @@ class LED:
         GPIO.setup(LED_RED, GPIO.OUT)
         GPIO.setup(LED_BLUE, GPIO.OUT)
         GPIO.setup(LED_WHITE, GPIO.OUT)
+        self.init_done = True
         self.set_leds(0)
 
     def show_init_done(self):
@@ -67,24 +68,19 @@ class LED:
             self.set_led(led, state)
 
     def set_led_green(self, state):
-        GPIO.output(LED_GREEN, state)
-        self.state[0] = state
+        self.set_led_by_gpio(state, 0, LED_GREEN)
 
     def set_led_yellow(self, state):
-        GPIO.output(LED_YELLOW, state)
-        self.state[1] = state
+        self.set_led_by_gpio(state, 1, LED_YELLOW)
 
     def set_led_red(self, state):
-        GPIO.output(LED_RED, state)
-        self.state[2] = state
+        self.set_led_by_gpio(state, 2, LED_RED)
 
     def set_led_blue(self, state):
-        GPIO.output(LED_BLUE, state)
-        self.state[3] = state
+        self.set_led_by_gpio(state, 3, LED_BLUE)
 
     def set_led_white(self, state):
-        GPIO.output(LED_WHITE, state)
-        self.state[4] = state
+        self.set_led_by_gpio(state, 4, LED_WHITE)
 
     def toggle_led_yellow(self):
         if self.state[1]:
@@ -92,17 +88,24 @@ class LED:
         else:
             self.set_led(1, 1)
 
+    def set_led_by_gpio(self, state, stateid, port):
+        if not self.init_done:
+            return
+        GPIO.output(port, state)
+        self.state[stateid] = state
+
     def cleanup(self):
         """Turn of LEDs and close GPIO"""
 
         self.set_leds(0)
         GPIO.cleanup()
 
-    @staticmethod
-    def flash_led(led_code, flash_time):
+    def flash_led(self, led_code, flash_time):
         """
 
         """
+        if not self.init_done:
+            return
         GPIO.output(led_code, 1)
         timer = threading.Timer(flash_time, GPIO.output, [led_code, 0])
         timer.start()
