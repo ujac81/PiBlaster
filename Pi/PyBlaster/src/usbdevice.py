@@ -240,8 +240,10 @@ class UsbDevice:
                 try:
                     length = int(tag['length'][0]) / 1000
                 except ValueError:
-                    mf = mad.MadFile(mp3path)
-                    length = mf.total_time() / 1000
+                    length = 0
+            else:
+                mf = mad.MadFile(mp3path)
+                length = mf.total_time() / 1000
 
             disptitle = u'%s - %s' % (ARTIST, TITLE)
             if ARTIST == u'Unknown Artist':
