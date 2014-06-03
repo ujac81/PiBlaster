@@ -346,7 +346,6 @@ class PlayListManager:
             return []
 
         usb_list = ",".join(map(str, connected_usbs))
-        # I know this is not nice, but works
         statement = "SELECT position, played, disptitle FROM " \
                     "Playlistentries " \
                     "WHERE playlistid=%d AND usbid IN (%s) AND position>=%d " \
@@ -425,15 +424,22 @@ class PlayListManager:
             only 1 item in list or [pos1,pos2].
         :rtype: [int]
         """
+        connected_usbs = self.parent.usb.connected_usbids()
+        if not connected_usbs:
+            return []
+
         listid = self.get_playlist_id(listid)
         position = self.get_playlist_position(listid)
 
+        usb_list = ",".join(map(str, connected_usbs))
+
         # TODO if repeat all, add first position if only 1 row
-        # TODO select only from attached USB devs
+        statement = "SELECT position FROM Playlistentries " \
+                    "WHERE playlistid=%d AND usbid IN (%s) AND position>=%d " \
+                    "ORDER BY position LIMIT 2" % \
+                    (listid, usb_list, position)
         ret = []
-        for row in self.parent.dbhandle.cur.execute(
-                "SELECT position FROM Playlistentries WHERE playlistid=? "
-                "AND position >=? LIMIT 2", (listid, position)):
+        for row in self.parent.dbhandle.cur.execute(statement):
             ret.append(row[0])
         return ret
 
@@ -548,6 +554,40 @@ class PlayListManager:
 
         # end append_multiple() #
 
+    def modify_playlist(self, instructions, mod_mode):
+        """
+
+        """
+
+        mod_list = []
+        for line in instructions:
+            inst = line.split(' ')
+            mod_list += [int(inst[1])]
+
+        if mod_mode == 1:
+            self.delete_from_playlist(mod_list)
+
+    def delete_from_playlist(self, pos_list, list_id=-1):
+        """
+
+        """
+
+        if list_id == -1:
+             list_id = self.playlist_id
+
+        if len(pos_list) == 0:
+            return
+
+        pos = ",".join(map(str, pos_list))
+        statement = "DELETE FROM Playlistentries WHERE playlistid=%d AND " \
+                    "position in (%s)" % (list_id, pos)
+
+        print(statement)
+
+        self.parent.dbhandle.cur.execute(statement)
+        self.parent.dbhandle.con.commit()
+        self.parent.play.requeue()
+
     def scan_dir(self, app_list, list_id, stor_id, dir_id):
         """
         """
@@ -615,6 +655,7 @@ class PlayListManager:
         self.parent.log.write(log.ERROR, "[PLAYLISTMNGR]: Added %d items for "
                                          "playlist %d with state %d" %
                                          (len(id_list), list_id, state))
+        self.parent.play.requeue()
 
         return len(id_list)
 

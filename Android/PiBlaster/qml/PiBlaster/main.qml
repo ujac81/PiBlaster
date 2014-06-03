@@ -39,6 +39,7 @@ Rectangle {
     property string buttonColorInactive: "#8B8E91"          // greyed out button color
     property string buttonColorInactiveText: "#5C5E60"      // greyed out button text color
     property string colorSelected: "#1212FF"                // background color for selected items in lists
+    property string colorSelected2: "#FFA858"               // color for active item in playlist
     property string colorUnselected: "#dddddd"          // background color for odd-indexed items in lists
     property string colorUnselected2: "#bbbbbb"             // background color for even-indexed items in lists
     property string colorButtonBox:         "#2382FF"
@@ -187,6 +188,8 @@ Rectangle {
             tabview.browseTab().addFinished(msg.status(), msg.message());
         } else if ( msg.code() == 202) {
             tabview.playlistTab().received_pl_data(msg);
+        } else if ( msg.code() == 204) {
+            tabview.playlistTab().activated();
         } else if ( msg.code() == 304) {
             tabview.playTab().gotPlayStatus(msg);
             tabview.playlistTab().gotPlayStatus(msg);

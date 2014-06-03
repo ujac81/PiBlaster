@@ -11,7 +11,11 @@ ListView {
         height: root.baseFontSize * 1.8
         clip: true
 
-        color: active ? root.colorSelected : (index % 2 == 0 ? root.colorUnselected : root.colorUnselected2 )
+        color: active ? root.colorSelected2 :
+                        ( selected ? root.colorSelected :
+                                     ( index % 2 == 0 ? root.colorUnselected :
+                                                        root.colorUnselected2 )
+                         )
 
         Text {
             id: plitem
@@ -23,7 +27,9 @@ ListView {
             id: pl_elements_click_check
             anchors.fill: parent
             onClicked: {
-
+                if ( playlistlist.model.get(index).type != 0 ) {
+                    playlistlist.model.get(index).selected = ! playlistlist.model.get(index).selected
+                }
             }
             onDoubleClicked: {
                 var elem = playlistlist.model.get(index);

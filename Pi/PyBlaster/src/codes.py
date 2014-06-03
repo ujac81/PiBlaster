@@ -16,6 +16,7 @@ LS_FILES = 104      # return on lsfiles command
 PL_ADD_OK = 201     # answer on plappendmultiple
 PL_SHOW = 202
 PL_JUMP_OK = 203    # jumped to double-tapped item
+PL_MODIFIED = 204   # if PL changed -- reload PL
 
 PLAY_PAUSE = 301    # answer on playpause
 PLAY_PREV = 302     # answer on playprev

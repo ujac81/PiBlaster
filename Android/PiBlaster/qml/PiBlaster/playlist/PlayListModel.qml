@@ -78,11 +78,49 @@ ListModel {
                 append({"position": arr[0],
                         "state": arr[1],
                         "title": arr[2],
-                        "active": ( arr[1] == "2" )
+                        "active": ( arr[1] == "2" ),
+                        "selected": false
                        });
             }
         } else {
             root.log_error("Bad return status for 'plshow'");
+        }
+    }
+
+    /**
+     * Invoke playlist modify function
+     * Args:
+     *  - 1: clear
+     *  - 2: after current
+     *  - 3: to end
+     */
+    function modify_playlist(mod_mode)
+    {
+        console.log("modify_playlist("+mod_mode+") called.");
+
+        rfcomm.clearSendPayload();
+
+        for ( var i = 0; i < count; i++ )
+        {
+            var elem = get(i);
+            if ( elem.selected )
+            {
+                rfcomm.addToSendPayload("POD "+elem.position);
+            }
+        }
+
+        deselect_all();
+
+        rfcomm.execCommandWithPayload("plmodify "+mod_mode);
+    }
+
+    /**
+     * Set all selected properties to false in current view.
+     * Called after addToPlaylist()
+     */
+    function deselect_all() {
+        for ( var i = 0; i < count; i++ ) {
+            get(i).selected = false;
         }
     }
 }

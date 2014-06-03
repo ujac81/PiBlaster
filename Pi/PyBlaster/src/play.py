@@ -59,6 +59,7 @@ class Play:
         """
         """
         pos = self.parent.listmngr.get_next_position_in_playlist()
+        self.parent.log.write(log.DEBUG1, " -- next pos = %d" % pos)
         if pos != -1:
             self.load(-1, pos)
 
@@ -66,6 +67,7 @@ class Play:
         """
         """
         pos = self.parent.listmngr.get_prev_position_in_playlist()
+        self.parent.log.write(log.DEBUG1, " -- prev pos = %d" % pos)
         if pos != -1:
             self.load(-1, pos)
 
@@ -123,22 +125,7 @@ class Play:
         if len(positions) == 1:
             return 1
 
-        # Try to queue next song, if queuing fails, do nothing.
-        # End event handler will try to load next song.
-        file = self.parent.listmngr.\
-            get_filename_from_playlist(list_id, positions[1])
-        if file is None:
-            return 1  # failed to queue next song (should not happen)
-        try:
-            pygame.mixer.music.queue(file)
-        except pygame.error as e:
-            self.parent.log.write(log.ERROR,
-                                  "[PLAY]: Cannot queue %s: %s" %
-                                  (file, e.args[0]))
-            return 1  # 1st song added successfully
-        self.parent.log.write(log.MESSAGE,
-                              "[PLAY]: Queued: %s @ pos %d" %
-                              (file, positions[1]))
+        self.requeue()
 
         return 2
 
@@ -161,13 +148,38 @@ class Play:
         if len(positions) < 2:
             return  # there are no more items in playlist -- leave
 
+        self.parent.log.write(log.DEBUG1, " -- advc: pos = [%d,%d]",
+                              (positions[0], positions[1]))
+
         # set position pointer to 2nd position
         self.parent.listmngr.set_position_pointer(list_id, positions[1])
+
+        # put next song into queue
+        self.requeue()
+
+        # end advance_in_playlist() #
+
+    def clear_queue(self):
+        """Unqueue queued song (if playlist cleared or changed or USB lost)
+        """
+        # TODO: unqueueing does not work -- check how to unqueue
+        # pygame.mixer.music.queue('')
+        self.requeue()
+
+    def requeue(self):
+        """Unqueue queued song and put next playlist song into queue.
+
+        Called after changes in playlist
+        """
+        list_id = self.parent.listmngr.get_playlist_id()
 
         # get next 2 positions
         positions = self.parent.listmngr.get_next_two_playlist_positions()
         if len(positions) < 2:
             return  # there are no more items in playlist -- leave
+
+        self.parent.log.write(log.DEBUG1, " -- requeue: pos = [%d,%d]" % (
+            positions[0], positions[1]))
 
         # Try to queue next song, if queuing fails, do nothing.
         # End event handler will try to load next song.
@@ -185,14 +197,6 @@ class Play:
         self.parent.log.write(log.MESSAGE,
                               "[PLAY]: Queued: %s @ pos %d" %
                               (file, positions[1]))
-
-        # end advance_in_playlist() #
-
-    def clear_queue(self):
-        """Unqueue queued song (if playlist cleared or changed or USB lost)
-        """
-        # TODO: unqueueing does not work -- check how to unqueue
-        # pygame.mixer.music.queue('')
 
     def get_play_status(self):
         """

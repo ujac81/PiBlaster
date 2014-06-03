@@ -9,7 +9,7 @@ Rectangle {
     color: "transparent"
 
 
-    ////////////////// MENU BAR //////////////////
+    ////////////////// TOP MENU BAR //////////////////
 
     Rectangle {
         id: plMenuBar
@@ -29,6 +29,32 @@ Rectangle {
             Tab { width: parent.width / 3; height: parent.height; index: 0; text: "Save as" }
             Tab { width: parent.width / 3; height: parent.height; index: 1; text: "Load" }
             Tab { width: parent.width / 3; height: parent.height; index: 2; text: "Clear" }
+        }
+
+
+    }
+
+
+    ////////////////// BOTTOM MENU BAR //////////////////
+
+    Rectangle {
+        id: plMenuBarBot
+        height: root.barHeight + 5
+        color: "transparent"
+
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+
+        Row {
+            anchors.top: parent.top
+            width: parent.width
+            height: root.barHeight
+            id: plMenuTabsBot
+
+            Tab { width: parent.width / 3; height: parent.height; index: 3; text: "Remove" }
+            Tab { width: parent.width / 3; height: parent.height; index: 4; text: "Play next" }
+            Tab { width: parent.width / 3; height: parent.height; index: 5; text: "To end" }
         }
 
 
@@ -55,7 +81,7 @@ Rectangle {
 
     Rectangle {
         anchors.top: plMenuBar.bottom
-        anchors.bottom: parent.bottom
+        anchors.bottom: plMenuBarBot.top
         width: parent.width
 
         PlayListList {
@@ -75,6 +101,13 @@ Rectangle {
     }
 
     /**
+     * Triggered via main if this view is active and we got back key.
+     */
+    function handleBackKey() {
+        return false;
+    }
+
+    /**
      * Next song started -- hilight next item
      */
     function gotPlayStatus(msg) {
@@ -86,6 +119,17 @@ Rectangle {
         if ( index == 2 ) {
             clearPlaylistDialog.show();
         }
+        if ( index == 3 ) {
+            playlistlist.model.modify_playlist(1)
+        }
+        if ( index == 4 ) {
+            playlistlist.model.modify_playlist(2)
+        }
+        if ( index == 5 ) {
+            playlistlist.model.modify_playlist(3)
+        }
+
+
     }
 
     function received_pl_data(msg) {

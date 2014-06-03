@@ -359,6 +359,17 @@ class EvalCmd:
                 ret_code = PL_JUMP_OK
                 self.parent.play.send_track_info()
 
+        # # # #  plmodify # # # #
+
+        elif cmd == "plmodify":
+            if len(line) == 2 and int_args[1] is not None:
+                self.parent.listmngr.modify_playlist(payload, int_args[1])
+                ret_msg = "OK"
+                ret_code = PL_MODIFIED
+            else:
+                ret_stat = ERRORARGS
+                ret_msg = "plmodify needs 1 int arg!"
+
         # # # # plsave # # # #
 
         elif cmd == "plsave":
