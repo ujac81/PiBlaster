@@ -29,58 +29,6 @@ Rectangle {
         }
     }
 
-
-    ////////////////// TOP MENU BAR //////////////////
-
-//    Rectangle {
-//        id: plMenuBar
-//        height: root.barHeight + 5
-//        color: "transparent"
-
-//        anchors.left: parent.left
-//        anchors.right: parent.right
-//        anchors.top: parent.top
-
-//        Row {
-//            anchors.bottom: parent.bottom
-//            width: parent.width
-//            height: root.barHeight
-//            id: plMenuTabs
-
-//            Tab { width: parent.width / 3; height: parent.height; index: 0; text: "Save as" }
-//            Tab { width: parent.width / 3; height: parent.height; index: 1; text: "Load" }
-//            Tab { width: parent.width / 3; height: parent.height; index: 2; text: "Clear" }
-//        }
-
-
-//    }
-
-
-    ////////////////// BOTTOM MENU BAR //////////////////
-
-//    Rectangle {
-//        id: plMenuBarBot
-//        height: root.barHeight + 5
-//        color: "transparent"
-
-//        anchors.left: parent.left
-//        anchors.right: parent.right
-//        anchors.bottom: parent.bottom
-
-//        Row {
-//            anchors.top: parent.top
-//            width: parent.width
-//            height: root.barHeight
-//            id: plMenuTabsBot
-
-//            Tab { width: parent.width / 3; height: parent.height; index: 3; text: "Remove" }
-//            Tab { width: parent.width / 3; height: parent.height; index: 4; text: "Play next" }
-//            Tab { width: parent.width / 3; height: parent.height; index: 5; text: "To end" }
-//        }
-
-
-//    }
-
     //////////////////////////// OVERLAYS ////////////////////////////
 
     // Question dialog if playlist should be cleared
@@ -127,20 +75,6 @@ Rectangle {
                 Tab { width: parent.width; height: root.barHeight; index: 7; text: "Randomize all" }
             }
         }
-
-        //        if ( index == 2 ) {
-        //            clearPlaylistDialog.show();
-        //        }
-        //        if ( index == 3 ) {
-        //            playlistlist.model.modify_playlist(1)
-        //        }
-        //        if ( index == 4 ) {
-        //            playlistlist.model.modify_playlist(2)
-        //        }
-        //        if ( index == 5 ) {
-        //            playlistlist.model.modify_playlist(3)
-        //        }
-
         function toggleShow() {
             plMenu.opacity = ! plMenu.opacity
         }
@@ -186,8 +120,7 @@ Rectangle {
     }
 
     function tabClicked(index) {
-        if ( index == 0 ) plMenu.toggleShow();
-
+        plMenu.toggleShow();
         if ( index == 3 ) clearPlaylistDialog.show();
         if ( index == 4 ) playlistlist.model.modify_playlist(1);
         if ( index == 5 ) playlistlist.model.modify_playlist(2);

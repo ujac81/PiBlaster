@@ -19,7 +19,6 @@ ListModel {
         clearAll();
 
         rfcomm.execCommand("plshow 0 0 500 0");
-
     }
 
 

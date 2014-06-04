@@ -399,9 +399,7 @@ class PlayListManager:
         return int(res[0][0])
 
     def get_playlist_position(self, listid=-1):
-        """Position pointer in playlist
-
-
+        """Current position pointer in playlist.
         :param listid: id of playlist, default = -1 -> use active playlist
         :returns: Position pointer for playlist
                 (-1 if no such playlist, -1 if pointer not set for playlist)
@@ -412,7 +410,24 @@ class PlayListManager:
             "SELECT position FROM Playlists WHERE id=?", (listid,))
         # there should be a row, so no check
         res = self.parent.dbhandle.cur.fetchall()
-        if len(res) == 0:
+        if len(res) == 0 or res[0][0] is None:
+            return -1
+        return int(res[0][0])
+
+    def get_last_playlist_position(self, listid=-1):
+        """Return position index of last item in playlist.
+        :param listid: id of playlist, default = -1 -> use active playlist
+        :returns: Last position index in playlist
+                (-1 if no such playlist, -1 if pointer not set for playlist)
+        :rtype: int
+        """
+        listid = self.get_playlist_id(listid)
+        self.parent.dbhandle.cur.execute(
+            "SELECT Max(position) FROM Playlistentries WHERE playlistid=?",
+            (listid,))
+        # there should be a row, so no check
+        res = self.parent.dbhandle.cur.fetchall()
+        if len(res) == 0 or res[0][0] is None:
             return -1
         return int(res[0][0])
 
@@ -549,6 +564,7 @@ class PlayListManager:
 
         added = self.multi_append(list_id, append_list, add_mode)
         self.parent.led.set_led_yellow(0)
+        self.parent.play.requeue()
 
         return added
 
@@ -560,12 +576,20 @@ class PlayListManager:
         """
 
         mod_list = []
+        cur_pos = self.get_playlist_position()
         for line in instructions:
             inst = line.split(' ')
-            mod_list += [int(inst[1])]
+            pos = int(inst[1])
+            # do not insert current tune, will waste playlist!
+            if pos != cur_pos:
+                mod_list += [pos]
 
         if mod_mode == 1:
             self.delete_from_playlist(mod_list)
+        if mod_mode == 2:
+            self.move_items_after_current(mod_list)
+        if mod_mode == 3:
+            self.move_items_to_end(mod_list)
 
     def delete_from_playlist(self, pos_list, list_id=-1):
         """
@@ -574,7 +598,6 @@ class PlayListManager:
 
         if list_id == -1:
              list_id = self.playlist_id
-
         if len(pos_list) == 0:
             return
 
@@ -582,8 +605,70 @@ class PlayListManager:
         statement = "DELETE FROM Playlistentries WHERE playlistid=%d AND " \
                     "position in (%s)" % (list_id, pos)
 
-        print(statement)
+        self.parent.dbhandle.cur.execute(statement)
+        self.parent.dbhandle.con.commit()
+        self.parent.play.requeue()
 
+    def move_items_to_end(self, pos_list, list_id=-1):
+        """
+
+        """
+        if list_id == -1:
+             list_id = self.playlist_id
+        if len(pos_list) == 0:
+            return
+
+        pos = ",".join(map(str, pos_list))
+        pos_offset = self.get_playlist_last_position(list_id) - pos_list[0]+1
+        statement = "UPDATE Playlistentries SET position=position+%d WHERE " \
+                    "playlistid=%d AND position IN (%s)" % \
+                    (pos_offset, list_id, pos)
+
+        self.parent.dbhandle.cur.execute(statement)
+        self.parent.dbhandle.con.commit()
+        self.parent.play.requeue()
+
+    def move_items_after_current(self, pos_list, list_id=-1):
+        """
+
+        """
+        if list_id == -1:
+             list_id = self.playlist_id
+        if len(pos_list) == 0:
+            return
+
+        pos = ",".join(map(str, pos_list))
+        cur_pos = self.get_playlist_position(list_id)
+        pos_offset = cur_pos - pos_list[0] + 1
+        pos_offset_other = pos_list[-1] - pos_list[0] + 1
+
+        self.parent.log.write(log.DEBUG1,
+                              "--- move: cur_pos=%d, pos_off=%d, "
+                              "pos_off2=%d, pos=%s" % (cur_pos, pos_offset,
+                                                       pos_offset_other, pos))
+
+        # hide selected items while moving using sign and -1 to include 0
+        statement = "UPDATE Playlistentries SET position=position*-1-1 " \
+                    "WHERE playlistid=%d AND position IN (%s)" % (list_id, pos)
+        self.parent.log.write(log.DEBUG1, statement)
+        self.parent.dbhandle.cur.execute(statement)
+        self.parent.dbhandle.con.commit()
+
+        # increase position of all unselected items behind current by
+        # selected range + 1
+        statement = "UPDATE Playlistentries SET position=position+%d WHERE " \
+                    "playlistid=%d AND position NOT IN (%s) AND position > " \
+                    "%d" % (pos_offset_other, list_id, pos, cur_pos)
+        self.parent.log.write(log.DEBUG1, statement)
+        self.parent.dbhandle.cur.execute(statement)
+        self.parent.dbhandle.con.commit()
+
+        # increase position of selected items to be placed behind
+        # current item and undo * -1 - 1, selected items are < 0
+        statement = "UPDATE Playlistentries SET position=(position+1)*-1+%d " \
+                    "WHERE playlistid=%d AND position < 0" % \
+                    (pos_offset, list_id)
+        self.parent.log.write(log.DEBUG1, statement)
         self.parent.dbhandle.cur.execute(statement)
         self.parent.dbhandle.con.commit()
         self.parent.play.requeue()
