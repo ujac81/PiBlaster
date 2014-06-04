@@ -158,19 +158,38 @@ class RFCommServer:
             self.parent.led.set_led_green(0)
             return
 
-        if self.recv_ok_byte():
-            for line in message_list:
-                # construct line by prefixing each field with its length
-                send_line = u'{0:04d}{1:02d}'.format(msg_id, len(line))
-                for item in line:
-                    send_line += u'{0:03d}'.format(len(item))+item
-                send_msg = u'{0:04d}'.format(len(send_line)) + send_line
+        if not self.recv_ok_byte():
+            self.client_sock.settimeout(self.timeout)
+            self.parent.led.set_led_green(0)
+            return
+
+        cluster_size = 20  # pack this many payload lines in one message
+        full_send_msg = ''  # cluster messages in a bunch
+        cluster_count = 0
+
+        for i in range(len(message_list)):
+            line = message_list[i]
+            # construct line by prefixing each field with its length
+            send_line = u'{0:04d}{1:02d}'.format(msg_id, len(line))
+            for item in line:
+                send_line += u'{0:03d}'.format(len(item)) + item
+            send_msg = u'{0:04d}'.format(len(send_line)) + send_line
+            full_send_msg += send_msg
+            cluster_count += 1
+
+            if cluster_count == cluster_size or i == len(message_list)-1:
+                send_msg = u'PL{0:04d}'.format(cluster_count) + \
+                           full_send_msg
+                full_send_msg = u'{0:04d}'.format(len(full_send_msg)) + \
+                                send_msg
                 try:
-                    self.client_sock.send(send_msg.encode('utf-8'))
+                    self.client_sock.send(full_send_msg.encode('utf-8'))
                 except bluetooth.btcommon.BluetoothError:
                     break
                 if not self.recv_ok_byte():
                     break
+                cluster_count = 0
+                full_send_msg = ''
 
         self.client_sock.settimeout(self.timeout)
         self.parent.led.set_led_green(0)

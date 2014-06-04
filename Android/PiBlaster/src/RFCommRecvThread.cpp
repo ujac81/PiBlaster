@@ -92,32 +92,48 @@ void RFCommRecvThread::run()
 
 
         QString line = string.toString();
-
         if ( line.length() < 4 ) continue;
 
-        // 1st 4 bytes carry id
-        int id = line.left(4).toInt();
-
-        std::map<int, RFCommMessageObject*>::iterator iter = _recvBuffer.find( id );
-        if ( iter == _recvBuffer.end() )
+        if ( line.left(2) == "PL" )
         {
-            // new message received.
+            // header is PL%4d % n_lines
+            int lines = line.mid(2, 4).toInt();
+            line.remove(0, 6);
+
+            for ( int i = 0; i < lines; i++ )
+            {
+                int length = line.left(4).toInt();
+                line.remove(0, 4);
+                int id = line.left(4).toInt();
+                line.remove(0, 4);
+                QString subLine = line.left(length-4);
+                line.remove(0, length-4);
+
+                std::map<int, RFCommMessageObject*>::iterator iter = _recvBuffer.find( id );
+                if ( iter != _recvBuffer.end() )
+                {
+                    iter->second->addPayload( subLine );
+                    if ( iter->second->payloadComplete() )
+                        messageDone( id, iter->second );
+                }
+                else
+                {
+                    // error, no message object
+                }
+            }
+        }
+        else
+        {
+            // new instruction
             // 1st line should be [id status code payload_length message]
+            int id = line.left(4).toInt();
             int status  = line.mid(4, 4).toInt();
             int code    = line.mid(8, 4).toInt();
             int plSize  = line.mid(12, 6).toInt();
             QString msg = line.right(line.length()-18);
-
             RFCommMessageObject* msgObj = newMessageObject( id, status, code, plSize, msg );
-
             if ( msgObj->payloadComplete() )
                 messageDone( id, msgObj );
-        }
-        else
-        {
-            iter->second->addPayload( line.right(line.length()-4) );
-            if ( iter->second->payloadComplete() )
-                messageDone( id, iter->second );
         }
 #endif
     } // while run
