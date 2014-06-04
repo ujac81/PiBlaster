@@ -314,7 +314,7 @@ public class RfcommClient extends org.qtproject.qt5.android.bindings.QtActivity
         StringBuilder lenout = new StringBuilder();
         StringBuilder out = new StringBuilder();
         try {
-            int lenbytes = in.read(buffer, 0, 4);
+            int lenbytes = in.read(buffer, 0, 6);
             if (lenbytes > 0) {
                 lenout.append(buffer, 0, lenbytes);
                 String lenline = lenout.toString();
@@ -325,12 +325,13 @@ public class RfcommClient extends org.qtproject.qt5.android.bindings.QtActivity
                     Log.d(TAG, "Fatal Error: Could not convert head: "+lenline);
                     return line;
                 }
-                int bytes = in.read(buffer, 0, lenIn);
-                if ( bytes > 0 )
-                {
+                int remain = lenIn;
+                while ( remain > 0 ) {
+                    int bytes = in.read(buffer, 0, remain);
+                    remain -= bytes;
                     out.append(buffer, 0, bytes);
-                    line = out.toString();
                 }
+                line = out.toString();
             }
             // send 1 byte to let PiBlaster send next line
             m_outStream.write('1');

@@ -148,7 +148,7 @@ class RFCommServer:
         # 4 ints line length, followed by 'msg_id status code payload_len msg'
         full_msg = u'{0:04d}{1:04d}{2:04d}{3:06d}{4:s}'.\
             format(msg_id, status, code, len(message_list), msg)
-        send_msg = u'{0:04d}{1:s}'.format(len(full_msg), full_msg)
+        send_msg = u'{0:06d}{1:s}'.format(len(full_msg), full_msg)
         # self.parent.log.write(log.DEBUG3, "--->>> SEND: "+send_msg)
 
         try:
@@ -163,7 +163,7 @@ class RFCommServer:
             self.parent.led.set_led_green(0)
             return
 
-        cluster_size = 20  # pack this many payload lines in one message
+        cluster_size = 40   # pack this many payload lines in one message
         full_send_msg = ''  # cluster messages in a bunch
         cluster_count = 0
 
@@ -180,7 +180,7 @@ class RFCommServer:
             if cluster_count == cluster_size or i == len(message_list)-1:
                 send_msg = u'PL{0:04d}'.format(cluster_count) + \
                            full_send_msg
-                full_send_msg = u'{0:04d}'.format(len(full_send_msg)) + \
+                full_send_msg = u'{0:06d}'.format(len(send_msg)) + \
                                 send_msg
                 try:
                     self.client_sock.send(full_send_msg.encode('utf-8'))

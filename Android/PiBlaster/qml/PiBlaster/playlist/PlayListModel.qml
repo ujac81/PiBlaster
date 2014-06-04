@@ -18,7 +18,7 @@ ListModel {
 
         clearAll();
 
-        rfcomm.execCommand("plshow 0 0 100 0");
+        rfcomm.execCommand("plshow 0 0 500 0");
 
     }
 
@@ -72,6 +72,7 @@ ListModel {
     function received_playlist(msg) {
         clearAll();
 
+        var nowIndex = -1
         if ( msg.status() == 0 ) {
             for ( var i = 0; i < msg.payloadSize(); i++ ) {
                 var arr = msg.payloadElements(i);
@@ -81,9 +82,14 @@ ListModel {
                         "active": ( arr[1] == "2" ),
                         "selected": false
                        });
+                if ( arr[1] == "2" ) nowIndex = i;
             }
         } else {
             root.log_error("Bad return status for 'plshow'");
+        }
+
+        if ( nowIndex != -1 ) {
+            positionViewAtIndex(nowIndex, ListView.Center)
         }
     }
 
