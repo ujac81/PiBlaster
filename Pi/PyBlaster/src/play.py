@@ -148,7 +148,7 @@ class Play:
         if len(positions) < 2:
             return  # there are no more items in playlist -- leave
 
-        self.parent.log.write(log.DEBUG1, " -- advc: pos = [%d,%d]",
+        self.parent.log.write(log.DEBUG1, " -- advc: pos = [%d,%d]" %
                               (positions[0], positions[1]))
 
         # set position pointer to 2nd position

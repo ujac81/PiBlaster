@@ -244,5 +244,11 @@ Rectangle {
                 quitQuestion.show();
     }
 
+    /**
+     * Triggered via main if this view is active and we got back key.
+     */
+    function handleBackKey() {
+        return false;
+    }
 
 }
