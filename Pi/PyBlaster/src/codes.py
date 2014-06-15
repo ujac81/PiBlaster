@@ -18,6 +18,8 @@ PL_SHOW = 202
 PL_JUMP_OK = 203    # jumped to double-tapped item
 PL_MODIFIED = 204   # if PL changed -- reload PL
 
+SEARCH_RES = 220    # show search result list
+
 PLAY_PAUSE = 301    # answer on playpause
 PLAY_PREV = 302     # answer on playprev
 PLAY_NEXT = 303     # answer on playnext

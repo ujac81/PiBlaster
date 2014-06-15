@@ -5,6 +5,7 @@
 
 import log
 from usbdevice import UsbDevice
+from helpers import seconds_to_minutes
 
 
 class UsbManager:
@@ -178,3 +179,54 @@ class UsbManager:
     def connected_usbids(self):
         """Get list of connected storage ids"""
         return self.alldevs.keys()
+
+    def search_files(self, pattern, mode=1, limit=200):
+        """Search file entries for connected USB devices.
+
+        :param pattern: search pattern for SQL (LIKE %pattern%)
+        :param mode: 1=all fields, 2=title field
+        :param limit: limit results count
+        :returns [[usbid, dirid, fileid, time, artist, album, title, path]]
+        """
+
+        # unknown mode
+        if mode not in [1, 2]:
+            return None
+
+        # available usb devs
+        connected_usbs = self.connected_usbids()
+        if not connected_usbs:
+            return []
+
+        usb_list = ",".join(map(str, connected_usbs))
+
+        statement = "SELECT a.usbid, a.dirid, a.id, a.time, a.artist, " \
+                    "a.album, a.title, b.alias, a.path FROM Fileentries AS " \
+                    "a, Usbdevs AS b "
+        if mode == 1:
+            statement += "WHERE (a.artist {0:s} OR a.album {0:s} OR a.title " \
+                         "{0:s} OR a.path {0:s})".\
+                format("LIKE '%" + pattern + "%'")
+        if mode == 2:
+            statement += "WHERE a.title LIKE '%" + pattern + "%'"
+
+        statement += " AND a.usbid IN (%s)" % usb_list
+        statement += " AND a.usbid = b.id"
+        statement += " ORDER BY a.usbid,a.dirid,a.id"
+        statement += " LIMIT %d" % limit
+
+        self.parent.log.write(log.DEBUG1, statement)
+
+        ret = []
+
+        for row in self.parent.dbhandle.cur.execute(statement):
+            ret.append(['%d' % row[0],
+                        '%d' % row[1],
+                        '%d' % row[2],
+                        '%s' % seconds_to_minutes(row[3]),
+                        row[4],
+                        row[5],
+                        row[6],
+                        row[7] + "/" + '/'.join(row[8].split('/')[:-1])])
+
+        return ret

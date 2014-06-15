@@ -208,12 +208,11 @@ class UsbDevice:
             extension = os.path.splitext(filename)[1].replace('.', '')
             filename = filename[:-len(extension)-1]
             relpath = os.path.relpath(mp3path, self.mnt_pnt)
-            playtimes = 0
-            GENRE = u'Unknown Genre'
-            YEAR = 0
-            TITLE = filename
-            ALBUM = u'Unknown Album'
-            ARTIST = u'Unknown Artist'
+            genre = u'Unknown Genre'
+            year = 0
+            title = filename
+            album = u'Unknown Album'
+            artist = u'Unknown Artist'
             length = 0
 
             tag = EasyID3(mp3path)
@@ -224,18 +223,18 @@ class UsbDevice:
                 pass
 
             if 'album' in tag:
-                ALBUM = tag['album'][0]
+                album = tag['album'][0]
             if 'artist' in tag:
-                ARTIST = tag['artist'][0]
+                artist = tag['artist'][0]
             if 'title' in tag:
-                TITLE = tag['title'][0]
+                title = tag['title'][0]
             if 'genre' in tag:
-                GENRE = tag['genre'][0]
+                genre = tag['genre'][0]
             if 'date' in tag:
                 try:
-                    YEAR = int(tag['date'][0])
+                    year = int(tag['date'][0])
                 except ValueError:
-                    YEAR = 0
+                    year = 0
             if 'length' in tag:
                 try:
                     length = int(tag['length'][0]) / 1000
@@ -245,12 +244,12 @@ class UsbDevice:
                 mf = mad.MadFile(mp3path)
                 length = mf.total_time() / 1000
 
-            disptitle = u'%s - %s' % (ARTIST, TITLE)
-            if ARTIST == u'Unknown Artist':
-                disptitle = TITLE
+            disptitle = u'%s - %s' % (artist, title)
+            if artist == u'Unknown Artist':
+                disptitle = title
 
             dbfiles.append([file_id, dirid, self.storid, relpath, filename,
-                            extension, GENRE, YEAR, TITLE, ALBUM, ARTIST,
+                            extension, genre, year, title, album, artist,
                             length, disptitle])
 
             self.main.led.set_led_yellow(file_id % 2)
@@ -336,13 +335,15 @@ class UsbDevice:
 
     def list_files(self, dirid):
         """
+
+        :returns [[storid,dirid,fileid,length,artist,album,title]]
         """
         if dirid is None:
             return []
 
         ret = []
         for row in self.main.dbhandle.cur.\
-                execute("SELECT id, time, artist, album, title from "
+                execute("SELECT id, time, artist, album, title FROM "
                         "Fileentries WHERE usbid=? AND dirid=? ORDER BY id;",
                         (self.storid, dirid,)):
             ret.append(['%d' % self.storid,
@@ -359,7 +360,9 @@ class UsbDevice:
     def list_full_dir(self, dirid):
         """Combined dir and file list for dirid.
 
-        Prepends "1" for dirs and "2" for files.
+        :returns [[1,device-id,dir-id,parent-id,num subdirs,num files,
+                    full dir path incl mount point]] (dirs)
+                 [[2,storid,dirid,fileid,length,artist,album,title]] (files)
         """
         ret = []
         dirs = self.list_dirs(dirid)

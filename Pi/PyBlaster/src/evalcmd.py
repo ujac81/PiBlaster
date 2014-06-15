@@ -454,6 +454,21 @@ class EvalCmd:
                 else:
                     ret_msg = "device %d rescaned." % int_args[1]
 
+        # # # # search # # # #
+
+        elif cmd == "search":
+            if len(line) < 4:
+                ret_stat = ERRORARGS
+                ret_msg = "search needs 3+ args"
+            elif int_args[1] is None or int_args[2] is None:
+                ret_stat = ERRORARGS
+                ret_msg = "Usage: search MODE LIMIT PATTERN"
+            else:
+                pattern = ' '.join(line[3:])
+                ret_list = self.parent.usb.search_files(pattern, int_args[1],
+                                                        int_args[2])
+                ret_code = SEARCH_RES
+
         # # # # setalias # # # #
 
         elif cmd == "setalias":
