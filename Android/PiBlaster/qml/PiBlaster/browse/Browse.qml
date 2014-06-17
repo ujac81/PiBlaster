@@ -336,15 +336,6 @@ Rectangle {
         // waitOverlay will now block view until signal from rfcomm received
     }
 
-    /**
-     * Hide wait overlay after send operation is done.
-     * Invoked if playlist add code received
-     */
-    function addFinished(status, msg) {
-        waitOverlay.close();
-        root.log_status( msg );
-    }
-
     /// called by main on receive of showdevice data
     function received_showdev_data(msg) {
         browseList.model.received_devices(msg);

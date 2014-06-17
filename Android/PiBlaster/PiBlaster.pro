@@ -45,6 +45,8 @@ OTHER_FILES += \
     qml/PiBlaster/tabview/TabbedUI.qml \
     qml/PiBlaster/settings/Settings.qml \
     qml/PiBlaster/search/Search.qml \
+    qml/PiBlaster/search/SearchList.qml \
+    qml/PiBlaster/search/SearchModel.qml \
     qml/PiBlaster/playlist/Playlist.qml \
     qml/PiBlaster/log/Log.qml \
     qml/PiBlaster/items/WaitOverlay.qml \

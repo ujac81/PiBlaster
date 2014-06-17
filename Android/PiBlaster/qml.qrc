@@ -20,5 +20,7 @@
         <file>qml/PiBlaster/play/Play.qml</file>
         <file>qml/PiBlaster/playlist/PlayListList.qml</file>
         <file>qml/PiBlaster/playlist/PlayListModel.qml</file>
+        <file>qml/PiBlaster/search/SearchList.qml</file>
+        <file>qml/PiBlaster/search/SearchModel.qml</file>
     </qresource>
 </RCC>

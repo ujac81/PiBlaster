@@ -120,6 +120,19 @@ ListModel {
     }
 
     /**
+     * Randomize current playlist
+     * mode 1 -- all
+     * mode 2 -- after current position
+     */
+    function randomize(mode) {
+        if ( mode == 1 ) {
+            rfcomm.execCommand("plrandomize 1");
+        } else if ( mode == 2 ) {
+            rfcomm.execCommand("plrandomize 2");
+        }
+    }
+
+    /**
      * Set all selected properties to false in current view.
      * Called after addToPlaylist()
      */

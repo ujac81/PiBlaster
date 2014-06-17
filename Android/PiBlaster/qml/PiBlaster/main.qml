@@ -185,11 +185,18 @@ Rectangle {
         } else if ( msg.code() == 102 ) {
             tabview.browseTab().received_dir_data(msg);
         } else if ( msg.code() == 201) {
-            tabview.browseTab().addFinished(msg.status(), msg.message());
+            // PL_ADD_OK -- hide wait overlay shown by browse and search
+            waitOverlay.close();
+            root.log_status( msg );
         } else if ( msg.code() == 202) {
+            // PL_SHOW
             tabview.playlistTab().received_pl_data(msg);
         } else if ( msg.code() == 204) {
+            // PL_MODIFIED
             tabview.playlistTab().activated();
+        } else if ( msg.code() == 220) {
+            // SEARCH_RES
+            tabview.searchTab().received_search_data(msg);
         } else if ( msg.code() == 304) {
             tabview.playTab().gotPlayStatus(msg);
             tabview.playlistTab().gotPlayStatus(msg);

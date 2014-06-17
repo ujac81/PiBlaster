@@ -55,7 +55,7 @@ Rectangle {
             anchors.top: plMenuBar.bottom
             anchors.left: plMenuBar.left
             width: 300
-            height: 350
+            height: 370
             color: root.colorButtonBox
 
             MouseArea { anchors.fill: parent }
@@ -72,7 +72,8 @@ Rectangle {
                 Tab { width: parent.width; height: root.barHeight; index: 4; text: "Clear selection" }
                 Tab { width: parent.width; height: root.barHeight; index: 5; text: "Selection after current" }
                 Tab { width: parent.width; height: root.barHeight; index: 6; text: "Selection to end" }
-                Tab { width: parent.width; height: root.barHeight; index: 7; text: "Randomize all" }
+                Tab { width: parent.width; height: root.barHeight; index: 7; text: "Randomize after current" }
+                Tab { width: parent.width; height: root.barHeight; index: 8; text: "Randomize all" }
             }
         }
         function toggleShow() {
@@ -125,6 +126,8 @@ Rectangle {
         if ( index == 4 ) playlistlist.model.modify_playlist(1);
         if ( index == 5 ) playlistlist.model.modify_playlist(2);
         if ( index == 6 ) playlistlist.model.modify_playlist(3);
+        if ( index == 7 ) playlistlist.model.randomize(1);
+        if ( index == 8 ) playlistlist.model.randomize(2);
     }
 
     function received_pl_data(msg) {

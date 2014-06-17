@@ -10,5 +10,6 @@
         <file>images/play.png</file>
         <file>images/pause.png</file>
         <file>images/next.png</file>
+        <file>images/search.png</file>
     </qresource>
 </RCC>
