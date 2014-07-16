@@ -121,15 +121,13 @@ ListModel {
 
     /**
      * Randomize current playlist
-     * mode 1 -- all
-     * mode 2 -- after current position
+     * mode 1 -- after current position
+     * mode 2 -- all
      */
     function randomize(mode) {
-        if ( mode == 1 ) {
-            rfcomm.execCommand("plrandomize 1");
-        } else if ( mode == 2 ) {
-            rfcomm.execCommand("plrandomize 2");
-        }
+        console.log("Randomize Playlist mode "+mode)
+        if ( mode == 1 ) rfcomm.execCommand("plrandomize 1");
+        if ( mode == 2 ) rfcomm.execCommand("plrandomize 2");
     }
 
     /**

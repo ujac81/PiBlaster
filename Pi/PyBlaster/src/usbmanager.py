@@ -191,7 +191,7 @@ class UsbManager:
 
         # unknown mode
         if mode not in [1, 2]:
-            return None
+            return []
 
         # available usb devs
         connected_usbs = self.connected_usbids()

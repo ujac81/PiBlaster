@@ -10,6 +10,7 @@ import os
 import subprocess
 import time
 from mutagen.easyid3 import EasyID3
+from mutagen.id3 import ID3NoHeaderError
 
 import log
 from helpers import seconds_to_minutes
@@ -215,7 +216,10 @@ class UsbDevice:
             artist = u'Unknown Artist'
             length = 0
 
-            tag = EasyID3(mp3path)
+            try:
+                tag = EasyID3(mp3path)
+            except ID3NoHeaderError:
+                tag = {}
 
             try:
                 self.cur_tot_bytes += os.path.getsize(mp3path)

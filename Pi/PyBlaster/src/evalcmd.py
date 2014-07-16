@@ -423,10 +423,21 @@ class EvalCmd:
                 ret_msg = "OK"
                 ret_code = PL_SHOW
 
-        # # # # plshow # # # #
+        # # # # plshowlists # # # #
 
         elif cmd == "plshowlists":
             ret_list = self.parent.listmngr.list_playlists()
+
+        # # # # plrandomize # # # #
+
+        elif cmd == "plrandomize":
+            if len(line) != 2 or int_args[1] is None:
+                ret_stat = ERRORARGS
+                ret_msg = "plrandomize 1|2"
+            else:
+                self.parent.listmngr.randomize_playlist(int_args[1])
+                ret_msg = "OK"
+                ret_code = PL_MODIFIED
 
         # # # # poweroff # # # #
 

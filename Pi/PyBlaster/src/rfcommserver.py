@@ -30,7 +30,7 @@ class RFCommServer:
         self.client_info = None
         self.timeout = 0.05  # socket timeouts for non blocking con.
         self.comm_timeout = 2  # increase timeout on send/recv
-        self.timeoutpolls = 2000  # disconnect after N inactivity timeouts
+        self.timeoutpolls = 1000  # disconnect after N inactivity timeouts
         self.nowpolls = 0  # reset after each receive,
         # incremented while waiting for data
         self.cmdbuffer = []  # split incoming commands by lines

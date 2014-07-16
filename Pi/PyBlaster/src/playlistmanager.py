@@ -279,6 +279,8 @@ class PlayListManager:
 
         # TODO if playing song from this USB, skip to next valid track
 
+        self.parent.play.requeue()
+
         #if not self.playlist:
             #return
 
@@ -298,6 +300,8 @@ class PlayListManager:
         Flag playlist items on this device as valid.
         Check if items still on drive.
         """
+
+        self.parent.play.requeue()
 
         #if not self.playlist:
             #return
@@ -745,6 +749,79 @@ class PlayListManager:
         return len(id_list)
 
         # end multi_append() #
+
+    def randomize_playlist(self, mode, list_id=-1):
+        """
+
+        :param mode: (2=randomize whole playlist, 1=(pos+1, end)
+
+        """
+        if list_id == -1:
+            list_id = self.playlist_id
+
+        # start randomizing from position >= seek_pos
+        start_pos = 0
+        seek_pos = 0
+        cur_pos = self.get_playlist_position(list_id)
+        if mode == 1:
+            start_pos = cur_pos
+            seek_pos = start_pos+1
+
+        # remember current tune
+        self.parent.dbhandle.cur.execute(
+            "SELECT path FROM Playlistentries WHERE playlistid=? "
+            "AND position=?", (list_id, cur_pos))
+        cur_path = None
+        res = self.parent.dbhandle.cur.fetchall()
+        if len(res) > 0 and res[0][0] is not None:
+            cur_path = res[0][0]
+            self.parent.log.write(log.DEBUG1, "----"+cur_path)
+
+        # get random positions and update positions in playlist with -sign
+        new_pos = seek_pos
+        update_pos = {}
+        for row in self.parent.dbhandle.cur.execute(
+                "SELECT position FROM Playlistentries WHERE playlistid=? "
+                "AND position>=? ORDER BY RANDOM()",
+                (list_id, seek_pos)):
+            update_pos[int(row[0])] = new_pos
+            new_pos += 1
+
+        for old_pos, new_pos in update_pos.iteritems():
+            self.parent.log.write(log.DEBUG1, "%d -> %d" % (old_pos, new_pos))
+            self.parent.dbhandle.cur.execute(
+                "UPDATE Playlistentries SET position=-? WHERE position=? AND "
+                "playlistid=?", (new_pos, old_pos, list_id))
+        self.parent.dbhandle.con.commit()
+
+        # revert sign
+        self.parent.dbhandle.cur.execute(
+                "UPDATE Playlistentries SET position=-position "
+                "WHERE position<0 AND playlistid=?", (list_id,))
+        self.parent.dbhandle.con.commit()
+
+        # reset position pointer in mode all
+        if mode != 1:
+            new_pos = 0
+            if cur_path is not None:
+                self.parent.dbhandle.cur.execute(
+                    "SELECT position FROM Playlistentries WHERE playlistid=? "
+                    "AND path=?", (list_id, cur_path))
+                res = self.parent.dbhandle.cur.fetchall()[0][0]
+                self.parent.log.write(log.DEBUG1, "----%d" % res)
+                if res is not None:
+                    new_pos = int(res)
+            self.set_position_pointer(list_id, new_pos)
+        else:
+            new_pos = start_pos  # position not changed in mode 1
+
+        self.parent.play.requeue()
+
+        self.parent.log.write(log.MESSAGE,
+                              "Playlist randomized mode %d, start_pos=%d, "
+                              "new_cur_pos=%d" % (mode, start_pos, new_pos))
+
+        # end randomize_playlist() #
 
     def set_position_pointer(self, list_id=-1, position=-1):
         """Set current playlist position in database
