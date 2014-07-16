@@ -1,3 +1,4 @@
+import QtQuick.Controls 1.2
 import QtQuick 2.0
 
 import "../items"
@@ -90,9 +91,12 @@ Rectangle {
         anchors.bottom: parent.bottom
         width: parent.width
 
-        PlayListList {
-            id: playlistlist
+        ScrollView {
             anchors.fill: parent
+            PlayListList {
+                id: playlistlist
+                anchors.fill: parent
+            }
         }
 
     }

@@ -1,3 +1,4 @@
+
 import QtQuick 2.0
 
 ListView {
@@ -12,10 +13,10 @@ ListView {
         clip: true
 
         color: active ? root.colorSelected2 :
-                        ( selected ? root.colorSelected :
-                                     ( index % 2 == 0 ? root.colorUnselected :
-                                                        root.colorUnselected2 )
-                         )
+            ( selected ? root.colorSelected :
+                ( index % 2 == 0 ? root.colorUnselected :
+                root.colorUnselected2 )
+            )
 
         Text {
             id: plitem
@@ -28,7 +29,8 @@ ListView {
             anchors.fill: parent
             onClicked: {
                 if ( playlistlist.model.get(index).type != 0 ) {
-                    playlistlist.model.get(index).selected = ! playlistlist.model.get(index).selected
+                    playlistlist.model.get(index).selected =
+                            ! playlistlist.model.get(index).selected
                 }
             }
             onDoubleClicked: {

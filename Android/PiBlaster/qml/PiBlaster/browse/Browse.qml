@@ -1,3 +1,4 @@
+import QtQuick.Controls 1.2
 import QtQuick 2.0
 
 import "../items"
@@ -290,7 +291,10 @@ Rectangle {
         width: parent.width
         color: "transparent"
 
-        BrowseList{ id: browseList }
+        ScrollView {
+            anchors.fill: parent
+            BrowseList{ id: browseList }
+        }
     }
 
 

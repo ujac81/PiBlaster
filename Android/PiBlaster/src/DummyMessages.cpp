@@ -157,7 +157,7 @@ RFCommMessageObject* CreateDummyResponse( int id, const QString& cmd, const QLis
         msg = QString::number( inPayload.size() ) + " items added to playlist";
         code = 201;
     }
-    else if ( cmd == "plshow 0 0 100 0" )
+    else if ( cmd == "plshow 0 0 500 0" )
     {
         code = 202;
         msg = "OK";
