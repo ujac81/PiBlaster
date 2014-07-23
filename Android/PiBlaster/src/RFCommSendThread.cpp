@@ -9,17 +9,22 @@
     #include <QtAndroidExtras/QAndroidJniObject>
 #else
     #include "RFCommMessageObject.h"
-    RFCommMessageObject* CreateDummyResponse( int id, const QString& cmd, const QList<QString>& payload );
+    RFCommMessageObject* CreateDummyResponse( int id, const QString& cmd,
+                                              const QList<QString>& payload );
 #endif
 
 
-RFCommSendThread::RFCommSendThread( RFCommMaster *parent, int id, const QString& msg, const QList<QString>& payload ) :
+RFCommSendThread::RFCommSendThread( RFCommMaster *parent, int id,
+                                    const QString& msg,
+                                    const QList<QString>& payload ) :
     QThread( dynamic_cast<QObject*>(parent) ),
     _parent( parent ),
     _id( id ),
     _cmd( msg ),
     _payload( payload )
-{}
+{
+    _sendDone = false;
+}
 
 
 void RFCommSendThread::run()
@@ -27,7 +32,8 @@ void RFCommSendThread::run()
 
 #ifndef DUMMY_MODE
 
-    QString cmd = QString::number( _id ) + " " + QString::number( _payload.size() ) + " " +  _cmd;
+    QString cmd = QString::number( _id ) + " " +
+            QString::number( _payload.size() ) + " " +  _cmd;
     qDebug() << "Sending " << cmd;
 
     QString head = QString("%1").arg(QString::number(cmd.length()), 4, '0');
@@ -35,16 +41,20 @@ void RFCommSendThread::run()
     QAndroidJniObject javaCommand = QAndroidJniObject::fromString( head + cmd );
     int sendOk = QAndroidJniObject::callStaticMethod<jint>(
                 "org/piblaster/piblaster/rfcomm/RfcommClient",
-                "sendLine", "(Ljava/lang/String;)I", javaCommand.object<jstring>() );
+                "sendLine", "(Ljava/lang/String;)I",
+                javaCommand.object<jstring>() );
 
     for ( int i = 0; i < _payload.size(); ++i )
     {
         QString line = _payload[i];
-        QString head = QString("%1").arg(QString::number(line.length()), 4, '0');
-        QAndroidJniObject javaCommand = QAndroidJniObject::fromString( head + line );
+        QString head = QString("%1").arg(
+                    QString::number( line.length()), 4, '0');
+        QAndroidJniObject javaCommand =
+                QAndroidJniObject::fromString( head + line );
         sendOk = QAndroidJniObject::callStaticMethod<jint>(
                         "org/piblaster/piblaster/rfcomm/RfcommClient",
-                        "sendLine", "(Ljava/lang/String;)I", javaCommand.object<jstring>() );
+                        "sendLine", "(Ljava/lang/String;)I",
+                        javaCommand.object<jstring>() );
 
         if ( sendOk != 0 ) break;
     }
@@ -63,4 +73,5 @@ void RFCommSendThread::run()
 
 #endif
 
+    _sendDone = true;
 }

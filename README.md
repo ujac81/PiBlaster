@@ -60,9 +60,25 @@ $ sudo aptitude upgrade
 You can download and create the piblaster package right on your PI, all you
 need is cmake
 ```
-$ sudo aptitude install cmake
+$ sudo aptitude install cmake gdebi-core
 ```
-No clone the git repo
+You can skip this if you install a prepacked package and install the
+dependencies by hand.
+
+Now clone the git repo and create the package
+```
+$ cd /tmp
+$ git clone https://github.com/ujac81/PiBlaster.git
+$ cd PiBlaster/Pi/PyBlaster/
+$ mkdir build
+$ cd build
+$ cmake ..
+$ cpack
+```
+To install the package with dependencies run
+```
+sudo gdebi pyblaster-0.2.6-armhf.deb
+```
 
 
 sudo dpkg -i --force-depends /tmp/pyblaster-0.2.6-armhf.deb

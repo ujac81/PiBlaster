@@ -284,6 +284,7 @@ class EvalCmd:
             # nothing to do, timeout poll count will be reset
             # in RFCommServer.read_command()
             ret_msg = "OK"
+            ret_code = KEEP_ALIVE
 
         # # # # plappendmultiple # # # #
 

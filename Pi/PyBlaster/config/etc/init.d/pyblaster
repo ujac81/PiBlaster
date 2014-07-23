@@ -14,7 +14,7 @@ PATH=/sbin:/usr/sbin:/bin:/usr/bin
 DESC="PyBlaster daemon"
 NAME=pyblaster
 [ -r /etc/default/$NAME ] && . /etc/default/$NAME
-DAEMON="/usr/bin/pyblaster"
+DAEMON="$PYBLASTER_PATH/main.py"
 
 
 if [ "$PYBLASTER_TERMINAL_MODE" = 1 -o "$PYBLASTER_AUTO_RESPAWN" = 1 ]; then
@@ -50,11 +50,19 @@ do_start()
   if [ "$PYBLASTER_AUTO_RESPAWN" = 1 ]; then
 
     echo 1 > /tmp/pyblaster_respawn
+    do_poweroff=0
 
     (while [ "`cat /tmp/pyblaster_respawn`" = 1 ]; do
 
       $DAEMON $DAEMON_ARGS || \
       {
+        exit_code=$?
+        [ $exit_code -eq 10 ] && \
+        {
+          echo 0 > /tmp/pyblaster_respawn
+          do_poweroff=1
+          break
+        }
         [ "$PYBLASTER_TERMINAL_MODE" = 1 ] && \
         {
           echo
@@ -65,7 +73,8 @@ do_start()
       }
       sleep 1
     done
-    rm /tmp/pyblaster_respawn)&
+    rm /tmp/pyblaster_respawn
+    [ $do_poweroff -eq 1 ] && /sbin/poweroff)&
   else
 
     start-stop-daemon --start --quiet --pidfile $PIDFILE --exec $DAEMON --test > /dev/null \
@@ -110,24 +119,24 @@ do_reload() {
 
 case "$1" in
   start)
-  [ "$VERBOSE" != no ] && log_daemon_msg "Starting $DESC" "$NAME"
-  do_start
-  case "$?" in
-    0|1) [ "$VERBOSE" != no ] && log_end_msg 0 ;;
-    2) [ "$VERBOSE" != no ] && log_end_msg 1 ;;
-  esac
+    [ "$VERBOSE" != no ] && log_daemon_msg "Starting $DESC" "$NAME"
+    do_start
+    case "$?" in
+      0|1) [ "$VERBOSE" != no ] && log_end_msg 0 ;;
+      2) [ "$VERBOSE" != no ] && log_end_msg 1 ;;
+    esac
   ;;
   stop)
-  [ "$VERBOSE" != no ] && log_daemon_msg "Stopping $DESC" "$NAME"
-  do_stop
-  case "$?" in
-    0|1) [ "$VERBOSE" != no ] && log_end_msg 0 ;;
-    2) [ "$VERBOSE" != no ] && log_end_msg 1 ;;
-  esac
+    [ "$VERBOSE" != no ] && log_daemon_msg "Stopping $DESC" "$NAME"
+    do_stop
+    case "$?" in
+      0|1) [ "$VERBOSE" != no ] && log_end_msg 0 ;;
+      2) [ "$VERBOSE" != no ] && log_end_msg 1 ;;
+    esac
   ;;
   status)
-  status_of_proc "$DAEMON" "$NAME" && exit 0 || exit $?
-  ;;
+    status_of_proc "$DAEMON" "$NAME" && exit 0 || exit $?
+    ;;
   #reload|force-reload)
   #
   # If do_reload() is not implemented then leave this commented out

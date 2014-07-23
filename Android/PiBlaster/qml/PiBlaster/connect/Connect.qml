@@ -39,7 +39,8 @@ Item {
         id: noBluetoothOver
         z: 112
         caption: "Bluetooth"
-        text: "No bluetooth device has been detected. Please enable bluetooth at application start. Press back key to leave application."
+        text: "No bluetooth device has been detected. Please enable bluetooth
+at application start. Press back key to leave application."
     }
 
     WaitOverlay {
@@ -53,7 +54,8 @@ Item {
         id: wrongPWOver
         z: 112
         caption: "Password"
-        text: "Password has not been accepted by PiBlaster. Please set correct password in settings."
+        text: "Password has not been accepted by PiBlaster. Please set
+correct password in settings."
     }
 
 
@@ -95,7 +97,8 @@ Item {
         }
     }
 
-    /// Disconnect from PI, always use this function, don't send 'disconnect' command directly.
+    /// Disconnect from PI, always use this function,
+    /// don't send 'disconnect' command directly.
     function disconnect() {
         /// @todo check if connected
         console.log("invoking disconnect...");

@@ -15,8 +15,8 @@ Q_OBJECT
 
 public:
 
-    static const int PollTime = 30; ///< 30ms polling time in wait loop
-
+    /// 30ms polling time in wait loop
+    static const int PollTime = 30;
 
     RFCommRecvThread( RFCommMaster* parent );
     ~RFCommRecvThread();
@@ -35,7 +35,8 @@ signals:
 
 private:
 
-    RFCommMessageObject* newMessageObject( int id, int status, int code, int plSize, const QString& msg );
+    RFCommMessageObject* newMessageObject( int id, int status, int code,
+                                           int plSize, const QString& msg );
 
     void messageDone( int id, RFCommMessageObject* );
 

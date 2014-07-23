@@ -24,3 +24,5 @@ PLAY_PAUSE = 301    # answer on playpause
 PLAY_PREV = 302     # answer on playprev
 PLAY_NEXT = 303     # answer on playnext
 PLAY_INFO = 304     # answer on playstatus
+
+KEEP_ALIVE = 1000   # answer on keepalive

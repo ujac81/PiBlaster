@@ -37,7 +37,9 @@ int main(int argc, char *argv[])
 
     qDebug() << "==== 6 ====";
 
-    return app.exec();
+    int code = app.exec();
 
     qDebug() << "==== END ====";
+
+    return code;
 }
