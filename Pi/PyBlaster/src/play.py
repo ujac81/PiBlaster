@@ -220,7 +220,7 @@ class Play:
         """
 
         """
-        if self.parent.rfcomm.mode != rfcommserver.AUTHORIZED:
+        if self.parent.rfcomm.server_thread.mode != rfcommserver.AUTHORIZED:
             return
 
         info = self.get_play_status()

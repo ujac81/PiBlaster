@@ -68,7 +68,7 @@ class PyBlaster:
         self.cmd.open_fifo()
 
         # fire up bluetooth service
-        self.rfcomm.start_server()
+        self.rfcomm.start_server_thread()
 
         # start lirc thread
         self.lirc.start()
@@ -120,7 +120,7 @@ class PyBlaster:
             self.buttons.read_buttons()
 
             # Check bluetooth channel for new messages/connections.
-            self.rfcomm.read_socket()
+            self.rfcomm.check_incomming_commands()
 
             # Check if lirc thread has command in queue
             if self.lirc.queue_not_empty():
@@ -156,6 +156,7 @@ class PyBlaster:
         # join remaining threads
         self.lirc.join()
         self.buttons.join_all_threads()
+        self.rfcomm.join()
 
         self.log.write(log.MESSAGE, "---- closed regularly ----")
 

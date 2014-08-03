@@ -7,6 +7,8 @@ To enable visible server do
 """
 
 import bluetooth
+import Queue
+import threading
 
 from codes import *
 import log
@@ -18,17 +20,28 @@ CONNECTED = 1
 AUTHORIZED = 2
 
 
-class RFCommServer:
-    """Send/recv commands/results via bluetooth channel"""
+class ServerThread(threading.Thread):
+    """
 
-    def __init__(self, parent):
-        """Set state to not connected"""
+    """
 
-        self.parent = parent
+    def __init__(self, root, in_queue, out_queue,
+                 in_queue_lock, out_queue_lock):
+        """
+        """
+
+        threading.Thread.__init__(self)
+
+        self.root = root
+        self.in_queue = in_queue
+        self.out_queue = out_queue
+        self.in_queue_lock = in_queue_lock
+        self.out_queue_lock = out_queue_lock
+
         self.mode = NOTCONNECTED
         self.client_sock = None
         self.client_info = None
-        self.timeout = 0.05  # socket timeouts for non blocking con.
+        self.timeout = 0.01  # socket timeouts for non blocking con.
         self.comm_timeout = 2  # increase timeout on send/recv
         self.timeoutpolls = 1000  # disconnect after N inactivity timeouts
         self.nowpolls = 0  # reset after each receive,
@@ -39,10 +52,39 @@ class RFCommServer:
         self.uuid = "94f39d29-7d6d-437d-973b-fba39e49d4ee"
         self.next_buffer_size = -1  # set in read_socket to receive lines
 
-    def start_server(self):
-        """Open bluetooth server socket and advertise service"""
+    def run(self):
+        """
 
-        self.parent.led.set_led_blue(1)
+        """
+
+        self.start_server()
+
+        while self.root.keep_run:
+            self.read_socket()
+
+            # dry run outgoing queue on new connection
+            while not self.out_queue.empty():
+                try:
+                    self.out_queue_lock.acquire()
+                    out = self.out_queue.get_nowait()
+                    self.out_queue_lock.release()
+
+                    self.send_client(msg_id=out[0],
+                                     status=out[1],
+                                     code=out[2],
+                                     msg=out[3],
+                                     message_list=out[4]
+                                     )
+                except Queue.Empty:
+                    pass
+
+        # end run() #
+
+    def start_server(self):
+        """Open bluetooth server socket and advertise service
+        """
+
+        self.root.led.set_led_blue(1)
 
         self.server_sock = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
 
@@ -58,9 +100,9 @@ class RFCommServer:
                                     profiles=[bluetooth.SERIAL_PORT_PROFILE],
                                     )
         self.server_sock.settimeout(self.timeout)
-        self.parent.log.write(log.MESSAGE,
-                              "RFCOMM service opened as PyBlaster")
-        self.parent.led.set_led_blue(0)
+        self.root.log.write(log.MESSAGE,
+                            "RFCOMM service opened as PyBlaster")
+        self.root.led.set_led_blue(0)
         self.mode = NOTCONNECTED
 
         # end start_server() #
@@ -68,7 +110,7 @@ class RFCommServer:
     def read_socket(self):
         """Check if command found in socket
 
-        Called by main daemon loop at every poll.
+        Called by run loop at every poll.
         """
 
         if self.mode == NOTCONNECTED:
@@ -81,15 +123,24 @@ class RFCommServer:
                 pass
 
             if self.client_sock:
-                self.parent.log.write(log.MESSAGE,
+                self.root.log.write(log.MESSAGE,
                                       "Got connection from %s on channel %d" %
                                       (self.client_info[0],
                                        self.client_info[1]))
                 self.mode = CONNECTED
                 self.client_sock.settimeout(self.timeout)
-                self.parent.led.set_led_blue(1)
+                self.root.led.set_led_blue(1)
                 self.nowpolls = 0
                 self.cmdbuffer = []
+
+                # dry run outgoing queue on new connection
+                while not self.out_queue.empty():
+                    try:
+                        self.out_queue_lock.acquire()
+                        self.out_queue.get_nowait()
+                        self.out_queue_lock.release()
+                    except Queue.Empty:
+                        pass
 
             # if NOTCONNECTED #
 
@@ -99,12 +150,12 @@ class RFCommServer:
 
             self.nowpolls += 1
             if self.nowpolls > self.timeoutpolls:
-                self.parent.log.write(log.MESSAGE, "Connection timed out")
+                self.root.log.write(log.MESSAGE, "Connection timed out")
                 self.disconnect()
 
             if self.nowpolls % 500 == 0:
-                self.parent.log.write(log.DEBUG1, "Timeout poll count %d" %
-                                                  self.nowpolls)
+                self.root.log.write(log.DEBUG1, "Timeout poll count %d" %
+                                    self.nowpolls)
 
             # dry run buffer if connected
             while len(self.cmdbuffer):
@@ -122,9 +173,10 @@ class RFCommServer:
         wrong password or on purpose.
         """
 
+        self.mode = NOTCONNECTED
         self.server_sock.close()
         self.client_sock.close()
-        self.parent.log.write(log.MESSAGE, "Closed connection.")
+        self.root.log.write(log.MESSAGE, "Closed connection.")
         self.start_server()
 
     def send_client(self, msg_id, status, code, msg, message_list):
@@ -137,12 +189,15 @@ class RFCommServer:
         :param message_list: matrix of payload lines
         """
 
-        self.client_sock.settimeout(self.comm_timeout)
-        self.parent.led.set_led_green(1)
+        if self.mode == NOTCONNECTED:
+            return
 
-        self.parent.log.write(log.DEBUG1,
-                              "DEBUG send: %d || %d || %d || %d || %s" %
-                              (msg_id, status, code, len(message_list), msg))
+        self.client_sock.settimeout(self.comm_timeout)
+        self.root.led.set_led_white(1)
+
+        self.root.log.write(log.DEBUG1,
+                            "DEBUG send: %d || %d || %d || %d || %s" %
+                            (msg_id, status, code, len(message_list), msg))
 
         # send msg header
         # 4 ints line length, followed by 'msg_id status code payload_len msg'
@@ -155,12 +210,12 @@ class RFCommServer:
             self.client_sock.send(send_msg)
         except bluetooth.btcommon.BluetoothError:
             self.client_sock.settimeout(self.timeout)
-            self.parent.led.set_led_green(0)
+            self.root.led.set_led_white(0)
             return
 
         if not self.recv_ok_byte():
             self.client_sock.settimeout(self.timeout)
-            self.parent.led.set_led_green(0)
+            self.root.led.set_led_white(0)
             return
 
         cluster_size = 40   # pack this many payload lines in one message
@@ -192,7 +247,7 @@ class RFCommServer:
                 full_send_msg = ''
 
         self.client_sock.settimeout(self.timeout)
-        self.parent.led.set_led_green(0)
+        self.root.led.set_led_white(0)
 
         # end send_client() #
 
@@ -218,8 +273,8 @@ class RFCommServer:
                 error_cmd = True
 
         if error_cmd:
-            self.parent.log.write(log.ERROR,
-                                  "[ERROR] Protocol error: %s" % cmd)
+            self.root.log.write(log.ERROR,
+                                "[ERROR] Protocol error: %s" % cmd)
             return
 
         cmd = cmd[len(cmd_split[0]) + len(cmd_split[1]) + 2:]
@@ -227,37 +282,43 @@ class RFCommServer:
 
         if self.mode != AUTHORIZED:
             # check if password has been sent
-            if cmd == self.parent.settings.pin1:
+            if cmd == self.root.settings.pin1:
                 self.mode = AUTHORIZED
-                self.parent.log.write(log.MESSAGE, "BT AUTHORIZED")
+                self.root.log.write(log.MESSAGE, "BT AUTHORIZED")
                 self.send_client(0, 0, PASS_OK, "Password ok.", [])
             else:
-                self.parent.log.write(log.MESSAGE, "BT NOT AUTHORIZED")
+                self.root.log.write(log.MESSAGE, "BT NOT AUTHORIZED")
                 self.send_client(0, 0, PASS_ERROR, "Wrong password.", [])
                 self.disconnect()
         elif self.mode == AUTHORIZED:
-            status, code, msg, res_list = \
-                self.parent.cmd.evalcmd(cmd, 'rfcomm', payload)
+            self.in_queue_lock.acquire()
+            self.in_queue.put([msg_id, cmd, payload])
+            self.in_queue_lock.release()
 
-            send_failed = False
-            try:
-                self.send_client(msg_id, status, code, msg, res_list)
-            except bluetooth.btcommon.BluetoothError:
-                self.parent.log.write(log.ERROR,
-                                      "Failed to send to client -- "
-                                      "disconnected? Restarting server...")
+        # end read_command() #
+
+    def send_result(self, msg_id, status, code, msg, res_list):
+        """
+        """
+        send_failed = False
+        try:
+            self.send_client(msg_id, status, code, msg, res_list)
+        except bluetooth.btcommon.BluetoothError:
+            self.root.log.write(log.ERROR,
+                                "Failed to send to client -- "
+                                "disconnected? Restarting server...")
+            self.disconnect()
+            send_failed = True
+
+        if status == evalcmd.STATUSEXIT or \
+                status == evalcmd.STATUSDISCONNECT:
+            if not send_failed:
+                # already called if send_failed
+                self.root.log.write(log.MESSAGE,
+                                    "Got disconnect command.")
                 self.disconnect()
-                send_failed = True
 
-            if status == evalcmd.STATUSEXIT or \
-                    status == evalcmd.STATUSDISCONNECT:
-                if not send_failed:
-                    # already called if send_failed
-                    self.parent.log.write(log.MESSAGE,
-                                          "Got disconnect command.")
-                    self.disconnect()
-
-                    # end read_command() #
+        # end read_command() #
 
     def read_rows(self, count):
         """Read multiple rows from bluetooth socket.
@@ -268,7 +329,7 @@ class RFCommServer:
 
         # TODO this may loop forever -- do some max retries or so
 
-        self.parent.led.set_led_yellow(1)
+        self.root.led.set_led_yellow(1)
 
         result = []
         while 1:
@@ -286,7 +347,7 @@ class RFCommServer:
 
             self.receive_into_buffer()
 
-        self.parent.led.set_led_yellow(0)
+        self.root.led.set_led_yellow(0)
 
         return result
 
@@ -319,7 +380,7 @@ class RFCommServer:
                     try:
                         self.next_buffer_size = int(data)
                     except ValueError:
-                        self.parent.log.write(log.EMERGENCY,
+                        self.root.log.write(log.EMERGENCY,
                                               "[RECV]: Value error in int "
                                               "conversion! Protocol broken?")
                 else:
@@ -343,3 +404,55 @@ class RFCommServer:
             return False
             pass
         return True
+
+
+class RFCommServer:
+    """Send/recv commands/results via bluetooth channel"""
+
+    def __init__(self, root):
+        """Set state to not connected"""
+
+        self.root = root
+        self.in_queue = Queue.Queue()
+        self.out_queue = Queue.Queue()
+        self.in_queue_lock = threading.Lock()
+        self.out_queue_lock = threading.Lock()
+
+        self.server_thread = ServerThread(self.root,
+                                          self.in_queue, self.out_queue,
+                                          self.in_queue_lock,
+                                          self.out_queue_lock)
+
+    def start_server_thread(self):
+        self.server_thread.start()
+
+    def join(self):
+        self.server_thread.join()
+
+    def check_incomming_commands(self):
+
+        # dry run incomming queue
+        while not self.in_queue.empty():
+            try:
+                self.in_queue_lock.acquire()
+                cmd = self.in_queue.get_nowait()
+                self.in_queue_lock.release()
+                status, code, msg, res_list = \
+                    self.root.cmd.evalcmd(cmd[1], 'rfcomm', cmd[2])
+                self.send_client(cmd[0], status, code, msg, res_list)
+            except Queue.Empty:
+                pass
+
+    def send_client(self, msg_id, status, code, msg, res_list):
+        """
+        """
+
+        self.out_queue_lock.acquire()
+        self.out_queue.put([msg_id, status, code, msg, res_list])
+        self.out_queue_lock.release()
+
+
+
+
+
+
