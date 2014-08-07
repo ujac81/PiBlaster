@@ -97,6 +97,7 @@ class LED:
     def cleanup(self):
         """Turn of LEDs and close GPIO"""
 
+        self.init_done = False
         self.set_leds(0)
         GPIO.cleanup()
 

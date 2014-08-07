@@ -557,7 +557,7 @@ class EvalCmd:
 
         self.parent.log.write(log.MESSAGE, ">>> %s" % ret_msg)
 
-        if src != 'button':
+        if src != 'button' and ret_stat != STATUSEXIT:
             if ret_stat == STATUSOK:
                 self.parent.led.flash_led(led.LED_WHITE, 1.0)
             else:
