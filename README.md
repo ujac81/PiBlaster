@@ -62,7 +62,7 @@ need is cmake
 ```
 $ sudo aptitude install cmake gdebi-core
 ```
-You can skip this if you install a prepacked package and install the
+You can skip this if you install a pre-packed package and install the
 dependencies by hand.
 
 Now clone the git repo and create the package
@@ -80,42 +80,40 @@ To install the package with dependencies run
 sudo gdebi pyblaster-0.2.6-armhf.deb
 ```
 
+#### Configure PiBlaster
+TODO...
 
-sudo dpkg -i --force-depends /tmp/pyblaster-0.2.6-armhf.deb
-sudo aptitude install -f
-python-bluez python-mutagen python-sqlite python-rpi.gpio sqlite3 bluez python-lirc
+#### Configure IR
+Follow instructions on
+[this page](http://ozzmaker.com/2013/10/24/how-to-control-the-gpio-on-a-raspberry-pi-with-an-ir-remote/)
+to wire and configure the remote control.
 
-/etc/modules
+For a generic remote, use the lirc_rpi module with an extra option to tell
+which pin to use in GPIO mode (not board mode!).
+To load the module on boot, add these lines to */etc/modules* file
+```
 lirc_dev
 lirc_rpi gpio_in_pin=25
-
-
-vim /etc/lirc/hardware.conf
-# /etc/lirc/hardware.conf
-#
-# Arguments which will be used when launching lircd
+```
+Tell lirc to use the default drivers.
+Settings in */etc/lirc/hardware.conf* should be
+```
 LIRCD_ARGS=""
-
-# Don't start lircmd even if there seems to be a good config file
-# START_LIRCMD=false
-
-# Don't start irexec, even if a good config file seems to exist.
-# START_IREXEC=false
-
-# Try to load appropriate kernel modules
 LOAD_MODULES=true
-
-# Run "lircd --driver=help" for a list of supported drivers.
 DRIVER="default"
-# usually /dev/lirc0 is the correct setting for systems using udev
 DEVICE="/dev/lirc0"
 MODULES="lirc_rpi"
-
-# Default configuration files for your hardware if any
 LIRCD_CONF=""
 LIRCMD_CONF=""
-
-
+```
+No teach the remote control. Google for irrecord or find a lircd.conf that
+matches your remote. To record use
+```
+sudo irrecord -d /dev/lirc0 /etc/lirc/lircd.conf
+```
+Store the file to */etc/lirc/lircd.conf*.
+For my controller it looks like this:
+```
 /etc/lirc/lircd.conf
 # Please make this file available to others
 # by sending it to <lirc@bartelmus.de>
@@ -174,26 +172,26 @@ begin remote
       end codes
 
 end remote
+```
+The key names are free, but there is an unwritten standard for the key
+naming, the maybe just use these names.
 
-/root/.lircrc
-
-
-
+Now lirc daemon should be started on boot.
+To tell your application how to use the lirc commands, you need to configure
+the *.lircrc* file of the user running the application.
+As PiBlaster is run as root at the moment, place the file to */root/.lircrc*
+```
 begin
   button = KEY_PAUSE
   prog = pyblaster
   config = playpause
 end
 
-
-
 begin
   button = KEY_UP
   prog = pyblaster
   config = playprev
 end
-
-
 
 begin
   button = KEY_DOWN
@@ -214,3 +212,10 @@ begin
   config = voldec
   repeat = 2
 end
+```
+The pyblaster software will check lircrc for commands for the program
+pyblaster and lirc will send the commands given after the config keyword to it.
+For the volume increase and decrease command we allow repeat (hold key works).
+
+To run other commands via remote controller, you will have to start the irexec
+daemon, but its not required for pyblaster to work.
