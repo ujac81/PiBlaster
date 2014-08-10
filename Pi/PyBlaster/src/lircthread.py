@@ -42,7 +42,7 @@ class LircThread(threading.Thread):
                 self.queue_lock.acquire()
                 self.queue.put(read[0])
                 self.queue_lock.release()
-            time.sleep(self.main.settings.polltime / 1000.)
+            time.sleep(0.05)  # read each 50 ms
 
         lirc.deinit()
 

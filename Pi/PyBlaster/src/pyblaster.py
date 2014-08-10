@@ -74,7 +74,7 @@ class PyBlaster:
         self.lirc.start()
 
         # fire up one thread per each button
-        self.buttons.start_threads()
+        self.buttons.start()
 
         # +++++++++++++++ Daemoninze +++++++++++++++ #
 
@@ -104,8 +104,7 @@ class PyBlaster:
         # -e flag is set, run only init and exit directly.
         self.keep_run = 0 if self.settings.exitafterinit else 1
 
-        reset_poll_count = self.settings.keep_alive_count * self.\
-            settings.usb_count
+        reset_poll_count = self.settings.keep_alive_count * 30 * 4
 
         # # # # # # DAEMON LOOP ENTRY # # # # # #
 
@@ -114,10 +113,13 @@ class PyBlaster:
             poll_count += 1
 
             # Check cmd fifo for new commands.
-            self.cmd.read_fifo()
+            if poll_count % 10 == 0:
+                # each 300 ms is enough
+                self.cmd.read_fifo()
 
             # Check button events
-            self.buttons.read_buttons()
+            if self.buttons.has_button_events():
+                self.buttons.read_buttons()
 
             # Check bluetooth channel for new messages/connections.
             self.rfcomm.check_incomming_commands()
@@ -129,19 +131,26 @@ class PyBlaster:
                     self.cmd.evalcmd(ircmd, "lirc")
 
             # Check if song has ended
-            self.play.check_pygame_events()
+            if poll_count % 4 == 0:
+                # every 120 ms
+                self.play.check_pygame_events()
 
-            # read bluetooth has internal BT timeout of 1sec,
-            # but if connection got lost, fast polling will occur.
             time.sleep(self.settings.polltime / 1000.)  # 30ms default in
                                                         # config
-            self.led.set_led_green((poll_count/10) % 2)
+
+            if poll_count % self.settings.keep_alive_count == 0:
+                self.led.set_led_green(1)
+
+            if (poll_count - self.settings.flash_count) % \
+                    self.settings.keep_alive_count == 0:
+                self.led.set_led_green(0)
 
             # Check for new USB drives.
-            if poll_count % self.settings.usb_count == 0:
+            if poll_count % 30 == 0:
                 # If new usb device found, new usbdev instance will be created,
                 # including dir and mp3 entries.
                 # If usb device got lost, all its entries will be removed.
+                # To check every ~900ms is enough
                 self.usb.check_new_usb()
 
             # Multiple of all poll counts reached:
@@ -155,7 +164,7 @@ class PyBlaster:
 
         # join remaining threads
         self.lirc.join()
-        self.buttons.join_all_threads()
+        self.buttons.join()
         self.rfcomm.join()
 
         self.log.write(log.MESSAGE, "---- closed regularly ----")

@@ -22,7 +22,7 @@ class ButtonThread(threading.Thread):
     """Check if button pressed and push press events into queue -- threaded
     """
 
-    def __init__(self, root, pin, name, queue, queue_lock):
+    def __init__(self, root, pins, names, queue, queue_lock):
         """Init thread object
 
         Do not init GPIO pin here, might not be initialized.
@@ -36,32 +36,33 @@ class ButtonThread(threading.Thread):
 
         threading.Thread.__init__(self)
         self.root = root
-        self.pin = pin
-        self.name = name
+        self.pins = pins
+        self.names = names
         self.queue = queue
         self.queue_lock = queue_lock
-        self.prev_in = 0
+        self.prev_in = [0] * len(self.pins)
 
     def run(self):
         """Read button while keep_run in root object is true
         """
 
-        GPIO.setup(self.pin, GPIO.IN)
+        for pin in self.pins:
+            GPIO.setup(pin, GPIO.IN)
 
         while self.root.keep_run:
-            time.sleep(0.01)  # TODO: to config
-            inpt = GPIO.input(self.pin)
-            if (not self.prev_in) and inpt:
-                self.queue_lock.acquire()
-                self.queue.put([self.pin, self.name])
-                self.queue_lock.release()
+            time.sleep(0.05)  # TODO: to config
+            for i in range(len(self.pins)):
+                inpt = GPIO.input(self.pins[i])
+                if (not self.prev_in[i]) and inpt:
+                    self.queue_lock.acquire()
+                    self.queue.put([self.pins[i], self.names[i]])
+                    self.queue_lock.release()
+                self.prev_in[i] = inpt
 
-            self.prev_in = inpt
-
-            # Blue and white buttons are vol up and down.
-            # These should have hold functionality.
-            if self.name == "blue" or self.name == "white":
-                self.prev_in = 0
+                # Blue and white buttons are vol up and down.
+                # These should have hold functionality.
+                if self.pins[i] == BUTTON_BLUE or self.pins[i] == BUTTON_WHITE:
+                    self.prev_in[i] = 0
 
     # end run()
 
@@ -80,31 +81,23 @@ class Buttons:
         self.queue = Queue.Queue()  # use one queue for all buttons
         self.queue_lock = threading.Lock()
 
-        self.btn_threads = []
-        self.btn_threads.append(ButtonThread(root, BUTTON_GREEN, "green",
-                                             self.queue, self.queue_lock))
-        self.btn_threads.append(ButtonThread(root, BUTTON_YELLOW, "yellow",
-                                             self.queue, self.queue_lock))
-        self.btn_threads.append(ButtonThread(root, BUTTON_RED, "red",
-                                             self.queue, self.queue_lock))
-        self.btn_threads.append(ButtonThread(root, BUTTON_BLUE, "blue",
-                                             self.queue, self.queue_lock))
-        self.btn_threads.append(ButtonThread(root, BUTTON_WHITE, "white",
-                                             self.queue, self.queue_lock))
+        self.btn_thread = \
+            ButtonThread(root, [BUTTON_GREEN, BUTTON_YELLOW, BUTTON_RED,
+                                BUTTON_BLUE, BUTTON_WHITE],
+                         ["green", "yellow", "red", "blue", "white"],
+                         self.queue, self.queue_lock)
 
-    def start_threads(self):
+    def start(self):
         """Let each button thread start.
 
         Not called in __init__() because of GPIO init.
         """
-        for t in self.btn_threads:
-            t.start()
+        self.btn_thread.start()
 
-    def join_all_threads(self):
+    def join(self):
         """Join all button threads after keep_run in root is False.
         """
-        for t in self.btn_threads:
-            t.join()
+        self.btn_thread.join()
 
     def has_button_events(self):
         """True if button events in queue

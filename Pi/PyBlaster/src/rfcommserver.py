@@ -41,9 +41,9 @@ class ServerThread(threading.Thread):
         self.mode = NOTCONNECTED
         self.client_sock = None
         self.client_info = None
-        self.timeout = 0.01  # socket timeouts for non blocking con.
+        self.timeout = 0.1  # socket timeouts for non blocking con.
         self.comm_timeout = 2  # increase timeout on send/recv
-        self.timeoutpolls = 1000  # disconnect after N inactivity timeouts
+        self.timeoutpolls = 200  # disconnect after N inactivity timeouts
         self.nowpolls = 0  # reset after each receive,
         # incremented while waiting for data
         self.cmdbuffer = []  # split incoming commands by lines

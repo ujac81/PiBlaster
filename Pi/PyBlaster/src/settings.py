@@ -36,7 +36,6 @@ class Settings:
         self.polltime = 30          # daemon poll time in ms
         self.flash_count = 2        # flash activity LED n poll
         self.keep_alive_count = 20  # let activity LED flash every n polls
-        self.usb_count = 1          # check usb drives every n polls
         self.pin1_default = "1234"
         self.pin2_default = "4567"
         self.puk = "1234567890"
