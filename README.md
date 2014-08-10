@@ -114,7 +114,6 @@ sudo irrecord -d /dev/lirc0 /etc/lirc/lircd.conf
 Store the file to */etc/lirc/lircd.conf*.
 For my controller it looks like this:
 ```
-/etc/lirc/lircd.conf
 # Please make this file available to others
 # by sending it to <lirc@bartelmus.de>
 #
@@ -173,8 +172,8 @@ begin remote
 
 end remote
 ```
-The key names are free, but there is an unwritten standard for the key
-naming, the maybe just use these names.
+The key naming is free, but there is an unwritten standard for the key
+naming. So maybe just use these names.
 
 Now lirc daemon should be started on boot.
 To tell your application how to use the lirc commands, you need to configure
