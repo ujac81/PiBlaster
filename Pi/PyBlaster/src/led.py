@@ -8,18 +8,28 @@ import threading
 import time
 
 # port number on GPIO in BCM mode
-LED_GREEN = 2
-LED_YELLOW = 3
-LED_RED = 4
-LED_BLUE = 17
-LED_WHITE = 27
+# Do not interfere with DAC+ snd-card:
+# ----- hifiberry dac+ config -----
+# setgpio 2 ALT0 UP # I2C communication DAC chip
+# setgpio 3 ALT0 UP # I2C communication DAC chip
+# setgpio 6 INPUT DEFAULT # do not use, reserved for Master clock
+# setgpio 18 ALT0 DEFAULT # I2S
+# setgpio 19 ALT0 DEFAULT # I2S
+# setgpio 20 ALT0 DEFAULT # I2S
+# setgpio 21 ALT0 DEFAULT # I2S
+# ----- END -----
+LED_GREEN = 7
+LED_YELLOW = 8
+LED_RED = 9
+LED_BLUE = 10
+LED_WHITE = 11
 
 
 class LED:
     """LED GPIO handler for PyBlaster"""
 
     def __init__(self, parent):
-        """Initialize GPIO to BOARD mode and disable warnings"""
+        """Initialize GPIO to BCM mode and disable warnings"""
 
         self.parent = parent
         self.state = [0]*5

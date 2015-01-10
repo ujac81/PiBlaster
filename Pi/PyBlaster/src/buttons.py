@@ -10,12 +10,14 @@ import time
 
 import log
 
-# port number on GPIO in BCM mode
-BUTTON_GREEN = 14
-BUTTON_YELLOW = 15
-BUTTON_RED = 18
-BUTTON_BLUE = 23
-BUTTON_WHITE = 24
+# port number on GPIO in BCM mode.
+# Mode set by LED init.
+# See led.py for comment on blocked GPIOs for dac+
+BUTTON_GREEN = 12
+BUTTON_YELLOW = 13
+BUTTON_RED = 14
+BUTTON_BLUE = 15
+BUTTON_WHITE = 16
 
 
 class ButtonThread(threading.Thread):
