@@ -18,5 +18,5 @@ mkdir -pv /var/lib/pyblaster
 chmod 755 /opt/PyBlaster/python2.7/main.py
 ln -sf /opt/PyBlaster/python2.7/main.py /usr/bin/pyblaster
 
-update-rc.d pyblaster enable
+update-rc.d pyblaster defaults
 

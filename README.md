@@ -58,6 +58,12 @@ In the software configuration select
 and reboot. If connected via LAN you can now use ssh to connect to your PI.
 Default password for user pi is *raspberry*.
 
+To set locale do
+
+    $ sudo dpkg-reconfigure locales
+
+You can select en_US.UTF-8. Relogin to apply locales for your terminal.
+
 To upgrade run
 
     $ sudo aptitude update
@@ -307,11 +313,14 @@ For the volume increase and decrease command we allow repeat (hold key works).
 To run other commands via remote controller, you will have to start the irexec
 daemon, but its not required for pyblaster to work.
 
-
-
-
-
 ## Configure PiBlaster
+
+### Run mode
+Per default PyBlaster will start on boot in terminal mode. This means it won't
+daemonize silently and just do its work, but will print to boot console.
+In terminal mode it will also prevent blanking of the screen.
+This is good for development/debugging, but might not be the right thing for
+you. To enable/disable terminal mode, check */etc/default/pyblaster* file.
 
 
 

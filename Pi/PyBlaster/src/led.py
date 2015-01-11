@@ -18,11 +18,11 @@ import time
 # setgpio 20 ALT0 DEFAULT # I2S
 # setgpio 21 ALT0 DEFAULT # I2S
 # ----- END -----
-LED_GREEN = 7
-LED_YELLOW = 8
-LED_RED = 9
-LED_BLUE = 10
-LED_WHITE = 11
+LED_GREEN = 4
+LED_YELLOW = 27
+LED_RED = 10
+LED_BLUE = 14
+LED_WHITE = 23
 
 
 class LED:
@@ -112,10 +112,14 @@ class LED:
         GPIO.cleanup()
 
     def flash_led(self, led_code, flash_time):
+        """Let a LED flash a certain amount of time and set LED port to LOW
+        afterwards.
+
+        Uses threading.Timer with GPIO.output() as callback.
         """
 
-        """
         if not self.init_done:
+            # disallow flash if GPIO not initialized
             return
         GPIO.output(led_code, 1)
         timer = threading.Timer(flash_time, GPIO.output, [led_code, 0])

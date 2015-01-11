@@ -16,6 +16,10 @@ NAME=pyblaster
 [ -r /etc/default/$NAME ] && . /etc/default/$NAME
 DAEMON="$PYBLASTER_PATH/main.py"
 
+# check if running headless -- if headless turn off terminal mode
+if /opt/vc/bin/tvservice -s | grep 'NTSC\|PAL'; then
+  PYBLASTER_TERMINAL_MODE=0
+fi
 
 if [ "$PYBLASTER_TERMINAL_MODE" = 1 -o "$PYBLASTER_AUTO_RESPAWN" = 1 ]; then
   setterm -blank 0
