@@ -10,7 +10,7 @@ dist
 build
 eggs
 parts
-bin
+# bin
 var
 sdist
 develop-eggs
@@ -36,5 +36,7 @@ nosetests.xml
 Android/build-PiBlaster-Android_for_armeabi_v7a_GCC_4_8_Qt_5_2_0-Debug/
 
 Android/PiBlaster/PiBlaster.pro.user
-Android/build-PiBlaster-Android_for_armeabi_v7a_GCC_4_8_Qt_5_2_0-Release/
-Android/build-PiBlaster-Desktop_Qt_5_2_0_GCC_64bit-Debug/
+Android/build-PiBlaster-*
+Android/PiBlaster/PiBlaster.pro.user.3.2-pre1
+Android/PiBlaster/android-sources/AndroidManifest.xml.autosave
+.idea

@@ -6,8 +6,10 @@ cmake_minimum_required(VERSION 2.8)
 include(version.cmake)
 
 
-add_subdirectory(src)
+add_subdirectory(bin)
 add_subdirectory(config)
+add_subdirectory(src)
+
 
 
 set(CPACK_COMPONENTS_ALL_IN_ONE_PACKAGE 1)

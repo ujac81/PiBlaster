@@ -12,6 +12,7 @@ import time
 from mutagen.easyid3 import EasyID3
 from mutagen.id3 import ID3NoHeaderError
 
+from dirscanner import DirScanner
 import log
 from helpers import seconds_to_minutes
 
@@ -33,6 +34,7 @@ class UsbDevice:
         self.main = parent.parent
         self.mnt_pnt = mnt_pnt
         self.label = None
+        self.uuid = None
         self.alias = None
         self.dev = None
         self.revision = 0
@@ -49,6 +51,11 @@ class UsbDevice:
             if toks[1] == mnt_pnt:
                 self.dev = toks[0]
 
+        if self.dev is None:
+            # No device found, we assume that this is a local dir.
+            # Set device name to directory name
+            self.dev = mnt_pnt
+
         # Check that no other instance exists for this device.
         # (should not happen, but PI sometimes boots with strange mtab entries)
         if self.parent.has_usb_dev(self.dev):
@@ -56,7 +63,7 @@ class UsbDevice:
             return
 
         # Check if we have device entry for dev.
-        # (should be, but PI sometimes has obsolet entries in mounts....)
+        # (should be, but PI sometimes has obsolete entries in mounts....)
         if not os.path.exists(self.dev):
             self.valid = False
             return
@@ -71,7 +78,13 @@ class UsbDevice:
                     if toks[0] == "UUID":
                         self.uuid = toks[1].strip('"')
 
-        # Get storid and alias from database, if no alias found, use label
+        # If local directory set label and uuid to dirname.
+        if self.label is None:
+            self.label = mnt_pnt
+        if self.uuid is None:
+            self.uuid = mnt_pnt
+
+        # Get storid and alias from database, if no alias found, use label.
         self.storid, self.alias, self.revision = \
             self.main.dbhandle.get_usbid(self.uuid)
         if not self.label:
@@ -94,8 +107,8 @@ class UsbDevice:
         # Create md5 of os.walk() to check if we know this stick.
         m = md5.new()
         for root, dirs, files in os.walk(mnt_pnt):
-            # Do not add root here as it contains mount point which may change
-            # and result in a different md5 hash.
+            # Do not add root here as it contains mount point, which may
+            # change and result in a different md5 hash.
             m.update("%s%s" % (''.join(dirs), ''.join(files)))
         digest = m.hexdigest()
 
@@ -136,7 +149,9 @@ class UsbDevice:
 
             self.cur_dir_id = 0
             self.cur_tot_bytes = 0
-            self.recursive_rescan_into_db(mnt_pnt, "root", -1)
+
+            scanner = DirScanner(self, mnt_pnt, self.storid)
+            scanner.scan()
 
             stat_usb = os.statvfs(mnt_pnt)
             self.bytes_free = stat_usb.f_frsize * stat_usb.f_bavail
@@ -183,108 +198,6 @@ class UsbDevice:
         """
         self.main.log.write(log.MESSAGE, "Lost USB device %s" % self.mnt_pnt)
         self.main.listmngr.usb_removed(self.storid)
-
-    def recursive_rescan_into_db(self, path, dirname, parentid):
-        """
-        """
-
-        dirs = sorted([f for f in os.listdir(path)
-                       if os.path.isdir(os.path.join(path, f))])
-
-        files = sorted([f for f in os.listdir(path)
-                        if os.path.isfile(os.path.join(path, f))
-                        and f.endswith(".mp3")])
-
-        dirpath = os.path.relpath(path, self.mnt_pnt)
-        dirid = self.cur_dir_id
-
-        self.cur_dir_id += 1
-
-        dbfiles = []
-
-        file_id = 1
-        for f in files:
-            mp3path = os.path.join(path, f)
-            filename = os.path.basename(mp3path)
-            extension = os.path.splitext(filename)[1].replace('.', '')
-            filename = filename[:-len(extension)-1]
-            relpath = os.path.relpath(mp3path, self.mnt_pnt)
-            genre = u'Unknown Genre'
-            year = 0
-            title = filename
-            album = u'Unknown Album'
-            artist = u'Unknown Artist'
-            length = 0
-
-            try:
-                tag = EasyID3(mp3path)
-            except ID3NoHeaderError:
-                tag = {}
-
-            try:
-                self.cur_tot_bytes += os.path.getsize(mp3path)
-            except os.error:
-                pass
-
-            if 'album' in tag:
-                album = tag['album'][0]
-            if 'artist' in tag:
-                artist = tag['artist'][0]
-            if 'title' in tag:
-                title = tag['title'][0]
-            if 'genre' in tag:
-                genre = tag['genre'][0]
-            if 'date' in tag:
-                try:
-                    year = int(tag['date'][0])
-                except ValueError:
-                    year = 0
-            if 'length' in tag:
-                try:
-                    length = int(tag['length'][0]) / 1000
-                except ValueError:
-                    length = 0
-            else:
-                mf = mad.MadFile(mp3path)
-                length = mf.total_time() / 1000
-
-            disptitle = u'%s - %s' % (artist, title)
-            if artist == u'Unknown Artist':
-                disptitle = title
-
-            dbfiles.append([file_id, dirid, self.storid, relpath, filename,
-                            extension, genre, year, title, album, artist,
-                            length, disptitle])
-
-            self.main.led.set_led_yellow(file_id % 2)
-            file_id += 1
-
-            # for f in files #
-
-        self.main.dbhandle.cur.\
-            executemany('INSERT INTO Fileentries VALUES (?, ?, ?, ?, ?, ?, '
-                        '?, ?, ?, ?, ?, ?, ?)', dbfiles)
-
-        # turn off led after this dir scaned
-        self.main.led.set_led_yellow(0)
-
-        nfiles = len(files)
-        ndirs = len(dirs)
-
-        for d in dirs:
-            subdir = os.path.join(path, d)
-            counts = self.recursive_rescan_into_db(subdir, d, dirid)
-            ndirs += counts[0]
-            nfiles += counts[1]
-
-        if parentid >= 0:
-            # TODO: dirname twice -- path should be there for id reassignment.
-            self.main.dbhandle.cur.execute(
-                'INSERT INTO Dirs VALUES (?, ?, ?, ?, ?, ?, ?)',
-                (dirid, parentid, self.storid, ndirs,
-                 nfiles, dirname, dirpath))
-
-        return [ndirs, nfiles]
 
     def update_alias(self, alias):
         """Change alias for this USB dev via database"""

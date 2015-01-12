@@ -19,7 +19,23 @@ DAEMON="$PYBLASTER_PATH/main.py"
 # check if running headless -- if headless turn off terminal mode
 if /opt/vc/bin/tvservice -s | grep 'NTSC\|PAL'; then
   PYBLASTER_TERMINAL_MODE=0
+  PYBLASTER_RUN_TMUX=0
+else
+  # print boot time to terminal for boot time optimization
+  echo "Boot time: "`cat /proc/uptime | awk '{ print $1 }'`
 fi
+
+# Disable daemon mode if running in tmux mode.
+# Tmux mode is for terminal debugging and will launch a set of
+# tmux windows on the tty terminal after boot.
+# Do not use this setting in productive mode, only for development.
+if [ "$PYBLASTER_RUN_TMUX" = 1 ]; then
+    PYBLASTER_START_DAEMON=0
+fi
+
+# Do not start if should not start PiBlaster
+[ "$PYBLASTER_START_DAEMON" = 1 ] || exit 0
+
 
 if [ "$PYBLASTER_TERMINAL_MODE" = 1 -o "$PYBLASTER_AUTO_RESPAWN" = 1 ]; then
   setterm -blank 0

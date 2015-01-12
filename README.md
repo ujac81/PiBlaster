@@ -324,4 +324,35 @@ you. To enable/disable terminal mode, check */etc/default/pyblaster* file.
 
 
 
+## Faster Boot for Raspberry PI
 
+### Set Static Network Address
+If using model B, set a static ethernet address in */etc/network/interfaces*
+like
+
+    iface eth0 inet static
+            address 192.168.178.26
+            gateway 192.168.178.1
+            broadcast 192.168.178.1
+            netmask 255.255.255.0
+            network 192.168.178.0
+
+And set your nameserver in */etc/resolv.conf*
+
+    nameserver 192.168.178.1
+
+### Overclocking
+To overclock your Pi while add this to */boot/config.txt*
+
+    arm_freq=1000
+    core_freq=500
+    sdram_freq=600
+    over_voltage=6
+    force_turbo=1
+
+**Note:** Higher values will set a sticky bit inside the Pi and your warranty
+will be voided. This will boost your boot time by ~50%, but will lead to a
+higher power consumption. Also your Pi might run unstable. You have to play
+with the overclock settings to find something that suits your requirements.
+I disabled overclocking for my Pi because I want to save power and I found
+that my Pi runs unstable with these settings.

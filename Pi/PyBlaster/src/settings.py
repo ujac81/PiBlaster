@@ -46,6 +46,7 @@ class Settings:
         self.loglevel_from_cmd = False
         self.pidfile = "/var/run/pyblaster.pid"
         self.default_vol_change = 4
+        self.localdirs = []
 
         # end __init__() #
 
@@ -189,6 +190,13 @@ initial_pin2 4567
 puk 1234567890
 
 
+####################################
+# extra dirs
+####################################
+
+local_dirs /local
+
+
 """
 
         try:
@@ -260,6 +268,8 @@ puk 1234567890
                 if key == "use_lirc":
                     if val == "1":
                         self.use_lirc = True
+                if key == "local_dirs":
+                    self.localdirs = val.split()
 
             except ValueError:
                 self.parent.log.write(log.EMERGENCY, "Failed to convert %s "

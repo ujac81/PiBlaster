@@ -3,6 +3,8 @@
 @Author Ulrich Jansen <ulrich.jansen@rwth-aachen.de>
 """
 
+import os
+
 import log
 from usbdevice import UsbDevice
 from helpers import seconds_to_minutes
@@ -40,6 +42,10 @@ class UsbManager:
             if self.invaliddevs.count([dev, mnt_pnt]) == 0 \
                     and mnt_pnt.count("/media/usb") > 0:
                 usb_mounts.append(mnt_pnt)
+        # add local dirs if found
+        for localdir in self.parent.settings.localdirs:
+            if os.path.exists(localdir):
+                usb_mounts.append(localdir)
 
         # Check if new usb found.
         for item in usb_mounts:
@@ -52,6 +58,12 @@ class UsbManager:
             if usb_mounts.count(item.mnt_pnt) == 0:
                 # Lost usb device --> remove MP3s from list.
                 self.remove_usb_stor(item.mnt_pnt)
+
+        # Check local directories from config
+        for localdir in self.parent.settings.localdirs:
+            if not self.has_usb_stor(localdir):
+                # manage local directories like usb devices -- should work
+                self.new_usb_stor(localdir)
 
         # end check_new_usb() #
 

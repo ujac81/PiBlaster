@@ -24,5 +24,9 @@ install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/etc/pyblaster/pyblaster.conf
           WORLD_READ)
 
 
-
-
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/etc/profile.d/zz_pyblaster_tmux.sh
+        DESTINATION "/etc/profile.d"
+        PERMISSIONS
+          OWNER_READ OWNER_WRITE
+          GROUP_READ
+          WORLD_READ)
