@@ -1,0 +1,31 @@
+
+
+#
+PYBLASTER_PATH=/opt/PyBlaster2/python
+#
+PYBLASTER_LIB_PATH=/var/lib/pyblaster2
+
+#
+PYBLASTER_CONF=/etc/pyblaster2/pyblaster.conf
+
+
+# Will cause /etc/profile.d/zz_pyblaster2_tmux.sh to launch PyBlaster in
+# tmux windows on terminal tty1 if user pi logged in.
+# Disabled by /etc/init.d/pyblaster if headless (no hdmi conncted).
+PYBLASTER_RUN_TMUX=1
+
+# Will prevent PyBlaster from daemonizing. PyBlaster will keep flooding the
+# tty1 console with its output. Good for debugging.
+# Disabled by /etc/init.d/pyblaster if headless (no hdmi conncted).
+PYBLASTER_TERMINAL_MODE=1
+
+# Auto relaunch PyBlaster if died.
+PYBLASTER_AUTO_RESPAWN=1
+
+
+# Wait N seconds before relaunch if PyBlaster died.
+PYBLASTER_AUTO_RESPAWN_TIMEOUT=10
+
+# Set this to 0 to disable automatic launch of PyBlaster at startup
+PYBLASTER_START_DAEMON=1
+

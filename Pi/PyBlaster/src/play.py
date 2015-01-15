@@ -3,7 +3,11 @@
 @Author Ulrich Jansen <ulrich.jansen@rwth-aachen.de>
 """
 
+import os
+os.environ['SDL_AUDIODRIVER'] = 'alsa'
+os.environ['AUDIODEV'] = 'equal'
 import pygame
+
 
 import codes
 import led
@@ -33,6 +37,11 @@ class Play:
         """
 
         """
+
+        # set 'alsa:equal' as audio device to use equalizer.
+        # TODO: to config
+        # os.environ['AUDIODEV'] = 'equal'
+
         pygame.init()
         pygame.mixer.init()
         pygame.mixer.music.set_endevent(SONG_END)
