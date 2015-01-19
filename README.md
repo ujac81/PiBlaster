@@ -4,6 +4,65 @@ Docs and source code for the PiBlaster project....
 
 **To be completed...**
 
+TODO: work in progress -- insert into dox
+
+sudo aptitude install mpd mpc
+
+sudo aptitude install python-pip
+
+
+/etc/mpd.conf
+
+audio_output {
+        type            "alsa"
+        name            "equal"
+        device          "plug:equal"
+}
+
+
+sudo pip install python-mpd2
+
+
+$ egrep -v '(^#|^\s*$|^\s*\t*#)' /etc/mpd.conf
+music_directory         "/var/lib/mpd/music"
+playlist_directory              "/var/lib/mpd/playlists"
+db_file                 "/var/lib/mpd/tag_cache"
+log_file                        "/var/log/mpd/mpd.log"
+pid_file                        "/var/run/mpd/pid"
+state_file                      "/var/lib/mpd/state"
+sticker_file                   "/var/lib/mpd/sticker.sql"
+user                            "root"
+bind_to_address         "localhost"
+auto_update    "yes"
+follow_outside_symlinks "yes"
+follow_inside_symlinks          "yes"
+input {
+        plugin "curl"
+}
+audio_output {
+    type        "alsa"
+    name        "My ALSA EQ"
+    device        "plug:plugequal"
+    format        "44100:16:2"    # optional
+    mixer_device    "default"    # optional
+    mixer_control    "PCM"        # optional
+    mixer_index    "0"        # optional
+}
+
+filesystem_charset              "UTF-8"
+id3v1_encoding                  "UTF-8"
+
+
+mpc update
+
+http://pythonhosted.org/python-mpd2/topics/getting-started.html
+
+/etc/inittab
+
+1:2345:respawn:/sbin/getty --autologin pi --noclear 38400 tty1
+
+
+
 
 # Development Environment
 
@@ -39,7 +98,7 @@ the inserted SD card
     $ dmesg | tail
 
 it should print some information about the last connected device or so.
-You need the device name like [sdb] or [sdc]. Don't make an error here or you
+You need the device name like [sdb] or [sdc]. Don't make a mistake here or you
 might mess up one of your working devices!
 
 Copy image to SD card:
@@ -144,7 +203,9 @@ To test your equalizer, use
     $ alsamixer -D equal
     $ mplayer -ao alsa:device=equal Foo.mp3.
 
-Select *equal* device in PyBlaster: *TODO*
+**Note:** for later testing, make sure to run *alsamixer -D equal* as that user,
+who is playing the music. If e.g. mpd is run as root, you will have to do
+*sudo alsamixer -D equal* to get any effect of the equalizer.
 
 ### I2C
 To use i2c to control amps or other devices, install
@@ -330,12 +391,19 @@ you. To enable/disable terminal mode, check */etc/default/pyblaster* file.
 If using model B, set a static ethernet address in */etc/network/interfaces*
 like
 
+    auto lo
+
+    iface lo inet loopback
     iface eth0 inet static
             address 192.168.178.26
             gateway 192.168.178.1
-            broadcast 192.168.178.1
             netmask 255.255.255.0
-            network 192.168.178.0
+            dns-nameservers 192.168.178.1
+
+    allow-hotplug wlan0
+    iface wlan0 inet manual
+            wpa-roam /etc/wpa_supplicant/wpa_supplicant.conf
+
 
 And set your nameserver in */etc/resolv.conf*
 

@@ -1,7 +1,9 @@
-NAME=pyblaster
+#!/bin/bash
+
+NAME=pyblaster2
 [ -r /etc/default/$NAME ] && . /etc/default/$NAME
 
-DAEMON="$PYBLASTER_PATH/main.py"
+DAEMON="$PYBLASTER_PATH/pyblaster2.py"
 DAEMON_ARGS="-f -c ${PYBLASTER_CONF}"
 
 echo 1 > /tmp/pyblaster_respawn

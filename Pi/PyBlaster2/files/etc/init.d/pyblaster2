@@ -52,7 +52,11 @@ SCRIPTNAME=/etc/init.d/$NAME
 
 
 # Exit if the package is not installed
-[ -x "$DAEMON" ] || exit 0
+[ -x "$DAEMON" ] || \
+{
+  echo "Not daemonizing PyBlaster -- leaving init script."
+  exit 0
+}
 
 # Load the VERBOSE setting and other rcS variables
 . /lib/init/vars.sh

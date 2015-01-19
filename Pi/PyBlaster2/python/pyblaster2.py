@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 """ pyblaster.py -- Daemon for PiBlaster project
 
 @Author Ulrich Jansen <ulrich.jansen@rwth-aachen.de>
@@ -9,18 +9,10 @@ import signal
 import time
 
 import log
-from alsamixer import AlsaMixer
-from buttons import Buttons
-from dbhandle import DBHandle
-from evalcmd import EvalCmd
-from led import LED
-from lircthread import LircThread
+
+from gpio import PB_GPIO, LED
 from log import Log
-from play import Play
-from playlistmanager import PlayListManager
-from rfcommserver import RFCommServer
 from settings import Settings
-from usbmanager import UsbManager
 
 
 class PyBlaster:
@@ -32,54 +24,25 @@ class PyBlaster:
 
         # +++++++++++++++ Init +++++++++++++++ #
 
-        self.keep_run = 0  # used in run for daemon loop, reset by SIGTERM
+        self.keep_run = 1  # used in run for daemon loop, reset by SIGTERM
+        self.ret_code = 0  # return code to command line (10 = shutdown)
+
+        # +++++++++++++++ Objects +++++++++++++++ #
+
+        # Each inner object will get reference to PyBlaster as self.main.
 
         self.log = Log(self)
         self.settings = Settings(self)
+        PB_GPIO.init_gpio()
         self.led = LED(self)
-        self.dbhandle = DBHandle(self)
-        self.mixer = AlsaMixer(self)
-        self.usb = UsbManager(self)
-        self.rfcomm = RFCommServer(self)
-        self.cmd = EvalCmd(self)
-        self.listmngr = PlayListManager(self)
-        self.play = Play(self)
-        self.lirc = LircThread(self)
-        self.buttons = Buttons(self)
-        self.keep_run = 1
-        self.ret_code = 0  # return code to command line (10 = shutdown)
+
+        # +++++++++++++++ Init Objects +++++++++++++++ #
+
+        # Make sure to run init functions in proper order!
+        # Some might depend upon others ;)
 
         self.led.reset_leds()
-
-        # invoke arg parser and parse config or create new config if not found
         self.settings.parse()
-
-        # check if we can load database, create otherwise
-        self.dbhandle.dbconnect()
-
-        # restore alsa mixer settings
-        self.mixer.restore_mixer()
-
-        # load connected usb before bluetooth
-        self.usb.check_new_usb()
-
-        # initialize sound mixer
-        self.play.init_mixer()
-
-        # load latest playlist from database
-        self.listmngr.load_active_playlist()
-
-        # open cmd fifo to read commands
-        self.cmd.open_fifo()
-
-        # fire up bluetooth service
-        self.rfcomm.start_server_thread()
-
-        # start lirc thread
-        self.lirc.start()
-
-        # fire up one thread per each button
-        self.buttons.start()
 
         # +++++++++++++++ Daemoninze +++++++++++++++ #
 
@@ -87,17 +50,18 @@ class PyBlaster:
         self.daemonize()
         self.create_pidfile()
 
-        self.led.show_init_done()
-
         # +++++++++++++++ Daemon loop +++++++++++++++ #
 
+        self.led.show_init_done()
         self.run()
 
         # +++++++++++++++ Finalize +++++++++++++++ #
 
-        self.listmngr.save_active()
-        self.led.cleanup()
+        # join remaining threads
+
+        # cleanup
         self.delete_pidfile()
+        PB_GPIO.cleanup()
 
     def run(self):
         """Daemon loop"""
@@ -107,9 +71,7 @@ class PyBlaster:
         poll_count = 0
 
         # -e flag is set, run only init and exit directly.
-        self.keep_run = 0 if self.settings.exitafterinit else 1
-
-        reset_poll_count = self.settings.keep_alive_count * 30 * 4
+        # self.keep_run = 0 if self.settings.exitafterinit else 1
 
         # # # # # # DAEMON LOOP ENTRY # # # # # #
 
@@ -117,65 +79,11 @@ class PyBlaster:
 
             poll_count += 1
 
-            # Check cmd fifo for new commands.
-            if poll_count % 10 == 0:
-                # each 300 ms is enough
-                self.cmd.read_fifo()
-
-            # Check button events
-            if self.buttons.has_button_events():
-                self.buttons.read_buttons()
-
-            # Check bluetooth channel for new messages/connections.
-            self.rfcomm.check_incomming_commands()
-
-            # Check if lirc thread has command in queue
-            if self.lirc.queue_not_empty():
-                ircmd = self.lirc.read_command()
-                if ircmd is not None:
-                    self.cmd.evalcmd(ircmd, "lirc")
-
-            # Check if song has ended
-            if poll_count % 4 == 0:
-                # every 120 ms
-                self.play.check_pygame_events()
-
-            time.sleep(self.settings.polltime / 1000.)  # 30ms default in
-                                                        # config
-
-            if poll_count % self.settings.keep_alive_count == 0:
-                self.led.set_led_green(1)
-
-            if (poll_count - self.settings.flash_count) % \
-                    self.settings.keep_alive_count == 0:
-                self.led.set_led_green(0)
-
-            # Check for new USB drives.
-            if poll_count % 30 == 0:
-                # If new usb device found, new usbdev instance will be created,
-                # including dir and mp3 entries.
-                # If usb device got lost, all its entries will be removed.
-                # To check every ~900ms is enough
-                self.usb.check_new_usb()
-
-            # Multiple of all poll counts reached:
-            # may reset poll count at reset_poll_count.
-            if poll_count >= reset_poll_count:
-                poll_count = 0
+            time.sleep(30. / 1000.)  # 30ms default in config
 
             # end daemon loop #
 
         # # # # # # DAEMON LOOP EXIT # # # # # #
-
-        # join remaining threads
-        self.mixer.save_mixer()
-        self.lirc.join()
-        self.buttons.join()
-        self.rfcomm.join()
-
-        self.log.write(log.MESSAGE, "---- closed regularly ----")
-
-    # end run() #
 
     def daemonize(self):
         """Fork process and disable print in log object"""
@@ -192,7 +100,7 @@ class PyBlaster:
         try:
             pid = os.fork()
         except OSError:
-            self.log.write(log.EMERGENCY, "Failed to fork daemon")
+            # self.log.write(log.EMERGENCY, "Failed to fork daemon")
             raise
 
         if pid == 0:
@@ -200,22 +108,20 @@ class PyBlaster:
             try:
                 pid = os.fork()
             except OSError:
-                self.log.write(log.EMERGENCY, "Failed to fork daemon")
+                # self.log.write(log.EMERGENCY, "Failed to fork daemon")
                 raise
 
             if pid == 0:
                 os.chdir("/tmp")
                 os.umask(0)
             else:
-                os._exit(0)
+                exit(0)
         else:
-            os._exit(0)
+            exit(0)
 
         self.settings.is_daemonized = True
         self.log.init_log()
         self.log.write(log.MESSAGE, "daemonized.")
-
-    # end daemonize() #
 
     def term_handler(self, *args):
         """ Signal handler to stop daemon loop"""
@@ -226,7 +132,7 @@ class PyBlaster:
 
         if os.path.exists(self.settings.pidfile):
             self.log.write(log.EMERGENCY, "Found pid file for pyblaster, "
-                           "another process running?")
+                                          "another process running?")
             raise Exception("pid file found")
 
     def create_pidfile(self):
@@ -277,8 +183,6 @@ class PyBlaster:
             raise
 
         exit(0)
-
-        # end kill_other_pyblaster() #
 
 
 if __name__ == '__main__':
