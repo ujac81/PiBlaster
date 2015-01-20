@@ -4,6 +4,8 @@
 
 [ `ps aux | grep -c " tmux "` -gt 1 ] && exit 0
 
+setterm -blank 0
+
 # new tmux session assuming 256 colors
 tmux -2 new-session -d -s pyblaster
 

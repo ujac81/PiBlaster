@@ -40,6 +40,7 @@ class Settings:
         self.dbfile = "/var/lib/pyblaster2/pyblaster.sqlite"
         self.use_lirc = False  # Listen on infrared device (requires lirc)
         self.pidfile = "/var/run/pyblaster2.pid"
+        self.rebuilddb = False  # If set to true database will be rebuilt.
 
     def parse(self):
         """ Parse command line args, set defaults and invoke self.read_config()
@@ -114,7 +115,7 @@ class Settings:
                                 (key, val))
 
             try:
-                if key == "loglevel" and self.loglevel != -1:
+                if key == "loglevel" and self.loglevel == -1:
                     self.loglevel = int(val)
                 if key == "logfile":
                     self.logfile = val

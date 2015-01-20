@@ -9,6 +9,7 @@ DAEMON_ARGS="-f -c ${PYBLASTER_CONF}"
 echo 1 > /tmp/pyblaster_respawn
 
 do_poweroff=0
+setterm -blank 0
 
 (while [ "`cat /tmp/pyblaster_respawn`" = 1 ]; do
 

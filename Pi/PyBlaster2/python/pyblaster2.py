@@ -10,9 +10,12 @@ import time
 
 import log
 
-from gpio import PB_GPIO, LED
+from cmd import Cmd
+from gpio import PB_GPIO, LED, Buttons
 from log import Log
+from mpc import MPC
 from settings import Settings
+from sql import DBHandle
 
 
 class PyBlaster:
@@ -35,6 +38,10 @@ class PyBlaster:
         self.settings = Settings(self)
         PB_GPIO.init_gpio()
         self.led = LED(self)
+        self.buttons = Buttons(self)
+        self.dbhandle = DBHandle(self)
+        self.cmd = Cmd(self)
+        self.mpc = MPC(self)
 
         # +++++++++++++++ Init Objects +++++++++++++++ #
 
@@ -43,6 +50,8 @@ class PyBlaster:
 
         self.led.reset_leds()
         self.settings.parse()
+        self.dbhandle.dbconnect()
+        self.mpc.connect()
 
         # +++++++++++++++ Daemoninze +++++++++++++++ #
 
@@ -53,11 +62,14 @@ class PyBlaster:
         # +++++++++++++++ Daemon loop +++++++++++++++ #
 
         self.led.show_init_done()
+        self.buttons.start()
         self.run()
 
         # +++++++++++++++ Finalize +++++++++++++++ #
 
         # join remaining threads
+        self.buttons.join()
+        self.mpc.join()
 
         # cleanup
         self.delete_pidfile()
@@ -75,11 +87,19 @@ class PyBlaster:
 
         # # # # # # DAEMON LOOP ENTRY # # # # # #
 
+        self.log.write(log.MESSAGE, "Entering daemon loop...")
+
         while self.keep_run:
 
             poll_count += 1
 
             time.sleep(30. / 1000.)  # 30ms default in config
+
+            if self.buttons.has_button_events():
+                self.buttons.read_buttons()
+
+            if self.mpc.has_idle_event():
+                self.mpc.process_event()
 
             # end daemon loop #
 

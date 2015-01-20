@@ -3,9 +3,12 @@
 @Author Ulrich Jansen <ulrich.jansen@rwth-aachen.de>
 """
 
+import Queue
 import RPi.GPIO as GPIO
 import threading
 import time
+
+import log
 
 # port number on GPIO in BCM mode
 # Do not interfere with DAC+ snd-card:
@@ -23,6 +26,12 @@ LED_YELLOW = 27
 LED_RED = 10
 LED_BLUE = 14
 LED_WHITE = 23
+
+BUTTON_GREEN = 17
+BUTTON_YELLOW = 22
+BUTTON_RED = 9
+BUTTON_BLUE = 15
+BUTTON_WHITE = 24
 
 
 class PB_GPIO:
@@ -128,3 +137,151 @@ class LED:
         GPIO.output(led_code, 1)
         timer = threading.Timer(flash_time, GPIO.output, [led_code, 0])
         timer.start()
+
+
+class ButtonThread(threading.Thread):
+    """Check if button pressed and push press events into queue -- threaded
+
+    Created by Buttons.
+    """
+
+    def __init__(self, main, pins, names, queue, queue_lock):
+        """Init thread object
+
+        Do not init GPIO pin here, might not be initialized.
+
+        :param main: PyBlaster main object
+        :param pins: GPIO port numbers in BCM mode
+        :param names: Names of the button for queuing
+        :param queue: queue object to push pressed events into
+        :param queue_lock: lock queue while insertion
+        """
+
+        threading.Thread.__init__(self)
+        self.main = main
+        self.pins = pins
+        self.names = names
+        self.queue = queue
+        self.queue_lock = queue_lock
+        # Remember button state if button is pressed longer than one poll.
+
+        # CAUTION: depending on your wiring and on some other unknown
+        # circumstances, a released button might be in HIGH or LOW state.
+        # For my wiring it's HIGH (1), so I need to invert all
+        # "button pressed" logics. If your buttons are in LOW state, invert
+        # all boolean conditions.
+        self.prev_in = [1] * len(self.pins)  # init for released buttons
+
+    def run(self):
+        """Read button while keep_run in root object is true
+        """
+
+        for pin in self.pins:
+            GPIO.setup(pin, GPIO.IN)
+
+        while self.main.keep_run:
+            time.sleep(0.01)  # TODO: to config
+            for i in range(len(self.pins)):
+                if not self.main.keep_run:
+                    # leave if exited in between
+                    return
+                inpt = GPIO.input(self.pins[i])
+                if self.prev_in[i] and not inpt:
+                    self.queue_lock.acquire()
+                    self.queue.put([self.pins[i], self.names[i]])
+                    self.queue_lock.release()
+                self.prev_in[i] = inpt
+
+                # Blue and white buttons are vol up and down.
+                # These should have hold functionality.
+                if self.pins[i] == BUTTON_BLUE or self.pins[i] == BUTTON_WHITE:
+                    self.prev_in[i] = 1
+
+
+class Buttons:
+    """Manage button thread and check if any button sent command to queue.
+
+    Button thread will read button state every 0.0X seconds and queue
+    changed state to this object's queue.
+    Main loop will ask this object for button events and invoke read_buttons()
+    if such.
+    """
+
+    def __init__(self, main):
+        """Create thread for push buttons using names and GPIO ports
+
+        Thread is not started from here -- need to wait until LED class
+        initialized GPIO.
+        """
+
+        self.main = main
+        self.queue = Queue.Queue()  # use one queue for all buttons
+        self.queue_lock = threading.Lock()
+
+        self.btn_thread = \
+            ButtonThread(main,
+                         [BUTTON_GREEN, BUTTON_YELLOW, BUTTON_RED,
+                          BUTTON_BLUE, BUTTON_WHITE],
+                         ["green", "yellow", "red", "blue", "white"],
+                         self.queue, self.queue_lock)
+
+    def start(self):
+        """Let each button thread start.
+
+        Not called in __init__() because of later GPIO init in LED class.
+        """
+        self.btn_thread.start()
+
+    def join(self):
+        """Join all button threads after keep_run in root is False.
+        """
+        self.btn_thread.join()
+
+    def has_button_events(self):
+        """True if button events in queue
+        """
+        if not self.queue.empty():
+            return True
+        return False
+
+    def read_last_button_event(self):
+        """dry run queue and return last command if such -- None else
+
+        :returns: None if no push event or [pin, button_name]
+        """
+        result = None
+
+        while not self.queue.empty():
+            self.queue_lock.acquire()
+            try:
+                result = self.queue.get_nowait()
+            except Queue.Empty:
+                self.queue_lock.release()
+                return None
+            self.queue_lock.release()
+
+        return result
+
+    def read_buttons(self):
+        """Execute command if button event found.
+
+        Called by main loop if has_button_events() is true.
+        """
+        event = self.read_last_button_event()
+        if event is None:
+            return
+
+        button_color = event[1]
+        self.main.log.write(log.MESSAGE, "--- Button \"%s\" pressed" %
+                                         button_color)
+
+        if button_color == "green":
+            self.main.cmd.eval("playpause", "button")
+        if button_color == "yellow":
+            self.main.cmd.eval("playnext", "button")
+        if button_color == "red":
+            self.main.cmd.eval("poweroff", "button")
+        if button_color == "blue":
+            self.main.cmd.eval("volinc", "button")
+        if button_color == "white":
+            self.main.cmd.eval("voldec", "button")

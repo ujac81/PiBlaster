@@ -20,9 +20,6 @@ DAEMON="$PYBLASTER_PATH/pyblaster2.py"
 if /opt/vc/bin/tvservice -s | grep 'NTSC\|PAL'; then
   PYBLASTER_TERMINAL_MODE=0
   PYBLASTER_RUN_TMUX=0
-else
-  # print boot time to terminal for boot time optimization
-  echo "Boot time: "`cat /proc/uptime | awk '{ print $1 }'`
 fi
 
 # Disable daemon mode if running in tmux mode.
