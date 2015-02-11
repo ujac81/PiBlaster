@@ -1,6 +1,0 @@
-#!/bin/sh
-
-
-rm /opt/PyBlaster2/python/*.pyc
-
-update-rc.d pyblaster2 remove
