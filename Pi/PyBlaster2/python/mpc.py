@@ -54,6 +54,8 @@ class MPDIdler(threading.Thread):
 
         self.client.disconnect()
 
+        self.main.log.write(log.MESSAGE, "[THREAD] MPD Idler leaving...")
+
 
 class MPC:
     """
@@ -109,5 +111,24 @@ class MPC:
     def join(self):
         """Join all button threads after keep_run in root is False.
         """
+        # This is a dirty hack.
+        # join() is called after main loop left in PyBlaster.
+        # The loop in MPDIdler should exit now, but would hang in idle().
+        # So we trigger some mpd command to wake up the idler and MPDIdler
+        # thread can exit.
+        self.update_database()
         self.idler.join()
+
+    def update_database(self):
+        """Trigger mpd update command (!= rescan).
+        Idler will get notified when scan is done.
+        """
+        self.client.update()
+
+    def exit_client(self):
+        """Disconnect from mpc
+
+        Call after join(), short before end of program
+        """
+        self.client.disconnect()
 

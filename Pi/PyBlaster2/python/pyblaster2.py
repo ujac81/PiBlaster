@@ -67,11 +67,16 @@ class PyBlaster:
 
         # +++++++++++++++ Finalize +++++++++++++++ #
 
+        self.log.write(log.MESSAGE, "Joining threads...")
+
         # join remaining threads
         self.buttons.join()
         self.mpc.join()
 
+        self.log.write(log.MESSAGE, "leaving...")
+
         # cleanup
+        self.mpc.exit_client()
         self.delete_pidfile()
         PB_GPIO.cleanup()
 
@@ -81,6 +86,7 @@ class PyBlaster:
         # Expensive operations like new usb drive check
         # should not be run every loop run.
         poll_count = 0
+        led_count = 1
 
         # -e flag is set, run only init and exit directly.
         # self.keep_run = 0 if self.settings.exitafterinit else 1
@@ -100,6 +106,13 @@ class PyBlaster:
 
             if self.mpc.has_idle_event():
                 self.mpc.process_event()
+
+            # TODO: play LEDs while playing -- if paused, do something else...
+
+            if poll_count % 10 == 0:
+                self.led.play_leds(led_count)
+                led_count += 1
+
 
             # end daemon loop #
 
@@ -145,6 +158,7 @@ class PyBlaster:
 
     def term_handler(self, *args):
         """ Signal handler to stop daemon loop"""
+        self.log.write(log.MESSAGE, "Got TERM or INT signal -- leaving!")
         self.keep_run = 0
 
     def check_pidfile(self):

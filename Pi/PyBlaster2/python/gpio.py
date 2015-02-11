@@ -21,17 +21,17 @@ import log
 # setgpio 20 ALT0 DEFAULT # I2S
 # setgpio 21 ALT0 DEFAULT # I2S
 # ----- END -----
-LED_GREEN = 4
-LED_YELLOW = 27
-LED_RED = 10
-LED_BLUE = 14
-LED_WHITE = 23
+LED_GREEN = 15
+LED_YELLOW = 24
+LED_RED = 12
+LED_BLUE = 17
+LED_WHITE = 11
 
-BUTTON_GREEN = 17
-BUTTON_YELLOW = 22
-BUTTON_RED = 9
-BUTTON_BLUE = 15
-BUTTON_WHITE = 24
+BUTTON_GREEN = 14
+BUTTON_YELLOW = 23
+BUTTON_RED = 25
+BUTTON_BLUE = 27
+BUTTON_WHITE = 9
 
 
 class PB_GPIO:
@@ -94,7 +94,7 @@ class LED:
     def set_leds(self, state):
         """Set all LEDs to state"""
 
-        for led in range(4):
+        for led in range(5):
             self.set_led(led, state)
 
     def set_led_green(self, state):
@@ -121,8 +121,15 @@ class LED:
     def set_led_by_gpio(self, state, stateid, port):
         if not self.init_done:
             return
-        GPIO.output(port, state)
-        self.state[stateid] = state
+
+        if state == 1:
+            self.state[stateid] += 1
+            GPIO.output(port, 1)
+        elif state == 0:
+            self.state[stateid] -= 1
+        if self.state[stateid] <= 0:
+            self.state[stateid] = 0
+            GPIO.output(port, 0)
 
     def flash_led(self, led_code, flash_time):
         """Let a LED flash a certain amount of time and set LED port to LOW
@@ -137,6 +144,15 @@ class LED:
         GPIO.output(led_code, 1)
         timer = threading.Timer(flash_time, GPIO.output, [led_code, 0])
         timer.start()
+
+    def play_leds(self, count):
+        """
+
+        :param count:
+        :return:
+        """
+        self.set_led((count-1) % 5, 0)
+        self.set_led(count % 5, 1)
 
 
 class ButtonThread(threading.Thread):
@@ -176,26 +192,30 @@ class ButtonThread(threading.Thread):
         """Read button while keep_run in root object is true
         """
 
-        for pin in self.pins:
-            GPIO.setup(pin, GPIO.IN)
+        for i in range(len(self.pins)):
+            GPIO.setup(self.pins[i], GPIO.IN)
+            self.prev_in[i] = GPIO.input(self.pins[i])
 
         while self.main.keep_run:
             time.sleep(0.01)  # TODO: to config
             for i in range(len(self.pins)):
-                if not self.main.keep_run:
-                    # leave if exited in between
-                    return
                 inpt = GPIO.input(self.pins[i])
-                if self.prev_in[i] and not inpt:
-                    self.queue_lock.acquire()
-                    self.queue.put([self.pins[i], self.names[i]])
-                    self.queue_lock.release()
+                if self.prev_in[i] != inpt:
+                    if inpt:
+                        print("Btn %d (%d) released" % (i, self.pins[i]))
+                    else:
+                        print("Btn %d (%d) pressed" % (i, self.pins[i]))
+                    # self.queue_lock.acquire()
+                    # self.queue.put([self.pins[i], self.names[i]])
+                    # self.queue_lock.release()
                 self.prev_in[i] = inpt
 
-                # Blue and white buttons are vol up and down.
-                # These should have hold functionality.
-                if self.pins[i] == BUTTON_BLUE or self.pins[i] == BUTTON_WHITE:
-                    self.prev_in[i] = 1
+                # # Blue and white buttons are vol up and down.
+                # # These should have hold functionality.
+                # if self.pins[i] == BUTTON_BLUE or self.pins[i] == BUTTON_WHITE:
+                #     self.prev_in[i] = 1
+
+        self.main.log.write(log.MESSAGE, "[THREAD] Button reader leaving...")
 
 
 class Buttons:
